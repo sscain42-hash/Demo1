@@ -1,12 +1,14 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using NaughtyAttributes;
 using NodeCanvas.Framework;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
-public class EnemyController : Damageable, IPooled<EnemyController>
+public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
 {
     #region === Serialized ===
 
@@ -50,6 +52,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     {
         Health = new StatusHandle();
         RuntimeConfig = Instantiate(baseConfig);
+        _originalLocalPos = transform.localPosition;
     }
 
     protected override void OnEnable()
@@ -200,7 +203,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
             finalDamage,
             isCRIT,
             true);
-
+        PlayFlinch();
         SetTakeDMG(true);
         OnTakeDamageEvent?.Invoke(this);
     }
@@ -285,6 +288,42 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     #region === Pool ===
 
     public void Release() => ReleaseCallback?.Invoke(this);
+
+ private Coroutine _flinchRoutine;
+    private Vector3 _originalLocalPos;
+
+
+
+    public void PlayFlinch(float duration = 0.08f, float strength = 0.05f)
+    {
+        if (_flinchRoutine != null)
+            StopCoroutine(_flinchRoutine);
+
+        _flinchRoutine = StartCoroutine(FlinchRoutine(duration, strength));
+    }
+
+    private IEnumerator FlinchRoutine(float duration, float strength)
+    {
+        float time = 0f;
+
+        while (time < duration)
+        {
+            time += Time.deltaTime;
+
+            float offsetX = Random.Range(-1f, 1f) * strength;
+            float offsetY = Random.Range(-1f, 1f) * strength;
+
+            transform.localPosition = _originalLocalPos + new Vector3(offsetX, offsetY, 0f);
+
+            yield return null;
+        }
+
+        transform.localPosition = _originalLocalPos;
+        _flinchRoutine = null;
+    }
+
+  
+
     public Action<EnemyController> ReleaseCallback { get; set; }
 
     #endregion

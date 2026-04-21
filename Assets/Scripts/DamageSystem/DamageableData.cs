@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary> Lưu cặp Key-Value : GameObject-IDamageable, của các character để lấy Interface xử lý DMG </summary>
@@ -21,6 +22,26 @@ public static class DamageableData
     }
     
     public static bool Contains(GameObject _obj, out Damageable iDamageable) => _dictionary.TryGetValue(_obj, out iDamageable);
-    
-    
+   
+    public static GameObject GetNearestTarget(Vector3 position, float radius, GameObject exceptObj = null)
+{
+    GameObject nearest = null;
+    float minDist = float.MaxValue;
+
+    foreach (var kvp in _dictionary)
+    {
+        if (kvp.Key == null || kvp.Key == exceptObj) continue;
+
+        float dist = Vector3.Distance(position, kvp.Key.transform.position);
+        if (dist > radius) continue;
+
+        if (dist < minDist)
+        {
+            minDist = dist;
+            nearest = kvp.Key;
+        }
+    }
+
+    return nearest;
+}
 }

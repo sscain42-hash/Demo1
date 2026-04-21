@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using NaughtyAttributes;
 using ParadoxNotion;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
 {
@@ -13,9 +16,12 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
 
     [SerializeField] private bool drawGizmos;
     [SerializeField] private Color color ;
-
+ 
     private readonly Collider[] hitColliders = new Collider[10];
-
+    public List<GameObject>  GetTargets()
+    {
+        return new List<GameObject>(hitColliders.Where(c => c != null).Select(c => c.gameObject));
+    }
     public void CheckCollision()
     {
         var numCol = Physics.OverlapSphereNonAlloc(transform.position, radiusCheck, hitColliders, layerToCheck);
@@ -26,6 +32,7 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
         }
     }
 
+   
     public void Release() => ReleaseCallback?.Invoke(this);
     public Action<PhysicsDetection> ReleaseCallback { get; set; }
 
@@ -33,7 +40,7 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
     {
         if (!drawGizmos) return;
         Gizmos.color = color.WithAlpha(1f);
-        Gizmos.DrawWireSphere(transform.position, radiusCheck);
+        GizmoUtils.DrawCircle(transform.position, radiusCheck);
      
     }
 }

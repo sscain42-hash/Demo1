@@ -10,10 +10,12 @@ public enum AttackType
 
 public abstract class Damageable : MonoBehaviour
 {
+  
     protected virtual void OnEnable()
     {
         DamageableData.Add(gameObject, this);
         Debug.Log(gameObject.name + " registered as Damageable.");
+  
     }
     protected virtual void OnDisable() => DamageableData.Remove(gameObject);
 

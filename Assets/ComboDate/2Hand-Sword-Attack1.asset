@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeaf8e8a267f6b648b0a8f4873b6ad46, type: 3}
+  m_Name: 2Hand-Sword-Attack1
+  m_EditorClassIdentifier: Assembly-CSharp::AttackData
+  animationName: 2Hand-Sword-Attack1
+  windows:
+  - actionName: HitBox
+    startTime: 0.431
+    endTime: 0.49
+  - actionName: ComboInput
+    startTime: 0.718
+    endTime: 1
+  - actionName: DashCancel
+    startTime: 0
+    endTime: 1
+  - actionName: JumpCancel
+    startTime: 0
+    endTime: 1
