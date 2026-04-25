@@ -1,6 +1,7 @@
 ﻿
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 
@@ -209,6 +210,7 @@ public class PlayerController : Damageable
         _currentState = _states.Grounded();
         _currentState.EnterState();
         _wasGroundedLastFrame = _charController.isGrounded;
+        Na_Detection.radiusCheck = attackRange;
     }
 
     private void Update()
@@ -383,6 +385,25 @@ public class PlayerController : Damageable
         AnimationCurve.EaseInOut(0, 0, 1, 1);
     [SerializeField] private float lungeSpd = 0.18f;
     private Coroutine _lungeRoutine;
+    public float attackRange = 2f;
+    public GameObject GetTargetInRange()
+    {
+        GameObject targetObj = Na_Detection.GetTargets().FirstOrDefault();
+
+        return targetObj;
+    }
+    public void RotateToTarget(GameObject target)
+    {
+        if (target == null) return;
+
+        Vector3 dir = target.transform.position - transform.position;
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude < 0.01f) return;
+
+        Quaternion targetRotation = Quaternion.LookRotation(dir.normalized);
+        Model.rotation = targetRotation;
+    }
 
     public void LungeToTarget()
     {
@@ -397,45 +418,51 @@ public class PlayerController : Damageable
 
     private IEnumerator LungeRoutine(Vector3 target)
     {
-       
-        Vector3 start = transform.position;
-
-        Vector3 dir = target - start;
-        dir.y = 0f;
-
-        float dist = Mathf.Min(dir.magnitude, lungeRange);
-
-        if (dist < offsetLunge)
+        while (true)
         {
-            transform.position = target - dir.normalized * offsetLunge;
-             yield break;
-        }
-           
+            Vector3 current = transform.position;
 
-        dir.Normalize();
+            Vector3 toTarget = target - current;
+            toTarget.y = 0f;
 
-        float moved = 0f;
+            float dist = toTarget.magnitude;
 
-        while (moved < dist)
-        {
+            if (dist < 0.01f)
+                yield break;
+
+            Vector3 dir = toTarget.normalized;
+
+            // 👉 khoảng cách mong muốn tới target
+            float desiredDist = offsetLunge;
+
+            // 👉 sai số cho phép (tránh rung)
+            float tolerance = 0.05f;
+
+            // 👉 nếu đã đúng khoảng cách thì dừng
+            if (Mathf.Abs(dist - desiredDist) <= tolerance)
+                yield break;
+
+            // 👉 xác định hướng di chuyển
+            // xa → tiến tới, gần → lùi ra
+            float moveDir = (dist > desiredDist) ? 1f : -1f;
+
             float step = lungeSpd * Time.deltaTime;
 
-            // tránh vượt quá dist
-            if (moved + step > dist)
-                step = dist - moved;
+            // 👉 clamp để không overshoot
+            float deltaDist = Mathf.Abs(dist - desiredDist);
+            if (step > deltaDist)
+                step = deltaDist;
 
-            Vector3 delta = dir * step;
+            Vector3 delta = dir * step * moveDir;
 
             _charController.Move(delta);
 
+            // 👉 luôn xoay về target (không xoay ngược khi lùi)
             if (Model != null)
                 Model.rotation = Quaternion.LookRotation(dir);
 
-            moved += step;
-
             yield return null;
         }
-       
     }
     public List<GameObject> GetDetectedTargets()
     {

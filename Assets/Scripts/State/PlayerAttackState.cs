@@ -22,6 +22,7 @@ public class PlayerAttackState : PlayerBaseState
     {
         _currentIndex = 0;
         StartAttackStep();
+        _ctx.RotateToTarget(_ctx.GetTargetInRange());
         _ctx. LungeToTarget();
     }
 
