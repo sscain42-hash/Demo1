@@ -7,5 +7,5 @@ public interface IInputHandler
 {
     Vector2 ReadMovementInput();
     Vector3 GetMovementDirection(Vector2 input);
-    bool IsAttacking { get; }
+
 }

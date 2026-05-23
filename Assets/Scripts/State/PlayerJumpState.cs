@@ -55,7 +55,7 @@ public class PlayerJumpingState : PlayerBaseState
 
     private void HandleVariableJump()
     {
-        if (!_ctx.CanJump && _ctx.Velocity.y > 0f)
+        if (!_ctx._playerInputs.Jump && _ctx.Velocity.y > 0f)
         {
             _ctx.SetVelocityY(_ctx.Velocity.y * JUMP_RELEASE_MULTIPLIER);
         }

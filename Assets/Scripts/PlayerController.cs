@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -216,7 +217,7 @@ public class PlayerController : Damageable
     private void Update()
     {
         _inputVector = _inputHandler.ReadMovementInput();
-        _isAttacking = _inputHandler.IsAttacking;
+
 
         UpdateTimers();
         HandleRotation();
@@ -279,7 +280,7 @@ public class PlayerController : Damageable
 
     private void UpdateTimers()
     {
-        _jumpBufferCounter = _playerInputs.Jump
+        _jumpBufferCounter = _playerInputs.Jump 
             ? JumpBufferTime
             : Mathf.Max(0f, _jumpBufferCounter - Time.deltaTime);
 
@@ -318,11 +319,7 @@ public class PlayerController : Damageable
 
         return moveDir.normalized;
     }
-    public void SwitchState(PlayerBaseState newState)
-    {
-        _currentState.SwitchState(newState);
-
-    }
+  
 
     public void SetAttackLock(bool value)
     {
@@ -341,12 +338,32 @@ public class PlayerController : Damageable
         }
     }
 
-    public bool IsNormalAttack => _playerInputs.LeftMouse;
-    public bool IsElementalSkill => _playerInputs.E && _skillCD_Temp <= 0;
-    public bool IsElementalBurst => _playerInputs.Q && _burstCD_Temp <= 0;
-    public bool CanDash => _playerInputs.Dash && _dashCooldownTimer <= 0f;
+    public bool IsNormalAttack =>
+    !_isAttacking &&
+    _playerInputs.TryConsume(
+        InputActionType.NormalAttack
+    );
 
-    public bool CanJump => _playerInputs.Jump;
+    public bool IsElementalSkill =>
+        _skillCD_Temp <= 0 &&
+        _playerInputs.TryConsume(
+            InputActionType.ElementalSkill
+        );
+
+    public bool IsElementalBurst =>
+        _burstCD_Temp <= 0 &&
+        _playerInputs.TryConsume(
+            InputActionType.ElementalBurst
+        );
+
+    public bool CanDash =>
+        _dashCooldownTimer <= 0f &&
+        _playerInputs.TryConsume(
+            InputActionType.Dash
+        );
+
+    public bool CanJump =>_charController.isGrounded &&
+        _playerInputs.Jump ;
     public bool CanAttack => !_isAttacking && !_attackLocked;
     public void ResetDashCooldown() => _dashCooldownTimer = DashCooldown;
 
@@ -490,6 +507,39 @@ public class PlayerController : Damageable
         Gizmos.color = Color.black;
         GizmoUtils.DrawCircle(transform.position, lungeRange);
 
+    }
+
+    public void StopLunge()
+    {
+        if (_lungeRoutine != null)
+        {
+            StopCoroutine(_lungeRoutine);
+            _lungeRoutine = null;
+        }
+    }
+    public void ApplyKnockback(Transform target, float force)
+    {
+        if (target == null)
+            return;
+
+        CharacterController cc =
+            target.GetComponent<CharacterController>();
+
+        if (cc == null)
+            return;
+
+        Vector3 dir =
+            target.position -
+            transform.position;
+
+        dir.y = 0f;
+
+        if (dir.sqrMagnitude < 0.001f)
+            return;
+
+        dir.Normalize();
+        Debug.Log($"Applying knockback to {target.name} with force {force}");
+        cc.Move(dir * force);
     }
 }
 

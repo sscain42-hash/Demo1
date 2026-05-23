@@ -8,7 +8,6 @@ public class CameraRelativeInputHandler : IInputHandler
     private readonly Transform _camera;
     private Vector2 _lastInput;
 
-    public bool IsAttacking { get; private set; }
 
     public CameraRelativeInputHandler(Transform camera)
     {
@@ -18,7 +17,7 @@ public class CameraRelativeInputHandler : IInputHandler
     public Vector2 ReadMovementInput()
     {
         _lastInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        IsAttacking = Input.GetMouseButton(0);
+      
         return _lastInput;
     }
 

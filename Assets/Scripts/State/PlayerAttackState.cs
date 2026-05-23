@@ -4,82 +4,169 @@ using UnityEngine;
 public class PlayerAttackState : PlayerBaseState
 {
     private ComboSequence _normalAttackCombo;
+
     private int _currentIndex = 0;
 
     private float _bufferTimer = 0f;
+
     private const float BUFFER_WINDOW = 0.2f;
 
     private HashSet<string> _activeWindows = new();
 
-    public PlayerAttackState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory)
+    // ================= ATTACK MOVE =================
+
+    private float _attackMoveDistance = 1.2f;
+
+    private float _attackMoveDuration = 0.15f;
+
+    private float _attackMoveTimer = 0f;
+    private float _knockbackForce = 5f;
+
+    private AnimationCurve _attackMoveCurve =
+        new AnimationCurve(
+            new Keyframe(0f, 0f),
+            new Keyframe(0.1f, 1.5f),
+            new Keyframe(0.6f, 0.8f),
+            new Keyframe(1f, 0f)
+        );
+
+    // ================= CONSTRUCTOR =================
+
+    public PlayerAttackState(
+        PlayerController ctx,
+        PlayerStateFactory factory
+    ) : base(ctx, factory)
     {
         _normalAttackCombo = ctx._normalAttackCombo;
+
         _isRootState = true;
     }
+
+    // ================= ENTER =================
 
     public override void EnterState()
     {
         _currentIndex = 0;
+
         StartAttackStep();
-        _ctx.RotateToTarget(_ctx.GetTargetInRange());
-        _ctx. LungeToTarget();
+
+        _ctx.RotateToTarget(
+            _ctx.GetTargetInRange()
+        );
+
+        _ctx.LungeToTarget();
     }
+
+    // ================= START STEP =================
 
     private void StartAttackStep()
     {
         _activeWindows.Clear();
+
         _bufferTimer = 0f;
 
+        _attackMoveTimer =
+            _attackMoveDuration;
+
         _ctx.SetAttackLock(true);
+
         _ctx.SetRotationLock(true);
 
-        var data = _normalAttackCombo.attacks[_currentIndex];
-        _ctx.PlayAnimation(data.animationName, 0.05f);
+        // 👉 tránh leo collider quái
+        _ctx.CharController.stepOffset = 0f;
+
+        var data =
+            _normalAttackCombo.attacks[_currentIndex];
+
+        _ctx.PlayAnimation(
+            data.animationName,
+            0.05f
+        );
     }
+
+    // ================= UPDATE =================
 
     protected override void UpdateState()
     {
-        var data = _normalAttackCombo.attacks[_currentIndex];
-        var stateInfo = _ctx.Animator.GetCurrentAnimatorStateInfo(0);
-        float nTime = stateInfo.normalizedTime % 1f;
+        var data =
+            _normalAttackCombo.attacks[_currentIndex];
 
-        // INPUT BUFFER
-        if (_bufferTimer > 0)
+        var stateInfo =
+            _ctx.Animator.GetCurrentAnimatorStateInfo(0);
+
+        float nTime =
+            Mathf.Clamp01(
+                stateInfo.normalizedTime
+            );
+
+        // ================= BUFFER =================
+
+        if (_bufferTimer > 0f)
+        {
             _bufferTimer -= Time.deltaTime;
+        }
 
-        if (Input.GetMouseButtonDown(0))
-            _bufferTimer = BUFFER_WINDOW;
+        if (_ctx.IsNormalAttack)
+        {
+            _bufferTimer =
+                BUFFER_WINDOW;
+        }
+
+        // ================= MOVE =================
+
+        ApplyAttackMovement();
+
+        // ================= WINDOWS =================
 
         foreach (var window in data.windows)
         {
-            bool inside = window.IsInside(nTime);
+            bool inside =
+                window.IsInside(nTime);
 
             // ENTER
-            if (inside && !_activeWindows.Contains(window.actionName))
+            if (inside &&
+                !_activeWindows.Contains(
+                    window.actionName
+                ))
             {
-                _activeWindows.Add(window.actionName);
-                OnWindowEnter(window.actionName);
+                _activeWindows.Add(
+                    window.actionName
+                );
+
+                OnWindowEnter(
+                    window.actionName
+                );
             }
 
-            // STAY (không còn xử lý Hitbox ở đây)
+            // STAY
             if (inside)
             {
-                OnWindowStay(window.actionName);
+                OnWindowStay(
+                    window.actionName
+                );
             }
 
             // EXIT
-            if (!inside && _activeWindows.Contains(window.actionName))
+            if (!inside &&
+                _activeWindows.Contains(
+                    window.actionName
+                ))
             {
-                _activeWindows.Remove(window.actionName);
-                OnWindowExit(window.actionName);
+                _activeWindows.Remove(
+                    window.actionName
+                );
+
+                OnWindowExit(
+                    window.actionName
+                );
             }
         }
 
-        // END ANIMATION
+        // ================= END =================
+
         if (nTime >= 0.98f)
         {
-            if (_bufferTimer > 0)
+            if (_bufferTimer > 0f)
             {
                 ExecuteCombo();
             }
@@ -90,7 +177,134 @@ public class PlayerAttackState : PlayerBaseState
         }
     }
 
-    // ================= WINDOW EVENTS =================
+    // ================= ATTACK MOVE =================
+
+   private void ApplyAttackMovement()
+    {
+        if (_attackMoveTimer <= 0f)
+            return;
+
+        Vector2 input =
+            _ctx.InputVector;
+
+        bool hasInput =
+            input.sqrMagnitude > 0.01f;
+
+        Vector3 moveDir = Vector3.zero;
+
+        // ================= INPUT MOVE =================
+
+        if (hasInput)
+        {
+            // 👉 hủy auto lunge nếu player điều khiển
+            _ctx.StopLunge();
+
+            moveDir =
+                _ctx.GetLookDirection();
+
+            if (moveDir.sqrMagnitude < 0.001f)
+                return;
+
+            moveDir =
+                Vector3.ProjectOnPlane(
+                    moveDir,
+                    _ctx.GroundNormal
+                ).normalized;
+
+            // 👉 xoay theo input
+            Quaternion targetRot =
+                Quaternion.LookRotation(moveDir);
+
+            _ctx.Model.rotation =
+                Quaternion.Slerp(
+                    _ctx.Model.rotation,
+                    targetRot,
+                    _ctx.RotationSpeed *
+                    Time.deltaTime
+                );
+        }
+        else
+        {
+            // ================= AUTO FACE TARGET =================
+
+           AutoFaceTarget();
+
+            // 👉 không có input thì không attack move
+            return;
+        }
+
+        // ================= CURVE =================
+
+        float normalizedTime =
+            1f -
+            (
+                _attackMoveTimer /
+                _attackMoveDuration
+            );
+
+        float curveValue =
+            _attackMoveCurve.Evaluate(
+                normalizedTime
+            );
+
+        float baseSpeed =
+            _attackMoveDistance /
+            _attackMoveDuration;
+
+        float speed =
+            baseSpeed *
+            curveValue;
+
+        // ================= MOVE =================
+
+        MoveStep(moveDir, speed);
+    }
+
+    private void AutoFaceTarget()
+    {
+        GameObject target =
+            _ctx.GetTargetInRange();
+
+        if (target != null)
+        {
+            Vector3 dir =
+                target.transform.position -
+                _ctx.transform.position;
+
+            dir.y = 0f;
+
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                dir.Normalize();
+
+                Quaternion targetRot =
+                    Quaternion.LookRotation(dir);
+
+                _ctx.Model.rotation =
+                    Quaternion.Slerp(
+                        _ctx.Model.rotation,
+                        targetRot,
+                        _ctx.RotationSpeed *
+                        Time.deltaTime
+                    );
+            }
+        }
+    }
+
+    private void MoveStep(Vector3 moveDir, float speed)
+    {
+        Vector3 delta =
+            moveDir *
+            speed *
+            Time.deltaTime;
+
+        _ctx.CharController.Move(delta);
+
+        _attackMoveTimer -=
+            Time.deltaTime;
+    }
+
+    // ================= WINDOWS =================
 
     private void OnWindowEnter(string action)
     {
@@ -98,31 +312,41 @@ public class PlayerAttackState : PlayerBaseState
         {
             case "Hitbox":
 
-                _ctx._weaponHitbox.SetActive(true);
+           
+                _ctx.CheckNADetection();
+                var targets =
+                    _ctx.GetDetectedTargets();
 
-                // 🔥 CHỈ CHECK 1 LẦN DUY NHẤT
-                var targets = _ctx.GetDetectedTargets();
-
-                HashSet<int> uniqueTargets = new();
+                HashSet<int> uniqueTargets =
+                    new();
 
                 foreach (var t in targets)
                 {
-                    if (t == null) continue;
+                    if (t == null)
+                        continue;
 
-                    var root = t.transform.root.gameObject;
-                    int id = root.GetInstanceID();
+                    var root =
+                        t.transform.root.gameObject;
 
-                    if (uniqueTargets.Contains(id)) continue;
+                    int id =
+                        root.GetInstanceID();
+
+                    if (uniqueTargets.Contains(id))
+                        continue;
+
                     uniqueTargets.Add(id);
 
                     _ctx.CauseDMG(root, AttackType.NormalAttack);
+
+                    _ctx.ApplyKnockback(
+                        root.transform,
+                        _knockbackForce
+                    );
                 }
 
                 break;
-
-            case "HitBox":
-                _ctx.CheckNADetection();
-                break;
+            
+           
         }
     }
 
@@ -132,7 +356,7 @@ public class PlayerAttackState : PlayerBaseState
         {
             case "ComboInput":
 
-                if (_bufferTimer > 0)
+                if (_bufferTimer > 0f)
                 {
                     ExecuteCombo();
                 }
@@ -143,7 +367,9 @@ public class PlayerAttackState : PlayerBaseState
 
                 if (_ctx.CanDash)
                 {
-                    SwitchState(_factory.Dash());
+                    SwitchState(
+                        _factory.Dash()
+                    );
                 }
 
                 break;
@@ -152,7 +378,9 @@ public class PlayerAttackState : PlayerBaseState
 
                 if (_ctx.JumpBufferCounter > 0)
                 {
-                    SwitchState(_factory.Jumping());
+                    SwitchState(
+                        _factory.Jumping()
+                    );
                 }
 
                 break;
@@ -163,7 +391,9 @@ public class PlayerAttackState : PlayerBaseState
     {
         if (action == "Hitbox")
         {
-            _ctx._weaponHitbox.SetActive(false);
+            _ctx._weaponHitbox.SetActive(
+                false
+            );
         }
     }
 
@@ -171,31 +401,51 @@ public class PlayerAttackState : PlayerBaseState
 
     private void ExecuteCombo()
     {
-        if (_currentIndex < _normalAttackCombo.attacks.Count - 1)
+        if (_currentIndex <
+            _normalAttackCombo.attacks.Count - 1)
+        {
             _currentIndex++;
+        }
         else
+        {
             _currentIndex = 0;
+        }
 
         _bufferTimer = 0f;
+
         StartAttackStep();
     }
 
-    // ================= STATE =================
+    // ================= SWITCH =================
 
     public override void CheckSwitchState()
     {
         if (_ctx.CharController.isGrounded)
-            SwitchState(_factory.Grounded());
+        {
+            SwitchState(
+                _factory.Grounded()
+            );
+        }
         else
-            SwitchState(_factory.Falling());
+        {
+            SwitchState(
+                _factory.Falling()
+            );
+        }
     }
+
+    // ================= EXIT =================
 
     protected override void ExitState()
     {
         _activeWindows.Clear();
 
         _ctx.SetAttackLock(false);
+
         _ctx.SetRotationLock(false);
+
+        // 👉 trả lại step offset
+        _ctx.CharController.stepOffset =
+            0.3f;
     }
- 
 }
