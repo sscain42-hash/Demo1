@@ -45,7 +45,7 @@ public class PlayerJumpingState : PlayerBaseState
             return;
         }
 
-        if ( _ctx.CanDash)
+        if ( _ctx.TryDash)
         {
             SwitchState(_factory.Dash());
         }
@@ -55,7 +55,7 @@ public class PlayerJumpingState : PlayerBaseState
 
     private void HandleVariableJump()
     {
-        if (!_ctx._playerInputs.Jump && _ctx.Velocity.y > 0f)
+        if (!_ctx._playerInputs.JumpHeld && _ctx.Velocity.y > 0f)
         {
             _ctx.SetVelocityY(_ctx.Velocity.y * JUMP_RELEASE_MULTIPLIER);
         }

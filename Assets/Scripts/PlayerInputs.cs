@@ -3,403 +3,222 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-
-
-public class PlayerInputs : MonoBehaviour
+public partial class PlayerInputs : MonoBehaviour
 {
+    // =========================================================
+    // REALTIME INPUT
+    // =========================================================
+
+    public Vector2 Move { get; private set; }
+
+    public bool JumpHeld { get; private set; }
+
     [Serializable]
-    public class BufferedInput
+    public struct InputCommand
     {
-        public InputActionType action;
+        public BufferedAction action;
+        public float timestamp;
 
-        public float time;
-
-        public Vector2 moveInput;
+        public InputCommand(
+            BufferedAction action,
+            float timestamp)
+        {
+            this.action = action;
+            this.timestamp = timestamp;
+        }
     }
-
-    // ================= INPUT SYSTEM =================
-
-    public Inputs PlayerInput { get; private set; }
-
-    // ================= RAW INPUT =================
-
-    public Vector2 Move;
-
-    public bool Dash;
-
-    public bool Jump;
-
-    public bool LeftMouse;
-
-    public bool E;
-
-    public bool Q;
-
-    // ================= BUFFER =================
 
     [Header("Input Buffer")]
     [SerializeField]
-    private float _bufferLifetime = 0.5f;
+    private float bufferTime = 0.2f;
 
-    private readonly Queue<BufferedInput>
-        _inputBuffer = new();
+    [SerializeField]
+    private int maxBufferSize = 10;
 
-    // ================= UNITY =================
+    private readonly Queue<InputCommand>
+        _commandBuffer = new();
+
+    // =========================================================
+    // INPUT SYSTEM
+    // =========================================================
+
+    private Inputs _input;
+
+    // =========================================================
+    // UNITY
+    // =========================================================
 
     private void Awake()
     {
-        PlayerInput = new Inputs();
-    }
-
-    private void Update()
-    {
-        CleanupExpiredInputs();
+        _input =
+            new Inputs();
     }
 
     private void OnEnable()
     {
-        PlayerInput.Player.Enable();
+        _input.Enable();
 
-        // MOVE
-        PlayerInput.Player.Move.performed +=
-            OnMovePressed;
-
-        PlayerInput.Player.Move.canceled +=
-            OnMovePressed;
-
-        // JUMP
-        PlayerInput.Player.Jump.started +=
-            OnJumpPressed;
-
-        PlayerInput.Player.Jump.canceled +=
-            OnJumpPressed;
-
-        // DASH
-        PlayerInput.Player.Dash.started +=
-            OnDashPressed;
-
-        PlayerInput.Player.Dash.canceled +=
-            OnDashPressed;
-
-        // ATTACK
-        PlayerInput.Player.NormalAttack.started +=
-            OnAttackPressed;
-
-        PlayerInput.Player.NormalAttack.canceled +=
-            OnAttackPressed;
-
-        // SKILL
-        PlayerInput.Player.ElementalSkill.started +=
-            OnSkillPressed;
-
-        PlayerInput.Player.ElementalSkill.canceled +=
-            OnSkillPressed;
-
-        // BURST
-        PlayerInput.Player.ElementalBurst.started +=
-            OnSkillSpecialPressed;
-
-        PlayerInput.Player.ElementalBurst.canceled +=
-            OnSkillSpecialPressed;
+        RegisterGameplayInputs();
     }
 
     private void OnDisable()
     {
-        // MOVE
-        PlayerInput.Player.Move.performed -=
-            OnMovePressed;
+        UnregisterGameplayInputs();
 
-        PlayerInput.Player.Move.canceled -=
-            OnMovePressed;
-
-        // JUMP
-        PlayerInput.Player.Jump.started -=
-            OnJumpPressed;
-
-        PlayerInput.Player.Jump.canceled -=
-            OnJumpPressed;
-
-        // DASH
-        PlayerInput.Player.Dash.started -=
-            OnDashPressed;
-
-        PlayerInput.Player.Dash.canceled -=
-            OnDashPressed;
-
-        // ATTACK
-        PlayerInput.Player.NormalAttack.started -=
-            OnAttackPressed;
-
-        PlayerInput.Player.NormalAttack.canceled -=
-            OnAttackPressed;
-
-        // SKILL
-        PlayerInput.Player.ElementalSkill.started -=
-            OnSkillPressed;
-
-        PlayerInput.Player.ElementalSkill.canceled -=
-            OnSkillPressed;
-
-        // BURST
-        PlayerInput.Player.ElementalBurst.started -=
-            OnSkillSpecialPressed;
-
-        PlayerInput.Player.ElementalBurst.canceled -=
-            OnSkillSpecialPressed;
-
-        PlayerInput.Player.Disable();
+        _input.Disable();
     }
 
-    // ================= MOVE =================
+    private void Update()
+    {
+        CleanupExpiredCommands();
+    }
 
-    private void OnMovePressed(
-        InputAction.CallbackContext context
-    )
+    // =========================================================
+    // REGISTER
+    // =========================================================
+
+    private void RegisterGameplayInputs()
+    {
+        // ================= MOVE =================
+
+        _input.Player.Move.performed +=
+            OnMovePerformed;
+
+        _input.Player.Move.canceled +=
+            OnMoveCanceled;
+
+        // ================= JUMP =================
+
+        _input.Player.Jump.performed +=
+            OnJumpPerformed;
+
+        _input.Player.Jump.canceled +=
+            OnJumpCanceled;
+
+        // ================= COMMANDS =================
+
+        _input.Player.Dash.performed +=
+            _ => AddCommand(
+                BufferedAction.Dash);
+
+        _input.Player.NormalAttack.performed +=
+            _ => AddCommand(
+                BufferedAction.NormalAttack);
+
+        _input.Player.ElementalSkill.performed +=
+            _ => AddCommand(
+                BufferedAction.ElementalSkill);
+
+        _input.Player.ElementalBurst.performed +=
+            _ => AddCommand(
+                BufferedAction.ElementalBurst);
+    }
+
+    private void UnregisterGameplayInputs()
+    {
+        _input.Player.Move.performed -=
+            OnMovePerformed;
+
+        _input.Player.Move.canceled -=
+            OnMoveCanceled;
+
+        _input.Player.Jump.performed -=
+            OnJumpPerformed;
+
+        _input.Player.Jump.canceled -=
+            OnJumpCanceled;
+    }
+
+    // =========================================================
+    // MOVE
+    // =========================================================
+
+    private void OnMovePerformed(
+        InputAction.CallbackContext ctx)
     {
         Move =
-            context.ReadValue<Vector2>();
+            ctx.ReadValue<Vector2>();
+    }
 
-        if (Move.sqrMagnitude > 0.01f)
+    private void OnMoveCanceled(
+        InputAction.CallbackContext ctx)
+    {
+        Move = Vector2.zero;
+    }
+
+    // =========================================================
+    // JUMP
+    // =========================================================
+
+    private void OnJumpPerformed(
+        InputAction.CallbackContext ctx)
+    {
+        JumpHeld = true;
+
+        AddCommand(
+            BufferedAction.Jump);
+    }
+
+    private void OnJumpCanceled(
+        InputAction.CallbackContext ctx)
+    {
+        JumpHeld = false;
+    }
+
+    // =========================================================
+    // BUFFER
+    // =========================================================
+
+    private void AddCommand(
+        BufferedAction action)
+    {
+        CleanupExpiredCommands();
+
+        // chống spam cùng input
+        if (HasRecentInput(action))
+            return;
+
+        if (_commandBuffer.Count >=
+            maxBufferSize)
         {
-            BufferInput(
-                InputActionType.Move,
-                Move
-            );
+            _commandBuffer.Dequeue();
         }
+
+        _commandBuffer.Enqueue(
+            new InputCommand(
+                action,
+                Time.time));
     }
 
-    // ================= DASH =================
-
-    private void OnDashPressed(
-        InputAction.CallbackContext context
-    )
+    private bool HasRecentInput(
+        BufferedAction action)
     {
-        Dash =
-            context.ReadValueAsButton();
-
-        // 👉 chỉ buffer lúc nhấn
-        if (!context.started)
-            return;
-
-        BufferInput(
-            InputActionType.Dash
-        );
-    }
-
-    // ================= JUMP =================
-
-    private void OnJumpPressed(
-        InputAction.CallbackContext context
-    )
-    {
-        Jump =
-            context.ReadValueAsButton();
-
-        if (!context.started)
-            return;
-
-        BufferInput(
-            InputActionType.Jump
-        );
-    }
-
-    // ================= ATTACK =================
-
-    private void OnAttackPressed(
-        InputAction.CallbackContext context
-    )
-    {
-        LeftMouse =
-            context.ReadValueAsButton();
-
-        if (!context.started)
-            return;
-
-        BufferInput(
-            InputActionType.NormalAttack
-        );
-    }
-
-    // ================= SKILL =================
-
-    private void OnSkillPressed(
-        InputAction.CallbackContext context
-    )
-    {
-        E =
-            context.ReadValueAsButton();
-
-        if (!context.started)
-            return;
-
-        BufferInput(
-            InputActionType.ElementalSkill
-        );
-    }
-
-    // ================= BURST =================
-
-    private void OnSkillSpecialPressed(
-        InputAction.CallbackContext context
-    )
-    {
-        Q =
-            context.ReadValueAsButton();
-
-        if (!context.started)
-            return;
-
-        BufferInput(
-            InputActionType.ElementalBurst
-        );
-    }
-
-    // ================= BUFFER =================
-
-    private void BufferInput(
-        InputActionType action,
-        Vector2 moveInput = default
-    )
-    {
-        // 👉 chống spam input cùng loại
-        if (_inputBuffer.Count > 0)
+        foreach (var cmd in _commandBuffer)
         {
-            BufferedInput latest =
-                GetLatestInput();
+            if (cmd.action != action)
+                continue;
 
-            if (latest != null)
+            if (Time.time - cmd.timestamp
+                < 0.05f)
             {
-                bool sameAction =
-                    latest.action == action;
-
-                bool tooClose =
-                    Time.time - latest.time
-                    < 0.05f;
-
-                if (sameAction &&
-                    tooClose)
-                {
-                    return;
-                }
+                return true;
             }
         }
 
-        _inputBuffer.Enqueue(
-            new BufferedInput
-            {
-                action = action,
-                time = Time.time,
-                moveInput = moveInput
-            }
-        );
+        return false;
     }
 
-    // ================= CONSUME =================
-
-    public bool TryConsume(
-        InputActionType action
-    )
+    private void CleanupExpiredCommands()
     {
-        if (_inputBuffer.Count == 0)
-            return false;
-
-        BufferedInput found = null;
-
-        foreach (var input in _inputBuffer)
+        while (_commandBuffer.Count > 0)
         {
-            if (input.action == action)
+            InputCommand cmd =
+                _commandBuffer.Peek();
+
+            if (Time.time - cmd.timestamp
+                > bufferTime)
             {
-                found = input;
-                break;
-            }
-        }
-
-        if (found == null)
-            return false;
-
-        RemoveInput(found);
-        Debug.Log($"Consumed input: {action} at time {found.time}");
-        return true;
-    }
-
-    public bool TryConsumeHighestPriority(
-        out InputActionType action
-    )
-    {
-        action = InputActionType.None;
-
-        if (_inputBuffer.Count == 0)
-            return false;
-
-        BufferedInput best = null;
-
-        int bestPriority = -1;
-
-        foreach (var input in _inputBuffer)
-        {
-            int priority =
-                GetPriority(input.action);
-
-            if (priority > bestPriority)
-            {
-                bestPriority = priority;
-                best = input;
-            }
-        }
-
-        if (best == null)
-            return false;
-
-        action = best.action;
-
-        RemoveInput(best);
-
-        return true;
-    }
-
-    // ================= PRIORITY =================
-
-    private int GetPriority(
-        InputActionType action
-    )
-    {
-        return action switch
-        {
-            InputActionType.Dash => 100,
-
-            InputActionType.Jump => 90,
-
-            InputActionType.ElementalBurst => 80,
-
-            InputActionType.ElementalSkill => 70,
-
-            InputActionType.NormalAttack => 60,
-
-            InputActionType.Move => 10,
-
-            _ => 0
-        };
-    }
-
-    // ================= CLEANUP =================
-
-    private void CleanupExpiredInputs()
-    {
-        if (_inputBuffer.Count == 0)
-            return;
-
-        while (_inputBuffer.Count > 0)
-        {
-            BufferedInput input =
-                _inputBuffer.Peek();
-
-            bool expired =
-                Time.time - input.time
-                > _bufferLifetime;
-
-            if (expired)
-            {
-                _inputBuffer.Dequeue();
+                _commandBuffer.Dequeue();
             }
             else
             {
@@ -408,48 +227,74 @@ public class PlayerInputs : MonoBehaviour
         }
     }
 
-    // ================= HELPERS =================
+    // =========================================================
+    // QUERY
+    // =========================================================
 
-    private BufferedInput GetLatestInput()
+    public bool HasCommand(
+        BufferedAction action)
     {
-        BufferedInput latest = null;
+        CleanupExpiredCommands();
 
-        foreach (var input in _inputBuffer)
+        foreach (var cmd in _commandBuffer)
         {
-            latest = input;
+            if (cmd.action == action)
+                return true;
         }
 
-        return latest;
+        return false;
     }
 
-    private void RemoveInput(
-        BufferedInput target
-    )
+    // =========================================================
+    // CONSUME
+    // =========================================================
+
+    public bool ConsumeCommand(
+        BufferedAction action)
     {
-        Queue<BufferedInput> temp =
+        CleanupExpiredCommands();
+
+        if (_commandBuffer.Count == 0)
+            return false;
+
+        bool found = false;
+
+        Queue<InputCommand> temp =
             new();
 
-        while (_inputBuffer.Count > 0)
+        while (_commandBuffer.Count > 0)
         {
-            BufferedInput current =
-                _inputBuffer.Dequeue();
+            InputCommand cmd =
+                _commandBuffer.Dequeue();
 
-            if (current != target)
+            if (!found &&
+                cmd.action == action)
             {
-                temp.Enqueue(current);
+                found = true;
+                continue;
             }
+
+            temp.Enqueue(cmd);
         }
 
         while (temp.Count > 0)
         {
-            _inputBuffer.Enqueue(
-                temp.Dequeue()
-            );
+            _commandBuffer.Enqueue(
+                temp.Dequeue());
         }
+
+        return found;
     }
 
-    // ================= DEBUG =================
+    // =========================================================
+    // DEBUG
+    // =========================================================
 
-    public int BufferedCount =>
-        _inputBuffer.Count;
+    public void ClearBuffer()
+    {
+        _commandBuffer.Clear();
+    }
+
+    public int BufferCount =>
+        _commandBuffer.Count;
 }

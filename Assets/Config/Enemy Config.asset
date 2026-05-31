@@ -16,20 +16,32 @@ MonoBehaviour:
   Level: 1
   CurrentEXP: 1
   Infor: 
-  NormalAttackMultiplier: []
-  ChargedAttackMultiplier: []
-  SkillMultiplier: []
-  SpecialMultiplier: []
-  MaxHP: 22222222
-  ATK: 0
+  NormalAttackMultiplier:
+  - MultiplierTypeName: 
+    Multiplier:
+    - 1
+  ChargedAttackMultiplier:
+  - MultiplierTypeName: 
+    Multiplier:
+    - 1
+  SkillMultiplier:
+  - MultiplierTypeName: 
+    Multiplier:
+    - 1
+  SpecialMultiplier:
+  - MultiplierTypeName: 
+    Multiplier:
+    - 1
+  MaxHP: 22428341
+  ATK: 10
   CRITRate: 5
   CRITDMG: 50
   DEF: 0
   WalkSpeed: 2.5
   RunSpeed: 4
-  HPRatio: 0
-  DEFRatio: 0
-  LevelRatio: 0
-  NormalAttackCD: 0
-  SkillAttackCD: 0
-  SpecialAttackCD: 0
+  HPRatio: 1
+  DEFRatio: 1
+  LevelRatio: 1
+  NormalAttackCD: 1
+  SkillAttackCD: 1
+  SpecialAttackCD: 1

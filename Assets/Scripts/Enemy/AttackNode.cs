@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class AttackNode : BTNode
 {
@@ -13,11 +13,32 @@ public class AttackNode : BTNode
 
     public override State Evaluate()
     {
+        // Nếu Player chết hoặc biến mất, lập tức dừng trạng thái tấn công
         if (blackboard.Player == null)
+        {
+            attack.ExitAttackState();
             return State.Failure;
+        }
 
-        attack.Detection_NA(blackboard.Player.gameObject);
+        // Nếu đây là frame đầu tiên quái áp sát mục tiêu (Tương đương việc Player chuyển State vào Attack)
+        if (!attack.IsAttacking)
+        {
+            attack.EnterAttackState();
+            return State.Running;
+        }
 
-        return State.Success;
+        // Cập nhật trạng thái chuỗi đòn chém liên tục mỗi frame
+        bool isPlayingCombo = attack.UpdateAttackState(blackboard.Player, blackboard.AttackRange);
+
+        if (isPlayingCombo)
+        {
+            // Trả về Running để giữ cây hành vi luôn kẹt tại Node này và chém Player liên tục
+            return State.Running;
+        }
+        else
+        {
+            // Chỉ trả về Success khi chuỗi combo đứt (Player chạy thoát hoặc chết)
+            return State.Success;
+        }
     }
 }

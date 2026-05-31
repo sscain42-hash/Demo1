@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using NaughtyAttributes;
@@ -31,7 +31,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
 
     public UnityEvent<EnemyController> OnTakeDamageEvent;
     public UnityEvent<EnemyController> OnDieEvent;
-
+    
     #endregion
 
 
@@ -39,12 +39,19 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
 
     private PlayerController _player;
     private int _attackCount;
-
+    private EnemyAttack enemyAttack;
+    private EnemyBehaviourTree _behavior;
     private readonly List<int> _levelTable =
         new() { 11,21,31,41,51,61,71,81,91,101 };
 
     #endregion
+    [Header("Combo Configuration")]
+    [SerializeField] private ComboSequence comboSequence;
 
+    public Animator Animator { get => _animator; private set => _animator = value; }
+    public ComboSequence ComboSeq => comboSequence;
+
+  
 
     #region === Unity Lifecycle ===
 
@@ -53,6 +60,8 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
         Health = new StatusHandle();
         RuntimeConfig = Instantiate(baseConfig);
         _originalLocalPos = transform.localPosition;
+        _animator = GetComponent<Animator>();
+
     }
 
     protected override void OnEnable()
@@ -71,7 +80,10 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
         base.OnDisable();
         UnregisterEvents();
     }
-
+    private void Update()
+    {
+        _behavior.Tick();
+    }
     #endregion
 
 
@@ -80,7 +92,17 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
     private void ResolveDependencies()
     {
         gameObject.SetObjectLayer(mainLayer.value);
+
         _player = FindAnyObjectByType<PlayerController>();
+        if (_player == null)
+        {
+            Debug.LogError($"[EnemyController] PlayerController not found for enemy '{name}'. Disabling behaviour until player is available.");
+            _behavior = null;
+            return;
+        }
+
+        enemyAttack = GetComponent<EnemyAttack>();
+        _behavior = new EnemyBehaviourTree(new EnemyBlackboard(_player.transform), transform, enemyAttack);
     }
 
     private void RegisterEvents()
@@ -135,7 +157,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
     {
         Blackboard.SetVariableValue("Player", _player.gameObject);
         Blackboard.SetVariableValue("RootPosition", transform.position);
-
+      
         SetDie(false);
         SetTakeDMG(false);
         SetChaseSensor(false);
@@ -153,8 +175,10 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
 
         float percent = GetPercentByType(type);
         int damage = CalculateDamage(percent, out bool isCrit);
-
+       
         receiver.TakeDMG(damage, isCrit);
+   
+        Debug.Log($"[EnemyController] '{name}' caused {damage} damage to '{target.name}' with attack type '{type}' (CRIT: {isCrit}).");
     }
 
     private float GetPercentByType(AttackType type)
@@ -163,14 +187,21 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
         {
             AttackType.NormalAttack => PercentDMG_NA(),
             AttackType.ChargedAttack => PercentDMG_CA(),
-            AttackType.ElementalSkill => PercentDMG_ES(),
-            AttackType.ElementalBurst => PercentDMG_EB(),
+            AttackType.E => PercentDMG_ES(),
+            AttackType.Q => PercentDMG_EB(),
             _ => 1
         };
     }
 
     private int CalculateDamage(float percent, out bool isCrit)
     {
+        if (RuntimeConfig == null)
+        {
+            Debug.LogError($"[EnemyController] RuntimeConfig is null on '{name}'. Using default values.");
+            isCrit = false;
+            return 0;
+        }
+
         int baseATK = RuntimeConfig.GetATK();
         int scaled = Mathf.CeilToInt(baseATK * (percent / 100f));
 
@@ -182,9 +213,21 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
             scaled = Mathf.CeilToInt(scaled * critMulti);
         }
 
-        int minATK = _player.PlayerConfig.GetDEF() +
-                     Random.Range(10, baseATK / 2);
+        int defenderDEF = 0;
+        if (_player == null)
+        {
+            Debug.LogWarning($"[EnemyController] _player is null when calculating damage for '{name}'. Using DEF=0 fallback.");
+        }
+        else if (_player.PlayerConfig == null)
+        {
+            Debug.LogWarning($"[EnemyController] PlayerConfig is null on player when calculating damage for '{name}'. Using DEF=0 fallback.");
+        }
+        else
+        {
+            defenderDEF = _player.PlayerConfig.GetDEF();
+        }
 
+        int minATK = defenderDEF + Random.Range(10, Mathf.Max(11, baseATK / 2));
         return Mathf.Max(minATK, scaled);
     }
 
@@ -289,10 +332,9 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
 
     public void Release() => ReleaseCallback?.Invoke(this);
 
- private Coroutine _flinchRoutine;
+    private Coroutine _flinchRoutine;
     private Vector3 _originalLocalPos;
-
-
+    private Animator _animator;
 
     public void PlayFlinch(float duration = 0.08f, float strength = 0.05f)
     {
@@ -322,7 +364,32 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
         _flinchRoutine = null;
     }
 
-  
+    #region === Animation CrossFade ===
+
+    /// <summary>
+    /// Kích hoạt chuyển cảnh mượt mà sang trạng thái chỉ định bằng thời gian cố định.
+    /// </summary>
+    /// <param name="stateName">Tên chính xác của State trong Animator Controller</param>
+    /// <param name="fixedTransitionDuration">Thời gian hòa trộn giữa 2 animation (giây). Mặc định là 0.15s</param>
+    public void PlayAnimationCrossFade(string stateName, float fixedTransitionDuration = 0.15f)
+    {
+        if (_animator != null)
+        {
+            // Tham số thứ 2 là thời gian chuyển cảnh (giây), tham số thứ 3 là Layer Index (mặc định là 0)
+            _animator.CrossFadeInFixedTime(stateName, fixedTransitionDuration, 0);
+        }
+    }
+
+    // Vẫn giữ lại hàm cập nhật Speed cho Blend Tree chạy/đứng yên nếu cần
+    public void UpdateMoveAnimation(float speed)
+    {
+        if (_animator != null)
+        {
+            _animator.SetFloat("Speed", speed);
+        }
+    }
+
+    #endregion
 
     public Action<EnemyController> ReleaseCallback { get; set; }
 

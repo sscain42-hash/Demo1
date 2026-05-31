@@ -112,7 +112,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: HumanM@Dash01
-  m_Speed: 2
+  m_Speed: 2.37
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []

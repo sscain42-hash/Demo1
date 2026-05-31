@@ -18,10 +18,7 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
     [SerializeField] private Color color ;
  
     private readonly Collider[] hitColliders = new Collider[10];
-    public List<GameObject>  GetTargets()
-    {
-        return new List<GameObject>(hitColliders.Where(c => c != null).Select(c => c.gameObject));
-    }
+   
     public void CheckCollision()
     {
         var numCol = Physics.OverlapSphereNonAlloc(transform.position, radiusCheck, hitColliders, layerToCheck);

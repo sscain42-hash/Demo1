@@ -11,7 +11,7 @@ public class ActionWindow
     [Header("Step")]
     public bool useStep;
     public float stepDistance;
-    public float stepSpeed;
+    public float stepSpeed;             
     public AnimationCurve stepCurve;
 
     [HideInInspector] public bool stepTriggered;

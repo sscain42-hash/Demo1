@@ -20,7 +20,6 @@ public class PlayerAttackState : PlayerBaseState
     private float _attackMoveDuration = 0.15f;
 
     private float _attackMoveTimer = 0f;
-    private float _knockbackForce = 5f;
 
     private AnimationCurve _attackMoveCurve =
         new AnimationCurve(
@@ -50,11 +49,6 @@ public class PlayerAttackState : PlayerBaseState
 
         StartAttackStep();
 
-        _ctx.RotateToTarget(
-            _ctx.GetTargetInRange()
-        );
-
-        _ctx.LungeToTarget();
     }
 
     // ================= START STEP =================
@@ -106,7 +100,7 @@ public class PlayerAttackState : PlayerBaseState
             _bufferTimer -= Time.deltaTime;
         }
 
-        if (_ctx.IsNormalAttack)
+        if (_ctx._playerInputs.HasCommand(BufferedAction.NormalAttack))
         {
             _bufferTimer =
                 BUFFER_WINDOW;
@@ -179,7 +173,7 @@ public class PlayerAttackState : PlayerBaseState
 
     // ================= ATTACK MOVE =================
 
-   private void ApplyAttackMovement()
+    private void ApplyAttackMovement()
     {
         if (_attackMoveTimer <= 0f)
             return;
@@ -223,15 +217,7 @@ public class PlayerAttackState : PlayerBaseState
                     Time.deltaTime
                 );
         }
-        else
-        {
-            // ================= AUTO FACE TARGET =================
-
-           AutoFaceTarget();
-
-            // 👉 không có input thì không attack move
-            return;
-        }
+       
 
         // ================= CURVE =================
 
@@ -260,36 +246,7 @@ public class PlayerAttackState : PlayerBaseState
         MoveStep(moveDir, speed);
     }
 
-    private void AutoFaceTarget()
-    {
-        GameObject target =
-            _ctx.GetTargetInRange();
-
-        if (target != null)
-        {
-            Vector3 dir =
-                target.transform.position -
-                _ctx.transform.position;
-
-            dir.y = 0f;
-
-            if (dir.sqrMagnitude > 0.001f)
-            {
-                dir.Normalize();
-
-                Quaternion targetRot =
-                    Quaternion.LookRotation(dir);
-
-                _ctx.Model.rotation =
-                    Quaternion.Slerp(
-                        _ctx.Model.rotation,
-                        targetRot,
-                        _ctx.RotationSpeed *
-                        Time.deltaTime
-                    );
-            }
-        }
-    }
+   
 
     private void MoveStep(Vector3 moveDir, float speed)
     {
@@ -312,41 +269,13 @@ public class PlayerAttackState : PlayerBaseState
         {
             case "Hitbox":
 
-           
-                _ctx.CheckNADetection();
-                var targets =
-                    _ctx.GetDetectedTargets();
 
-                HashSet<int> uniqueTargets =
-                    new();
+                _ctx.CharacterEffect.CheckNACollision();
 
-                foreach (var t in targets)
-                {
-                    if (t == null)
-                        continue;
-
-                    var root =
-                        t.transform.root.gameObject;
-
-                    int id =
-                        root.GetInstanceID();
-
-                    if (uniqueTargets.Contains(id))
-                        continue;
-
-                    uniqueTargets.Add(id);
-
-                    _ctx.CauseDMG(root, AttackType.NormalAttack);
-
-                    _ctx.ApplyKnockback(
-                        root.transform,
-                        _knockbackForce
-                    );
-                }
 
                 break;
-            
-           
+
+
         }
     }
 
@@ -356,7 +285,7 @@ public class PlayerAttackState : PlayerBaseState
         {
             case "ComboInput":
 
-                if (_bufferTimer > 0f)
+                if (_ctx.TryNormalAttack)
                 {
                     ExecuteCombo();
                 }
@@ -365,7 +294,7 @@ public class PlayerAttackState : PlayerBaseState
 
             case "DashCancel":
 
-                if (_ctx.CanDash)
+                if (_ctx.TryDash)
                 {
                     SwitchState(
                         _factory.Dash()
@@ -401,6 +330,9 @@ public class PlayerAttackState : PlayerBaseState
 
     private void ExecuteCombo()
     {
+        _ctx._playerInputs.ConsumeCommand(
+         BufferedAction.NormalAttack);
+
         if (_currentIndex <
             _normalAttackCombo.attacks.Count - 1)
         {
@@ -410,8 +342,6 @@ public class PlayerAttackState : PlayerBaseState
         {
             _currentIndex = 0;
         }
-
-        _bufferTimer = 0f;
 
         StartAttackStep();
     }

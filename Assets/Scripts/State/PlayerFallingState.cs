@@ -60,7 +60,7 @@ public class PlayerFallingState : PlayerBaseState
             return;
         }
 
-        if ( _ctx.CanDash)
+        if ( _ctx.TryDash)
             SwitchState(_factory.Dash());
     }
 

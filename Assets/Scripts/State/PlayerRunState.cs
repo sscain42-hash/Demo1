@@ -44,13 +44,12 @@ public class PlayerRunState : PlayerBaseState
     {
         float speed = _ctx.RunMaxSpeed;
 
-        if (_ctx.CanAttack)
-        {
+        
             if (_ctx.InputVector.y < -STRAFE_INPUT_THRESHOLD)
                 speed *= BACKWARD_SPEED_MODIFIER;
             else if (Mathf.Abs(_ctx.InputVector.y) < STRAFE_INPUT_THRESHOLD)
                 speed *= IDLE_SPEED_MODIFIER;
-        }
+       
 
         return speed;
     }

@@ -4,8 +4,8 @@ public enum AttackType
 {
     NormalAttack,
     ChargedAttack,
-    ElementalSkill,
-    ElementalBurst
+    E,
+    Q
 }
 
 public abstract class Damageable : MonoBehaviour
