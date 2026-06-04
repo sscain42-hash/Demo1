@@ -39,7 +39,7 @@ public class PlayerGroundedState : PlayerBaseState
         // Jump với coyote + jump buffer
         if (_ctx.JumpBufferCounter > 0f && _ctx.CoyoteCounter > 0f)
         {
-            SwitchState(_factory.Jumping());
+            SwitchState(_factory.Jump());
             return;
         }
 

@@ -14,7 +14,6 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
     [Tooltip("Layer cần kiểm tra va chạm")]
     public LayerMask layerToCheck;
 
-    [SerializeField] private bool drawGizmos;
     [SerializeField] private Color color ;
  
     private readonly Collider[] hitColliders = new Collider[10];
@@ -35,7 +34,7 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
 
     void OnDrawGizmos()
     {
-        if (!drawGizmos) return;
+       
         Gizmos.color = color.WithAlpha(1f);
         GizmoUtils.DrawCircle(transform.position, radiusCheck);
      

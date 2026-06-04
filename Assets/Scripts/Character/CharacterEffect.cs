@@ -1,136 +1,137 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
-
 
 public class CharacterEffect : MonoBehaviour, IAttack
 {
-    [Tooltip("Script điều khiển chính"), SerializeField] 
+    [Tooltip("Script điều khiển chính (Chỉ Player có, Enemy để trống)"), SerializeField]
     private PlayerController _ctx;
 
-    [Tooltip("Kiểm tra va chạm của Normal Attack"), SerializeField]
-    private PhysicsDetection NA_Detection;
-    
-    [Tooltip("Kiểm tra va chạm của Charged Attack"), SerializeField]
-    private PhysicsDetection CA_Detection;
-    
-    [Tooltip("Kiểm tra va chạm của Elenmental Burst"), SerializeField]
-    private PhysicsDetection EB_Detection;
-    [Tooltip("Kiểm tra va chạm của Elenmental Skill"), SerializeField]
-    private PhysicsDetection ES_Detection;
+    [Header("⚔️ DETECTOR CẬN CHIẾN TRÊN NGƯỜI")]
+    [SerializeField] private PhysicsDetection NA_Detection;
+    [SerializeField] private HitboxDetection CA_Detection;
+    [SerializeField] private ParticleDetection ES_Detection;
+    [SerializeField] private ParticleDetection EB_Detection;
 
-    [Space, Tooltip("Vị trí sẽ xuất hiện effects")] 
-    public Transform effectPoint;
-    
-    [Tooltip("Góc xoay của từng Effect chém")] 
-    public List<Vector3> effectAngle;
-    
-    [Header("Prefab projectile")] 
-    [SerializeField] private Reference swordSlashPrefab;
-    [SerializeField] private Reference swordPrickPrefab;
-    [SerializeField] private Reference swordHoldingPrefab;
+    private Dictionary<GameObject, ObjectPooler<Reference>> _dynamicPools = new Dictionary<GameObject, ObjectPooler<Reference>>();
+    private AttackType _currentFiringAttackType = AttackType.NormalAttack;
 
-    [Space]
-    [SerializeField] private Reference hitPrefab;
+    // 🔥 ĐỐI TƯỢNG NEO GIỮ CHUNG Ở WORLD SPACE (TRÁNH LÀM CON CỦA PLAYER) 🔥
+    private static Transform _projectilePoolAnchor;
 
-    [Header("Visual Effects")] 
-    [SerializeField] private ParticleSystem skill;
-    [SerializeField] private ParticleSystem special;
-
-    
-    private Transform slotsVFX;
-    private ObjectPooler<Reference> _poolSwordSlash;
-    private ObjectPooler<Reference> _poolSwordPrick;
-    private ObjectPooler<Reference> _poolSwordHolding;
-
-    private ObjectPooler<Reference> _poolHit;
-    
-    private Vector3 _posEffect;
-    private Quaternion _rotEffect;
-
-    
-    // Coroutine
-    private Coroutine _skillCoroutine;
-
-    
-    private void Start()
+    private void Awake()
     {
-        Initialized();
-    }
-    private void Initialized()
-    {
-        slotsVFX = GameObject.FindWithTag("SlotsVFX").transform;
-        _poolSwordSlash = new ObjectPooler<Reference>(swordSlashPrefab, slotsVFX, 5);
-        _poolHit = new ObjectPooler<Reference>(hitPrefab, slotsVFX, 5);
-        _poolSwordPrick = new ObjectPooler<Reference>(swordPrickPrefab, slotsVFX, 5);
-        _poolSwordHolding = new ObjectPooler<Reference>(swordHoldingPrefab, slotsVFX, 5);
-     
-    }
-    
+        // Đăng ký các đòn cận chiến cơ bản
+        if (NA_Detection != null) NA_Detection.CollisionEnterEvent.AddListener(Detection_NA);
+        if (CA_Detection != null) CA_Detection.CollisionEnterEvent.AddListener(Detection_CA);
+        if (ES_Detection != null) ES_Detection.CollisionEnterEvent.AddListener(Detection_E);
+        if (EB_Detection != null) EB_Detection.CollisionEnterEvent.AddListener(Detection_Q);
 
-    private void EffectSlash(int parameter)
-    {
-        _posEffect = effectPoint.position;
-        _rotEffect = Quaternion.Euler(effectAngle[parameter].x, 
-                                    effectAngle[parameter].y + effectPoint.eulerAngles.y, 
-                                      effectAngle[parameter].z);
-        
-        _poolSwordSlash.Get(_posEffect, _rotEffect);
-      
+        // Khởi tạo Anchor ở không gian thế giới nếu chưa có ai tạo
+        InitializeWorldAnchor();
     }
 
-    private void EffectHolding()
+    /// <summary>
+    /// Tự động sinh ra một Empty Object quản lý chung ngoài Hierarchy thế giới
+    /// </summary>
+    private void InitializeWorldAnchor()
     {
-        _posEffect = effectPoint.position;
-        _rotEffect = Quaternion.Euler(-66f, -105f + effectPoint.eulerAngles.y, -122f);
-        
-       _poolSwordHolding.Get(_posEffect, _rotEffect);
-    }
-        private void EffectSkill()
-    {
-        skill.Clear();
-        skill.gameObject.SetActive(true);
-        skill.Play();
-        
-        if(_skillCoroutine != null)
-            StopCoroutine(_skillCoroutine);
-        _skillCoroutine = StartCoroutine(SkillCoroutine());
-    }
-    private IEnumerator SkillCoroutine()
-    {
-        var Time = 15f;
-
-        yield return new WaitForSeconds(Time);
-        skill.Stop();
-        skill.gameObject.SetActive(false);
-    
-    }
-    private void EffectSpecial()
-    {
-        special.gameObject.SetActive(true);
-        special.Play();
+        if (_projectilePoolAnchor == null)
+        {
+            GameObject anchor = GameObject.Find("[DYNAMIC_PROJECTILE_POOL]");
+            if (anchor == null)
+            {
+                anchor = new GameObject("[DYNAMIC_PROJECTILE_POOL]");
+                // Đảm bảo không dính líu đến bất kỳ Parent nào khác
+                anchor.transform.SetParent(null);
+            }
+            _projectilePoolAnchor = anchor.transform;
+        }
     }
 
-    
-    public void EffectHit(Vector3 _pos) => _poolHit.Get(RandomPosition(_pos, -.15f, .15f));
-    private static Vector3 RandomPosition(Vector3 _posCurrent, float minVal, float maxVal)
+    /// <summary>
+    /// Hàm xuất đạn thông minh từ AttackData - Hoàn toàn độc lập Transform với Player
+    /// </summary>
+    public Reference SpawnProjectileFromData(Reference prefabFromData, Vector3 position, Quaternion rotation, AttackType type)
     {
-        return _posCurrent + new Vector3(Random.Range(minVal, maxVal), 
-                                         Random.Range(minVal, maxVal), 
-                                         Random.Range(minVal, maxVal));
+        if (prefabFromData == null) return null;
+
+        _currentFiringAttackType = type;
+        GameObject prefabKey = prefabFromData.gameObject;
+
+        // 1. Nếu chưa từng tạo Pool cho loại đạn này -> Tạo và nhét vào World Anchor
+        if (!_dynamicPools.ContainsKey(prefabKey))
+        {
+            int defaultSize = 5;
+
+            // Đảm bảo Anchor thế giới luôn tồn tại an toàn
+            InitializeWorldAnchor();
+
+            // 🔥 SỬA TẠI ĐÂY: Thay vì truyền 'transform' (Player), truyền '_projectilePoolAnchor' (World Space)
+            var newPool = new ObjectPooler<Reference>(prefabFromData, _projectilePoolAnchor, defaultSize);
+
+            // GÁN EVENT CHO CẢ BỂ CHỨA CỦA LOẠI ĐẠN NÀY
+            foreach (var spawnedVFX in newPool.List)
+            {
+                DetectionBase bulletDetector = spawnedVFX.GetComponent<DetectionBase>();
+                if (bulletDetector != null)
+                {
+                    bulletDetector.CollisionEnterEvent.AddListener(HandleHit);
+                   
+                }
+            }
+
+            _dynamicPools.Add(prefabKey, newPool);
+        }
+
+        // 2. Lấy đạn ra từ đúng Pool thế giới của nó
+        Reference spawnedInstance = _dynamicPools[prefabKey].Get(position, rotation);
+
+        // BIỆN PHÁP AN TOÀN TUYỆT ĐỐI: Ép đạn ngắt hoàn toàn liên kết Parent nếu ObjectPooler có logic tự động gán
+        if (spawnedInstance != null && spawnedInstance.transform.parent != _projectilePoolAnchor)
+        {
+            spawnedInstance.transform.SetParent(_projectilePoolAnchor);
+        }
+
+        return spawnedInstance;
     }
 
-    
-    public void CheckNACollision() =>  NA_Detection.CheckCollision(); // gọi trên Event Animation
-    public void CheckCACollision() => CA_Detection.CheckCollision(); // gọi trên Event Animation
-    public void CheckEBCollision() => EB_Detection.CheckCollision(); // gọi trên ParticalSystem
-    public void CheckESCollision() => ES_Detection.CheckCollision(); // gọi trên ParticalSystem
-    
-    public void Detection_NA(GameObject _gameObject) => _ctx.CauseDMG(_gameObject, AttackType.NormalAttack);
-    public void Detection_CA(GameObject _gameObject) => _ctx.CauseDMG(_gameObject, AttackType.ChargedAttack);
-    public void Detection_E(GameObject _gameObject) => _ctx.CauseDMG(_gameObject, AttackType.E);
-    public void Detection_Q(GameObject _gameObject) => _ctx.CauseDMG(_gameObject, AttackType.Q);
+    private void HandleHit(GameObject victim)
+    {
+        if (gameObject.CompareTag("Player") && !victim.CompareTag("Enemy")) return;
+        if (gameObject.CompareTag("Enemy") && !victim.CompareTag("Player")) return;
 
- 
+        if (_ctx != null)
+        {
+            switch (_currentFiringAttackType)
+            {
+                case AttackType.NormalAttack: Detection_NA(victim); break;
+                case AttackType.ChargedAttack: Detection_CA(victim); break;
+                case AttackType.E: Detection_E(victim); break;
+                case AttackType.Q: Detection_Q(victim); break;
+            }
+        }
+    }
+
+    public void CheckNACollision() => NA_Detection?.CheckCollision();
+    public void CheckCACollision() => CA_Detection?.CheckCollision();
+
+    public void Detection_NA(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.NormalAttack);
+    public void Detection_CA(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.ChargedAttack);
+    public void Detection_E(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.E);
+    public void Detection_Q(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.Q);
+
+    private void OnDestroy()
+    {
+        foreach (var pool in _dynamicPools.Values)
+        {
+            foreach (var spawnedVFX in pool.List)
+            {
+                if (spawnedVFX == null) continue;
+                DetectionBase bulletDetector = spawnedVFX.GetComponent<DetectionBase>();
+                if (bulletDetector != null) bulletDetector.CollisionEnterEvent.RemoveListener(HandleHit);
+            }
+        }
+    }
 }
+

@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
-public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
+public class EnemyController : Damageable, IPooled<EnemyController>
 {
     #region === Serialized ===
 
@@ -177,7 +177,11 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
         int damage = CalculateDamage(percent, out bool isCrit);
        
         receiver.TakeDMG(damage, isCrit);
-   
+        DMGPopUpGenerator.Instance.Create(
+            target.transform.position,
+            damage,
+            isCrit,
+            false);
         Debug.Log($"[EnemyController] '{name}' caused {damage} damage to '{target.name}' with attack type '{type}' (CRIT: {isCrit}).");
     }
 
@@ -246,7 +250,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>,IFlinchable
             finalDamage,
             isCRIT,
             true);
-        PlayFlinch();
+    
         SetTakeDMG(true);
         OnTakeDamageEvent?.Invoke(this);
     }

@@ -56,7 +56,7 @@ public class PlayerFallingState : PlayerBaseState
 
         if (_ctx.JumpBufferCounter > 0f && _ctx.CoyoteCounter > 0f)
         {
-            SwitchState(_factory.Jumping());
+            SwitchState(_factory.Jump());
             return;
         }
 

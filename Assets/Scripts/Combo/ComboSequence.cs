@@ -1,7 +1,9 @@
-using System.Collections.Generic;
 using UnityEngine;
-[CreateAssetMenu(fileName = "NewComboSequence", menuName = "Player/Combo Sequence")]
+using System.Collections.Generic;
+
+[CreateAssetMenu(fileName = "NewComboSequence", menuName = "Combo System/Combo Sequence")]
 public class ComboSequence : ScriptableObject
 {
-    public List<AttackData> attacks; // Kéo đòn 1, 2, 3 vào đây
+    [Tooltip("Nạp các file AttackData theo thứ tự chuỗi combo tại đây.")]
+    public List<AttackData> attacks = new List<AttackData>();
 }

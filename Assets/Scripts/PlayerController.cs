@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -147,8 +146,8 @@ public class PlayerController : Damageable
 
     public PlayerBaseState CurrentState
     {
-        get => _currentState;
-        set => _currentState = value;
+        get => CurrentState1;
+        set => CurrentState1 = value;
     }
 
     public Vector3 Velocity
@@ -212,8 +211,10 @@ public class PlayerController : Damageable
     public readonly int Anim_Dash = Animator.StringToHash("HumanM@Dash01");
 
     #endregion
+
     [SerializeField] private CharacterEffect characterEffect;
     public CharacterEffect CharacterEffect { get => characterEffect; set => characterEffect = value; }
+
     #region UNITY METHODS
 
     private void Awake()
@@ -223,17 +224,18 @@ public class PlayerController : Damageable
         ComputePhysicsConstants();
         InitializeServices();
 
-        _states = new PlayerStateFactory(this);
+        States = new PlayerStateFactory(this);
     }
 
     private void Start()
     {
-        _currentState = _states.Grounded();
-        _currentState.EnterState();
+        CurrentState1 = States.Grounded();
+        CurrentState1.EnterState();
 
         _wasGroundedLastFrame = _charController.isGrounded;
 
         Na_Detection.radiusCheck = attackRange;
+        Animator.applyRootMotion = true;
     }
 
     private void Update()
@@ -253,10 +255,30 @@ public class PlayerController : Damageable
 
     private void OnAnimatorMove()
     {
+
+        // Nếu không trong trạng thái khóa tấn công hoặc không áp dụng Root Motion, thoát ra
         if (!_attackLocked || !Animator.applyRootMotion)
             return;
 
-        _charController.Move(Animator.deltaPosition);
+        // 1. Lấy khoảng cách di chuyển từ Animation
+        Vector3 finalDelta = Animator.deltaPosition;
+
+        // 2. Trộn lực Step mà PlayerAttackState vừa nạp vào _velocity ở trên
+        if (_velocity.sqrMagnitude > 0.001f)
+        {
+            // Cộng thêm quãng đường từ Code (Vận tốc * Thời gian) vào hướng X và Z
+            finalDelta.x += _velocity.x * Time.deltaTime;
+            finalDelta.z += _velocity.z * Time.deltaTime;
+
+            // Giảm dần lực Step (Ma sát hãm phanh) dựa trên chỉ số Friction có sẵn của bạn
+            float verticalVelocity = _velocity.y; // Giữ lại trọng lực Y
+            _velocity = Vector3.MoveTowards(_velocity, Vector3.zero, Friction * Time.deltaTime);
+            _velocity.y = verticalVelocity;
+        }
+
+        // 3. Thực thi duy nhất một lệnh Move tại đây cho toàn bộ trạng thái Attack
+        _charController.Move(finalDelta);
+  
     }
 
     private void OnDrawGizmos()
@@ -348,7 +370,7 @@ public class PlayerController : Damageable
 
     private void UpdateStateMachine()
     {
-        _currentState.UpdateStates();
+        CurrentState1.UpdateStates();
     }
 
     private void CacheFrameState()
@@ -384,22 +406,15 @@ public class PlayerController : Damageable
 
     private void UpdateCoyoteTime()
     {
+        // 🔥 ĐÃ SỬA: Chuẩn hóa bộ đếm đứt đoạn Coyote
         if (_charController.isGrounded)
         {
             _coyoteCounter = CoyoteTime;
-            return;
         }
-
-        if (_wasGroundedLastFrame)
+        else
         {
-            _coyoteCounter = CoyoteTime;
-            return;
+            _coyoteCounter = Mathf.Max(0f, _coyoteCounter - Time.deltaTime);
         }
-
-        _coyoteCounter =
-            Mathf.Max(
-                0f,
-                _coyoteCounter - Time.deltaTime);
     }
 
     private void UpdateDashCooldown()
@@ -424,9 +439,17 @@ public class PlayerController : Damageable
 
     private void ApplyGravity()
     {
-        _physicsHandler.ApplyGravity(
-            ref _velocity,
-            _isDashing);
+        // 🔥 ĐÃ SỬA: Nếu nhân vật lọt chân khỏi vực nhưng vẫn còn Coyote Time ân huệ,
+        // chúng ta đóng băng trọng lực kéo tụt tự do để tránh giật khựng (Jitter) hình ảnh.
+        if (!_charController.isGrounded && _coyoteCounter > 0f && !_isDashing)
+        {
+            // Ghim nhẹ vận tốc rơi ở mức cực nhỏ gần như lướt thẳng ra không trung
+            _velocity.y = -0.5f;
+        }
+        else
+        {
+            _physicsHandler.ApplyGravity(ref _velocity, _isDashing);
+        }
     }
 
     private void ApplyGroundSnap()
@@ -434,7 +457,12 @@ public class PlayerController : Damageable
         if (!_charController.isGrounded)
             return;
 
-        _physicsHandler.ApplyGroundSnap(ref _velocity);
+        // 🔥 ĐÃ SỬA: Chỉ kích hoạt GroundSnap ép dính sàn khi không có xu hướng nhảy lên,
+        // giúp triệt tiêu xung đột lực kéo thả cục bộ tại biên đa giác mép vực.
+        if (_velocity.y <= 0.01f)
+        {
+            _physicsHandler.ApplyGroundSnap(ref _velocity);
+        }
     }
 
     private void MoveCharacter()
@@ -455,6 +483,7 @@ public class PlayerController : Damageable
 
         RaycastHit hit;
 
+        // Tịnh tiến điểm bắn tia lên cao một chút để tránh việc lọt tia dưới sàn
         Vector3 rayStart =
             transform.position + Vector3.up * 0.1f;
 
@@ -483,7 +512,7 @@ public class PlayerController : Damageable
 
     private void HandleRotation()
     {
-        if (_currentState is PlayerDashState)
+        if (CurrentState1 is PlayerDashState)
             return;
 
         if (_rotationLocked)
@@ -527,7 +556,7 @@ public class PlayerController : Damageable
     #region INPUT ACTIONS
     public bool TryNormalAttack =>
         !_isAttacking &&
-        _playerInputs.HasCommand(BufferedAction.NormalAttack) ;
+        _playerInputs.HasCommand(BufferedAction.NormalAttack);
 
     public bool TryElementalSkill =>
         _skillCooldown <= 0 &&
@@ -548,7 +577,11 @@ public class PlayerController : Damageable
         !_isAttacking &&
         !_attackLocked;
 
+    public PlayerStateFactory States { get => _states; set => _states = value; }
+    public PlayerBaseState CurrentState1 { get => _currentState; set => _currentState = value; }
+
     public SO_PlayerConfiguration PlayerConfig;
+   
     #endregion
 
     #region ANIMATION
@@ -613,7 +646,7 @@ public class PlayerController : Damageable
     }
     public override void TakeDMG(int _damage, bool _isCRIT)
     {
-      DMGPopUpGenerator.Instance.Create(transform.position, _damage, false, true);
+        DMGPopUpGenerator.Instance.Create(transform.position, _damage, false, false);
     }
     public void ApplyHit(AttackType type)
     {
@@ -640,7 +673,7 @@ public class PlayerController : Damageable
     public void RotateToTarget(Vector3 target)
     {
 
-        if(_inputVector.sqrMagnitude > 0.01f) return;
+        if (_inputVector.sqrMagnitude > 0.01f) return;
         Vector3 direction =
             target - transform.position;
 
@@ -673,7 +706,7 @@ public class PlayerController : Damageable
                 transform.position;
 
             Vector3 direction =
-                target- current;
+                target - current;
 
             direction.y = 0f;
 

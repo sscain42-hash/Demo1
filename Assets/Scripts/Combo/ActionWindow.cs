@@ -1,25 +1,27 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [System.Serializable]
 public class ActionWindow
 {
-    public string actionName; // Ví dụ: "Hitbox", "ComboInput", "DashCancel"
-    [Range(0, 1)] public float startTime; // Bắt đầu tại 20% animation
-    [Range(0, 1)] public float endTime;   // Kết thúc tại 50% animation
-  
+    [SerializeField] public string actionName;
+    [SerializeField, Range(0, 1)] public float startTime;
+    [SerializeField, Range(0, 1)] public float endTime;
 
-    [Header("Step")]
-    public bool useStep;
-    public float stepDistance;
-    public float stepSpeed;             
-    public AnimationCurve stepCurve;
+    [Header("VFX Transform Settings")]
+    [SerializeField] public bool enableVFX;
+    [SerializeField] public VFXTransformData vfxTransform = VFXTransformData.Default;
 
-    [HideInInspector] public bool stepTriggered;
+    [SerializeField] public List<AnimationEventEffect> eventEffects = new List<AnimationEventEffect>();
+
+    // Các cờ hiệu Runtime
+    [HideInInspector] public bool eventTriggered;
 
     public void ResetRuntime()
     {
-        stepTriggered = false;
+        eventTriggered = false;
     }
+
     public bool IsInside(float normalizedTime)
         => normalizedTime >= startTime && normalizedTime <= endTime;
 }

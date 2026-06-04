@@ -404,7 +404,7 @@ public partial class @Inputs: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""a424e60e-00ef-49a0-b169-f62aa584e3fc"",
-                    ""path"": ""<Keyboard>/r"",
+                    ""path"": ""<Keyboard>/q"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeaf8e8a267f6b648b0a8f4873b6ad46, type: 3}
+  m_Name: 2Hand-Sword-Attack2
+  m_EditorClassIdentifier: Assembly-CSharp::AttackData
+  animationName: 2Hand-Sword-Attack2
+  damage: 0
+  windows:
+  - actionName: ComboInputBuffer
+    startTime: 0.833983
+    endTime: 1
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: JumpCancel
+    startTime: 0
+    endTime: 0.99999994
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: DashCancel
+    startTime: 0
+    endTime: 1
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    eventEffects: []
+    eventTriggered: 1

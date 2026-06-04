@@ -58,8 +58,16 @@ public class PlayerRunState : PlayerBaseState
     {
         if (_ctx.InputVector.magnitude < INPUT_THRESHOLD)
             SwitchState(_factory.Idle());
+
+        // Lưu ý: Logic chuyển sang AttackState của bạn có thể nằm ở đây 
+        // Hoặc nằm ở lớp quản lý trung tâm (PlayerStateMachine/Controller).
     }
 
-    protected override void ExitState() { }
+    // 🔥 CẬP NHẬT HÀM NÀY ĐỂ TRIỆT TIÊU XUNG ĐỘT 🔥
+    protected override void ExitState()
+    {
+        // Đưa toàn bộ vector vận tốc về 0 tuyệt đối trước khi bàn giao quyền điều khiển cho AttackState
+        _ctx.Velocity = Vector3.zero;
+    }
     public override void InitializeSubState() { }
 }
