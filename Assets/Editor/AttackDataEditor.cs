@@ -11,17 +11,20 @@ public class AttackDataEditor : Editor
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
+
+        // 1. Vẽ các thuộc tính gốc (như animationName, v.v.)
         DrawPropertiesExcluding(serializedObject, "windows");
 
         EditorGUILayout.Space(10);
         SerializedProperty windowsProp = serializedObject.FindProperty("windows");
 
+        // 2. Foldout quản lý danh sách Windows
         _showWindows = EditorGUILayout.Foldout(_showWindows, $"⏱ Action Windows ({windowsProp.arraySize})", true, EditorStyles.foldoutHeader);
-        
+
         if (_showWindows)
         {
             EditorGUI.indentLevel++;
-            
+
             for (int i = 0; i < windowsProp.arraySize; i++)
             {
                 SerializedProperty windowRef = windowsProp.GetArrayElementAtIndex(i);
@@ -30,14 +33,15 @@ public class AttackDataEditor : Editor
                 // --- HÀNG 1: Điều hướng & Tên Action & Xóa ---
                 EditorGUILayout.BeginHorizontal();
                 
-                // Nút Di chuyển
                 if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0) 
                 { windowsProp.MoveArrayElement(i, i - 1); serializedObject.ApplyModifiedProperties(); GUIUtility.ExitGUI(); }
+                
                 if (GUILayout.Button("▼", GUILayout.Width(20)) && i < windowsProp.arraySize - 1) 
                 { windowsProp.MoveArrayElement(i, i + 1); serializedObject.ApplyModifiedProperties(); GUIUtility.ExitGUI(); }
 
-                // --- LOGIC ACTION NAME (Xử lý Custom) ---
                 SerializedProperty nameProp = windowRef.FindPropertyRelative("actionName");
+                
+                // Chọn Preset
                 int selectedIndex = -1;
                 for (int j = 0; j < _actionPresets.Length; j++)
                 {
@@ -45,47 +49,46 @@ public class AttackDataEditor : Editor
                 }
 
                 int displayIndex = (selectedIndex == -1) ? _actionPresets.Length : selectedIndex;
-                
                 EditorGUI.BeginChangeCheck();
                 int newIndex = EditorGUILayout.Popup(displayIndex, AppendCustomOption(_actionPresets), GUILayout.Width(100));
                 
                 if (EditorGUI.EndChangeCheck())
                 {
-                    if (newIndex < _actionPresets.Length)
-                        nameProp.stringValue = _actionPresets[newIndex];
-                    else
-                        nameProp.stringValue = ""; // Reset để buộc hiện ô Text
+                    nameProp.stringValue = (newIndex < _actionPresets.Length) ? _actionPresets[newIndex] : "";
                 }
 
-                // Nếu là Custom (selectedIndex == -1), hiển thị TextField
                 if (selectedIndex == -1)
                 {
                     nameProp.stringValue = EditorGUILayout.TextField(nameProp.stringValue);
                 }
 
-                // Nút Xóa
                 GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
                 if (GUILayout.Button("✕", GUILayout.Width(25))) 
                 { 
-                    windowsProp.DeleteArrayElementAtIndex(i);
-                    serializedObject.ApplyModifiedProperties();
+                    windowsProp.DeleteArrayElementAtIndex(i); 
+                    serializedObject.ApplyModifiedProperties(); 
                     GUIUtility.ExitGUI(); 
                 }
                 GUI.backgroundColor = Color.white;
                 EditorGUILayout.EndHorizontal();
 
-                // --- SLIDER THỜI GIAN ---
+                // --- HÀNG 2: Time Range Slider (Tự động tính thời gian di chuyển) ---
                 SerializedProperty startProp = windowRef.FindPropertyRelative("startTime");
                 SerializedProperty endProp = windowRef.FindPropertyRelative("endTime");
                 float start = startProp.floatValue;
                 float end = endProp.floatValue;
+                
                 EditorGUILayout.MinMaxSlider(new GUIContent("Time Range"), ref start, ref end, 0f, 1f);
                 startProp.floatValue = start;
                 endProp.floatValue = end;
 
-                // --- VFX CONFIG ---
+                // --- HÀNG 3: Target Distance (Đã bỏ duration) ---
+                EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("targetDistance"), new GUIContent("Target Distance (Local)"));
+
+                // --- HÀNG 4: VFX Config (Khôi phục feature cũ) ---
                 SerializedProperty enableVFXProp = windowRef.FindPropertyRelative("enableVFX");
                 EditorGUILayout.PropertyField(enableVFXProp);
+                
                 if (enableVFXProp.boolValue)
                 {
                     EditorGUI.indentLevel++;
@@ -104,13 +107,14 @@ public class AttackDataEditor : Editor
                     EditorGUI.indentLevel--;
                 }
 
+                // --- HÀNG 5: Event Effects (Khôi phục feature cũ) ---
                 EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("eventEffects"), true);
+
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space(5);
             }
 
             // Nút Add
-            EditorGUILayout.Space(5);
             GUI.backgroundColor = new Color(0.5f, 1f, 0.5f);
             if (GUILayout.Button("+ Add New Action Window"))
             {

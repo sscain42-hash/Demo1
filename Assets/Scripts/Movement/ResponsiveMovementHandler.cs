@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Responsive movement based on "Building Better Movement" by Nishchal Bhandari
@@ -7,50 +7,29 @@ using UnityEngine;
 public class ResponsiveMovementHandler : IMovementHandler
 {
     private readonly float _maxSpeed;
-    private readonly float _tAttack;  // Time to reach max speed
-    private readonly float _tRelease; // Time to stop from max speed
+    private readonly float _tAttack;
 
-    public ResponsiveMovementHandler(float maxSpeed, float tAttack, float tRelease)
+    public ResponsiveMovementHandler(float maxSpeed, float tAttack)
     {
         _maxSpeed = maxSpeed;
         _tAttack = tAttack;
-        _tRelease = tRelease;
     }
 
     public void ApplyMovement(Vector3 moveDir, float targetSpeed, ref Vector3 currentVelocity)
     {
+        // Chỉ xử lý Input di chuyển của Player
         float currentHorizontalSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
-
-        // Normalize speed to [0, 1]
-        float normalizedSpeed = currentHorizontalSpeed / _maxSpeed;
-        
-        // Clamp to prevent NaN
-        normalizedSpeed = Mathf.Clamp01(normalizedSpeed);
-
-        // Calculate current t from current speed using inverse attack equation
-        // Attack: v = 1 - (1-t)^2
-        // Inverse: t = 1 - sqrt(1 - v)
+        float normalizedSpeed = Mathf.Clamp01(currentHorizontalSpeed / _maxSpeed);
         float t = 1f - Mathf.Sqrt(Mathf.Max(0f, 1f - normalizedSpeed));
-
-        // Move forward in time
         float tNew = t + (Time.deltaTime / _tAttack);
 
-        float newNormalizedSpeed;
-        if (tNew >= 1f)
-        {
-            newNormalizedSpeed = 1f;
-        }
-        else
-        {
-            // Attack curve: v = 1 - (1-t)^2
-            float oneMinusT = 1f - tNew;
-            newNormalizedSpeed = 1f - (oneMinusT * oneMinusT);
-        }
+        float newNormalizedSpeed = (tNew >= 1f) ? 1f : (1f - Mathf.Pow(1f - tNew, 2f));
+        Vector3 newVel = moveDir * (newNormalizedSpeed * _maxSpeed);
 
-        float newSpeed = newNormalizedSpeed * _maxSpeed;
-        Vector3 newVel = moveDir * newSpeed;
         currentVelocity.x = newVel.x;
         currentVelocity.z = newVel.z;
+
+        // Debug.Log($"[Input] Velocity: {currentVelocity}");
     }
 
     public void ApplyAirControl(Vector3 moveDir, ref Vector3 currentVelocity)

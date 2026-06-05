@@ -169,7 +169,14 @@ public class PlayerController : Damageable
     public IInputHandler InputHandler => _inputHandler;
     public IMovementHandler GroundMovementHandler => _groundMovementHandler;
     public IMovementHandler AirMovementHandler => _airMovementHandler;
+    #region Velocity Providers
 
+    private List<IVelocityProvider> _velocityProviders = new List<IVelocityProvider>();
+
+    // Đăng ký/Hủy đăng ký các nguồn lực
+    public void RegisterVelocityProvider(IVelocityProvider provider) => _velocityProviders.Add(provider);
+    public void UnregisterVelocityProvider(IVelocityProvider provider) => _velocityProviders.Remove(provider);
+    #endregion
     public float CoyoteCounter
     {
         get => _coyoteCounter;
@@ -330,19 +337,20 @@ public class PlayerController : Damageable
         _groundMovementHandler =
             new ResponsiveMovementHandler(
                 RunMaxSpeed,
-                TAttack,
-                TRelease);
-
+                TAttack);
+        var comboManager = GetComponent<PlayerActionComboManager>();
         _airMovementHandler =
             new ResponsiveMovementHandler(
                 RunMaxSpeed,
-                TAttack * 1.5f,
-                TRelease);
+                TAttack * 1.5f);
 
         _decelerationHandler =
             new ResponsiveDecelerationHandler(
                 RunMaxSpeed,
                 TRelease);
+
+
+      
     }
 
     private void ComputePhysicsConstants()
@@ -465,10 +473,33 @@ public class PlayerController : Damageable
 
     private void MoveCharacter()
     {
-        if (_attackLocked)
-            return;
+        Vector3 comboStep = Vector3.zero;
+        bool isComboActive = false;
 
-        _charController.Move(_velocity * Time.deltaTime);
+        foreach (var provider in _velocityProviders)
+        {
+            if (provider.IsActive)
+            {
+                comboStep = provider.GetVelocityModifier();
+                isComboActive = true;
+            }
+        }
+
+        if (isComboActive)
+        {
+            // GHI ĐÈ: Sử dụng trực tiếp quãng đường tính được cho frame này
+            _charController.Move(comboStep);
+
+            // Reset lại vận tốc nội tại để không bị trôi sau khi hết combo
+            _velocity = Vector3.zero;
+        }
+        else
+        {
+            // Di chuyển bình thường + Ma sát
+            _charController.Move(_velocity * Time.deltaTime);
+            _velocity.x = Mathf.MoveTowards(_velocity.x, 0, Friction * Time.deltaTime);
+            _velocity.z = Mathf.MoveTowards(_velocity.z, 0, Friction * Time.deltaTime);
+        }
     }
 
     private void DetectGroundNormal()

@@ -12,7 +12,11 @@ public class ActionWindow
     [SerializeField] public bool enableVFX;
     [SerializeField] public VFXTransformData vfxTransform = VFXTransformData.Default;
     [Header("Movement Step")]
-    [SerializeField] public Vector3 stepVector; // Thêm vector lực đẩy/di chuyển
+    [Tooltip("Quãng đường muốn di chuyển trong window này")]
+    public Vector3 targetDistance;
+
+
+
     [SerializeField] public List<AnimationEventEffect> eventEffects = new List<AnimationEventEffect>();
 
     // Các cờ hiệu Runtime
