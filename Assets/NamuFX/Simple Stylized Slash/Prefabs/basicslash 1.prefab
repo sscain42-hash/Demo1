@@ -12,9 +12,21 @@ PrefabInstance:
       propertyPath: simulationSpeed
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 4866590592333119623, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.size3D
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590592333119623, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 11
+      objectReference: {fileID: 0}
     - target: {fileID: 4866590592725736488, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590592725736488, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.size3D
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4866590592725736491, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_IsActive
@@ -35,6 +47,14 @@ PrefabInstance:
     - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: moveWithTransform
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.size3D
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495786, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_LocalPosition.x
@@ -82,15 +102,47 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_Name
-      value: basicslash
+      value: basicslash 1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590594007536920, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 4866590594007536920, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.size3D
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594007536920, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594007536920, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startSizeY.scalar
+      value: 0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: SizeModule.enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.size3D
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: SizeModule.separateAxes
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: SizeBySpeedModule.enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startSize.scalar
+      value: 11
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -9,9 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be719c36e7c736a498977089c065449c, type: 3}
-  m_Name: Ev_SpawnProjectile
-  m_EditorClassIdentifier: Assembly-CSharp::Ev_SpawnProjectile
-  projectilePrefab: {fileID: 0}
-  projectileSpeed: 15
-  lifeTime: 3
+  m_Script: {fileID: 11500000, guid: a43607c269fbce649bdc240dac4b8977, type: 3}
+  m_Name: BasicSlash
+  m_EditorClassIdentifier: Assembly-CSharp::Ev_SpawnVFXAtPosition
+  vfxPrefab: {fileID: -5808430431564993702, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}

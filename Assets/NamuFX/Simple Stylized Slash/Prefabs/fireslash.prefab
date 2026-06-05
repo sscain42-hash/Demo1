@@ -48,7 +48,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177893281345520}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -4884,7 +4884,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177893836969898}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -9756,6 +9756,9 @@ GameObject:
   - component: {fileID: 5942177893964023164}
   - component: {fileID: 5942177893964023154}
   - component: {fileID: 5942177893964023155}
+  - component: {fileID: 2899506186345213818}
+  - component: {fileID: -6852977510020937611}
+  - component: {fileID: -369954391590582716}
   m_Layer: 0
   m_Name: fireslash
   m_TagString: Untagged
@@ -9788,8 +9791,8 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177893964023165}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
-  stopAction: 0
+  simulationSpeed: 3
+  stopAction: 3
   cullingMode: 0
   ringBufferMode: 0
   ringBufferLoopRange: {x: 0, y: 1}
@@ -14582,6 +14585,66 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &2899506186345213818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5942177893964023165}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c436788db796d4bb8c21d1f40f5732, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParticleReference
+--- !u!135 &-6852977510020937611
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5942177893964023165}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 6
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-369954391590582716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5942177893964023165}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cc9b52fb92c5de41b8da139f9fde2cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TriggerDetection
+  CollisionEnterEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  CollisionExitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PositionEnterEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PositionExitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  layerToCheck:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!1 &5942177894242009866
 GameObject:
   m_ObjectHideFlags: 0
@@ -14624,7 +14687,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177894242009866}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -19518,7 +19581,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177894500066266}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -24412,7 +24475,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177894516781416}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -29306,7 +29369,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177894526490576}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -34200,7 +34263,7 @@ ParticleSystem:
   m_GameObject: {fileID: 5942177894714294277}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0

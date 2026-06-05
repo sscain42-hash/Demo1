@@ -11,7 +11,8 @@ public class ActionWindow
     [Header("VFX Transform Settings")]
     [SerializeField] public bool enableVFX;
     [SerializeField] public VFXTransformData vfxTransform = VFXTransformData.Default;
-
+    [Header("Movement Step")]
+    [SerializeField] public Vector3 stepVector; // Thêm vector lực đẩy/di chuyển
     [SerializeField] public List<AnimationEventEffect> eventEffects = new List<AnimationEventEffect>();
 
     // Các cờ hiệu Runtime

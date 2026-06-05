@@ -10,10 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7dcdbf0ed4744614bbd4ea61c38439d7, type: 3}
-  m_Name: NewComboSequence
+  m_Name: Q
   m_EditorClassIdentifier: Assembly-CSharp::ComboSequence
   attacks:
-  - {fileID: 11400000, guid: 90d42322af9223349840ff174389b47b, type: 2}
-  - {fileID: 11400000, guid: 0e2d0777b98655e4196abcd6de125fec, type: 2}
-  - {fileID: 11400000, guid: 95047c14c86676340a44e47bcdadcdfa, type: 2}
-  - {fileID: 11400000, guid: 95047c14c86676340a44e47bcdadcdfa, type: 2}
+  - {fileID: 11400000, guid: d70f601b56806524fb2ddb084ea6490f, type: 2}

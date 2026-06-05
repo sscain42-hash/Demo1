@@ -20,15 +20,25 @@ MonoBehaviour:
     endTime: 1
     enableVFX: 1
     vfxTransform:
-      positionOffset: {x: 0, y: 0.88, z: 0}
-      rotationOffset: {x: -90, y: 0, z: 120}
-      scale: {x: 1, y: 1, z: 1}
+      positionOffset: {x: 0, y: 0.836, z: -0}
+      rotationOffset: {x: 291.5502, y: 90, z: 90}
+      scale: {x: 0.42, y: 0.42, z: 0.42}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
     eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.7887213
+    startTime: 0.602
     endTime: 1
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 0.4, y: 0.4, z: 0.4}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: JumpCancel
+    startTime: 0
+    endTime: 0.99999994
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -38,17 +48,7 @@ MonoBehaviour:
     eventTriggered: 1
   - actionName: DashCancel
     startTime: 0
-    endTime: 1
-    enableVFX: 0
-    vfxTransform:
-      positionOffset: {x: 0, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-    eventEffects: []
-    eventTriggered: 1
-  - actionName: JumpCancel
-    startTime: 0
-    endTime: 1
+    endTime: 0.99999994
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}

@@ -25,7 +25,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _ALPHA_USEDISSOLVE
+  - _ALPHA_USEALPHAFADE
   - _BLENDBETWEENMASK_MULTIPLY
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -117,7 +117,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _ALPHA: 1
+    - _ALPHA: 0
     - _AlphaClip: 0
     - _BLENDBETWEENMASK: 0
     - _BUILTIN_QueueControl: 0
@@ -136,7 +136,7 @@ Material:
     - _DissovleTexRot: 0
     - _DstBlend: 0
     - _EdgeWidth: 0
-    - _Emission: 0
+    - _Emission: 0.54
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
@@ -149,7 +149,7 @@ Material:
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _OneMinus: 0
-    - _Opacity: 1
+    - _Opacity: 2
     - _Parallax: 0.005
     - _QueueControl: 0
     - _QueueOffset: 0
@@ -168,7 +168,7 @@ Material:
     - _UseAlphaChannel: 0
     - _UseCustomdataOffset: 0
     - _UseCustomdata_Color: 0
-    - _UseSoftParticle: 0
+    - _UseSoftParticle: 1
     - _Use_Dissolve_Tex: 1
     - _Use_Gradient_Mask: 1
     - _WorkflowMode: 1

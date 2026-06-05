@@ -10,6 +10,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a43607c269fbce649bdc240dac4b8977, type: 3}
-  m_Name: Ev_SpawnVFXAtPosition
+  m_Name: BasicSlashIncrease
   m_EditorClassIdentifier: Assembly-CSharp::Ev_SpawnVFXAtPosition
-  vfxPrefab: {fileID: -5808430431564993702, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+  vfxPrefab: {fileID: -5808430431564993702, guid: 398795ac392573f4c93dd3b292a210bf, type: 3}

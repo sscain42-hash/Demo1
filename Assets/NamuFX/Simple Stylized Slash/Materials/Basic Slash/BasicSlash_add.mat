@@ -155,7 +155,7 @@ Material:
     - _UseAlphaChannel: 0
     - _UseCustomdataOffset: 0
     - _UseCustomdata_Color: 0
-    - _UseSoftParticle: 0
+    - _UseSoftParticle: 1
     - _Use_Dissolve_Tex: 1
     - _Use_Gradient_Mask: 0
     - _WorkflowMode: 1

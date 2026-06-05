@@ -27,23 +27,16 @@ public class AttackDataEditor : Editor
                 SerializedProperty windowRef = windowsProp.GetArrayElementAtIndex(i);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                // --- HÀNG 1: Điều hướng & Xóa ---
+                // --- HÀNG 1: Điều hướng & Tên Action & Xóa ---
                 EditorGUILayout.BeginHorizontal();
                 
-                // Nút Di chuyển (Sử dụng GUIUtility.ExitGUI để ép vẽ lại)
+                // Nút Di chuyển
                 if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0) 
-                { 
-                    windowsProp.MoveArrayElement(i, i - 1); 
-                    serializedObject.ApplyModifiedProperties();
-                    GUIUtility.ExitGUI(); 
-                }
+                { windowsProp.MoveArrayElement(i, i - 1); serializedObject.ApplyModifiedProperties(); GUIUtility.ExitGUI(); }
                 if (GUILayout.Button("▼", GUILayout.Width(20)) && i < windowsProp.arraySize - 1) 
-                { 
-                    windowsProp.MoveArrayElement(i, i + 1); 
-                    serializedObject.ApplyModifiedProperties();
-                    GUIUtility.ExitGUI(); 
-                }
+                { windowsProp.MoveArrayElement(i, i + 1); serializedObject.ApplyModifiedProperties(); GUIUtility.ExitGUI(); }
 
+                // --- LOGIC ACTION NAME (Xử lý Custom) ---
                 SerializedProperty nameProp = windowRef.FindPropertyRelative("actionName");
                 int selectedIndex = -1;
                 for (int j = 0; j < _actionPresets.Length; j++)
@@ -51,9 +44,24 @@ public class AttackDataEditor : Editor
                     if (nameProp.stringValue == _actionPresets[j]) { selectedIndex = j; break; }
                 }
 
-                int newIndex = EditorGUILayout.Popup(selectedIndex == -1 ? _actionPresets.Length : selectedIndex, AppendCustomOption(_actionPresets));
-                if (newIndex < _actionPresets.Length) nameProp.stringValue = _actionPresets[newIndex];
-                else EditorGUILayout.PropertyField(nameProp, GUIContent.none);
+                int displayIndex = (selectedIndex == -1) ? _actionPresets.Length : selectedIndex;
+                
+                EditorGUI.BeginChangeCheck();
+                int newIndex = EditorGUILayout.Popup(displayIndex, AppendCustomOption(_actionPresets), GUILayout.Width(100));
+                
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (newIndex < _actionPresets.Length)
+                        nameProp.stringValue = _actionPresets[newIndex];
+                    else
+                        nameProp.stringValue = ""; // Reset để buộc hiện ô Text
+                }
+
+                // Nếu là Custom (selectedIndex == -1), hiển thị TextField
+                if (selectedIndex == -1)
+                {
+                    nameProp.stringValue = EditorGUILayout.TextField(nameProp.stringValue);
+                }
 
                 // Nút Xóa
                 GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
@@ -90,7 +98,6 @@ public class AttackDataEditor : Editor
                             vfxData.FindPropertyRelative("positionOffset").vector3Value = t.localPosition;
                             vfxData.FindPropertyRelative("rotationOffset").vector3Value = t.localEulerAngles;
                             vfxData.FindPropertyRelative("scale").vector3Value = t.localScale;
-                            Debug.Log("Copied VFX Transform from: " + t.name);
                         }
                     }
                     EditorGUILayout.PropertyField(vfxData, new GUIContent("VFX Settings"), true);

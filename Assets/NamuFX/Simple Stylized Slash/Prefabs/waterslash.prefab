@@ -42,7 +42,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896497003584098}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -4923,6 +4923,9 @@ GameObject:
   - component: {fileID: 3533896497101703158}
   - component: {fileID: 3533896497101703159}
   - component: {fileID: 3533896497101703156}
+  - component: {fileID: 2018836029576627327}
+  - component: {fileID: 8466869788424472750}
+  - component: {fileID: 5994159800016864448}
   m_Layer: 0
   m_Name: waterslash
   m_TagString: Untagged
@@ -4955,7 +4958,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896497101703157}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -9749,6 +9752,66 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!135 &2018836029576627327
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3533896497101703157}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 13.209999
+  m_Center: {x: 0, y: 0, z: 12.5}
+--- !u!114 &8466869788424472750
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3533896497101703157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cc9b52fb92c5de41b8da139f9fde2cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TriggerDetection
+  CollisionEnterEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  CollisionExitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PositionEnterEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PositionExitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  layerToCheck:
+    serializedVersion: 2
+    m_Bits: 64
+--- !u!114 &5994159800016864448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3533896497101703157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c436788db796d4bb8c21d1f40f5732, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParticleReference
 --- !u!1 &3533896497819481005
 GameObject:
   m_ObjectHideFlags: 0
@@ -9791,7 +9854,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896497819481005}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -14685,7 +14748,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896497946576043}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -19585,7 +19648,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896498416198199}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -24421,7 +24484,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896498421091964}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -29324,7 +29387,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896498762299409}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
@@ -34218,7 +34281,7 @@ ParticleSystem:
   m_GameObject: {fileID: 3533896499085991117}
   serializedVersion: 8
   lengthInSec: 2
-  simulationSpeed: 1
+  simulationSpeed: 3
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0

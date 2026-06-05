@@ -50,10 +50,8 @@ public class PlayerController : Damageable
     [field: SerializeField] public float TAttack { get; private set; } = 0.1f;
     [field: SerializeField] public float TRelease { get; private set; } = 0.15f;
 
-    [Header("Combat")]
-    public ComboSequence _normalAttackCombo;
 
-    [SerializeField] private PhysicsDetection Na_Detection;
+
 
     [Header("Lunge")]
     public float offsetLunge = 1f;
@@ -234,7 +232,7 @@ public class PlayerController : Damageable
 
         _wasGroundedLastFrame = _charController.isGrounded;
 
-        Na_Detection.radiusCheck = attackRange;
+    
         Animator.applyRootMotion = true;
     }
 
@@ -662,7 +660,7 @@ public class PlayerController : Damageable
         Debug.Log(
             $"Applying hit stop of {hitStop} seconds for {type}");
 
-        HitStopSystem.Instance?.Trigger(hitStop);
+        HitStopSystem.Instance?.Trigger(hitStop,0.2f);
     }
 
     #endregion

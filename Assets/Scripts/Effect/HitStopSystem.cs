@@ -5,58 +5,54 @@ public class HitStopSystem : MonoBehaviour
 {
     public static HitStopSystem Instance;
 
-    [Header("Config")]
-    [SerializeField] private float minTimeScale = 0.05f;
-    [SerializeField] private float recoverSpeed = 8f;
-    [SerializeField] private float blendSpeed = 20f;
-
-    private float _targetTimeScale = 1f;
-    private float _currentTimeScale = 1f;
-
-    private float _hitStopTimer = 0f;
+    private Coroutine _hitStopCoroutine;
+    private float _defaultTimeScale = 1f;
 
     private void Awake()
     {
-        Instance = this;
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
-    private void Update()
+    /// <summary>
+    /// Kích hoạt HitStop.
+    /// </summary>
+    /// <param name="duration">Thời gian dừng (tính bằng giây thực - không bị ảnh hưởng bởi timeScale)</param>
+    /// <param name="timeScale">Tỉ lệ thời gian (ví dụ 0.05f)</param>
+    public void Trigger(float duration, float timeScale = 0.05f)
     {
-        // 🔥 giảm timer
-        if (_hitStopTimer > 0f)
+        // 1. Dừng mọi HitStop đang chạy dở để ưu tiên nhát chém mới nhất
+        if (_hitStopCoroutine != null)
         {
-            _hitStopTimer -= Time.unscaledDeltaTime;
-
-            // giữ low timescale
-            _targetTimeScale = minTimeScale;
-        }
-        else
-        {
-            // 🔥 recover về 1
-            _targetTimeScale = 1f;
+            StopCoroutine(_hitStopCoroutine);
         }
 
-        // 🔥 blend mượt (KHÔNG giật)
-        _currentTimeScale = Mathf.Lerp(
-            _currentTimeScale,
-            _targetTimeScale,
-            Time.unscaledDeltaTime * (_targetTimeScale < 1f ? blendSpeed : recoverSpeed)
-        );
-
-        Time.timeScale = _currentTimeScale;
+        // 2. Chạy Coroutine mới
+        _hitStopCoroutine = StartCoroutine(HitStopRoutine(duration, timeScale));
     }
 
-    // ================= API =================
-
-    public void Trigger(float duration)
+    private IEnumerator HitStopRoutine(float duration, float timeScale)
     {
-        // 🔥 stack hit stop (không override)
-        _hitStopTimer = Mathf.Max(_hitStopTimer, duration);
+        // 3. Set TimeScale ngay lập tức
+        Time.timeScale = timeScale;
+
+        // 4. Đợi thời gian thực. Quan trọng: Dùng WaitForSecondsRealtime 
+        // để không bị "đứng" vĩnh viễn khi timeScale = 0
+        yield return new WaitForSecondsRealtime(duration);
+
+        // 5. Phục hồi thời gian
+        Time.timeScale = _defaultTimeScale;
+        _hitStopCoroutine = null;
     }
 
-    public void Trigger(float duration, float customScale)
+    // Nếu muốn reset thủ công khi cần
+    public void CancelHitStop()
     {
-        _hitStopTimer = Mathf.Max(_hitStopTimer, duration);
-        minTimeScale = customScale;
+        if (_hitStopCoroutine != null)
+        {
+            StopCoroutine(_hitStopCoroutine);
+            Time.timeScale = _defaultTimeScale;
+            _hitStopCoroutine = null;
+        }
     }
 }
