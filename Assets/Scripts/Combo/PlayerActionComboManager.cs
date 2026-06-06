@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
 {
@@ -14,19 +15,29 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
 
     // IVelocityProvider Implementation
     public Vector3 CurrentStepVelocity { get; private set; }
-    public bool IsActive => IsAttacking;
+    public bool IsActive => IsAttacking && !_isForceCancelled;
     public int Priority => 1;
-
     private void OnEnable()
     {
         var controller = GetComponent<PlayerController>();
         if (controller != null) controller.RegisterVelocityProvider(this);
+        // Đăng ký lắng nghe sự kiện
+        if (_targetLock != null)
+        {
+            _targetLock.OnTargetLocked += HandleTargetLocked;
+        }
     }
+
 
     private void OnDisable()
     {
         var controller = GetComponent<PlayerController>();
         if (controller != null) controller.UnregisterVelocityProvider(this);
+        // Hủy đăng ký để tránh memory leak
+        if (_targetLock != null)
+        {
+            _targetLock.OnTargetLocked -= HandleTargetLocked;
+        }
     }
 
     public Vector3 GetVelocityModifier() => CurrentStepVelocity;
@@ -48,6 +59,7 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
     private ComboState _activeState = null;
     private AttackData _currentAttackData;
     private AttackType _currentRuntimeAttackType;
+    private List<ComboState> _allStates;
 
     public AttackData CurrentAttackData => _currentAttackData;
     public bool IsAttacking => _activeState != null && _activeState.isAttacking;
@@ -55,7 +67,13 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
     public bool IsComboWindowActive { get; private set; }
     public bool CanDashCancelNow { get; private set; }
     public bool CanJumpCancelNow { get; private set; }
+    private bool _isForceCancelled = false;
 
+    private void Start()
+    {
+        if (_targetLock == null)
+            _targetLock = GetComponent<TargetLockManager>();
+    }
     private void Awake()
     {
         _ctx = GetComponent<PlayerController>();
@@ -67,6 +85,7 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
         stateE.sequence = skillECombo;
         stateQ.associatedAction = BufferedAction.ElementalBurst;
         stateQ.sequence = skillQCombo;
+        _allStates = new List<ComboState> { stateNormal, stateE, stateQ };
     }
 
     private void Update()
@@ -99,9 +118,32 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
             else if (_ctx.TryElementalSkill) StartComboChain(stateE);
             else if (_ctx.TryElementalBurst) StartComboChain(stateQ);
         }
-        else if (_activeState.isAttacking && IsComboWindowActive)
+        else if (_activeState.isAttacking)
         {
-            if (playerInputs.HasCommand(_activeState.associatedAction))
+            // 1. ƯU TIÊN KIỂM TRA NGẮT CHIÊU (DASH / JUMP CANCEL) TRƯỚC
+            // Giả định bạn có khai báo BufferedAction.Dash và BufferedAction.Jump trong Enum
+            if (CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
+            {
+                playerInputs.ConsumeCommand(BufferedAction.Dash);
+                ForceCancelCombo();
+
+                // Ép Controller chuyển ngay sang State Dash
+                if (_ctx.CurrentState != null) _ctx.CurrentState.SwitchState(_ctx.States.Dash());
+                return; // Thoát hàm để không kiểm tra tiếp
+            }
+
+            if (CanJumpCancelNow && playerInputs.HasCommand(BufferedAction.Jump))
+            {
+                playerInputs.ConsumeCommand(BufferedAction.Jump);
+                ForceCancelCombo();
+
+                // Ép Controller chuyển ngay sang State Jump
+                if (_ctx.CurrentState != null) _ctx.CurrentState.SwitchState(_ctx.States.Jump());
+                return; // Thoát hàm để không kiểm tra tiếp
+            }
+
+            // 2. NẾU KHÔNG CÓ LỆNH NGẮT, MỚI KIỂM TRA ĐÁNH TIẾP
+            if (IsComboWindowActive && playerInputs.HasCommand(_activeState.associatedAction))
             {
                 playerInputs.ConsumeCommand(_activeState.associatedAction);
                 MoveToNextComboStep(_activeState);
@@ -111,6 +153,8 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
 
     private void StartComboChain(ComboState state)
     {
+      
+        _isForceCancelled = false;
         if (state.sequence == null || state.sequence.attacks.Count == 0) return;
         playerInputs.ConsumeCommand(state.associatedAction);
         _activeState = state;
@@ -121,6 +165,7 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
 
     private void ExecuteComboStep(ComboState state)
     {
+        HandleTargetLocked(_targetLock.CurrentTarget);
         state.isAttacking = true;
         _currentAttackData = state.sequence.attacks[state.currentIndex];
 
@@ -157,6 +202,12 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
         Vector3 frameDisplacement = Vector3.zero;
         bool comboActive = false;
 
+        CanDashCancelNow = false;
+        CanJumpCancelNow = false;
+
+
+
+
         foreach (var window in _currentAttackData.windows)
         {
             if (window.IsInside(nTime))
@@ -172,6 +223,10 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
                 frameDisplacement += velocity * Time.deltaTime;
 
                 if (window.actionName == "ComboInputBuffer") comboActive = true;
+                if (window.actionName == "DashCancel") CanDashCancelNow = true;
+                if (window.actionName == "JumpCancel") CanJumpCancelNow = true;
+                if (window.actionName == "ComboInputBuffer") comboActive = true;
+
                 if (window.eventEffects != null && !window.eventTriggered) 
                 { 
                     Debug.Log("Đang kích hoạt Event Effect...");
@@ -206,10 +261,21 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
 
     public void ForceCancelCombo()
     {
-        IsComboWindowActive = false;
+        // Bật cờ ngắt điện
+        _isForceCancelled = true;
+
         CurrentStepVelocity = Vector3.zero;
         _activeState = null;
-        _currentAttackData = null;
+
+        // Reset các state
+        foreach (var state in _allStates)
+        {
+            state.isAttacking = false;
+            state.activeWindows.Clear();
+        }
+
+        var anim = GetComponentInChildren<Animator>();
+        if (anim != null) anim.CrossFadeInFixedTime("Idle", 0.1f);
     }
 
     private AttackType ConvertActionToAttackType(BufferedAction action) => action switch
@@ -219,4 +285,22 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
         BufferedAction.ElementalBurst => AttackType.Q,
         _ => AttackType.NormalAttack
     };
+    #region Target Lock Integration
+    [SerializeField] private TargetLockManager _targetLock;
+
+
+    private void HandleTargetLocked(GameObject target)
+    {
+        if (target == null) return;
+        FaceTarget(target.transform);
+    }
+
+    private void FaceTarget(Transform target)
+    {
+        Vector3 direction = (target.position - transform.position).normalized;
+        direction.y = 0;
+        if (direction != Vector3.zero)
+            transform.rotation = Quaternion.LookRotation(direction);
+    }
+    #endregion
 }

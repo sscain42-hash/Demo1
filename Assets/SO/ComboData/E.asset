@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7dcdbf0ed4744614bbd4ea61c38439d7, type: 3}
-  m_Name: Q
+  m_Name: E
   m_EditorClassIdentifier: Assembly-CSharp::ComboSequence
   attacks:
-  - {fileID: 11400000, guid: 900eb3903c31a2e4aa1973ede6854070, type: 2}
+  - {fileID: 11400000, guid: d9b238ba42156fa44a5f541f8aa4f69b, type: 2}

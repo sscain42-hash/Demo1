@@ -24,7 +24,6 @@ MonoBehaviour:
       rotationOffset: {x: 292, y: 90, z: 90}
       scale: {x: 0.3, y: 0.3, z: 0.3}
     targetDistance: {x: 0, y: 0, z: 0}
-    duration: 0.2
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
     eventTriggered: 1
@@ -37,7 +36,6 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
-    duration: 0.2
     eventEffects: []
     eventTriggered: 1
   - actionName: JumpCancel
@@ -49,7 +47,6 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
-    duration: 0.2
     eventEffects: []
     eventTriggered: 1
   - actionName: DashCancel
@@ -61,6 +58,16 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
-    duration: 0.2
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0
+    endTime: 0.303
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    targetDistance: {x: 0, y: 0, z: 1}
     eventEffects: []
     eventTriggered: 1

@@ -30,7 +30,7 @@ public class AttackDataEditor : Editor
                 SerializedProperty windowRef = windowsProp.GetArrayElementAtIndex(i);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                // --- HÀNG 1: Điều hướng & Tên Action & Xóa ---
+                // --- HÀNG 1: Điều hướng & Tên Action & Duplicate & Xóa ---
                 EditorGUILayout.BeginHorizontal();
                 
                 if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0) 
@@ -62,6 +62,23 @@ public class AttackDataEditor : Editor
                     nameProp.stringValue = EditorGUILayout.TextField(nameProp.stringValue);
                 }
 
+                // NÚT DUPLICATE (MỚI)
+              // --- NÚT DUPLICATE BẰNG ICON MẶC ĐỊNH ---
+                GUI.backgroundColor = new Color(0.6f, 0.8f, 1f); // Màu xanh nhạt
+
+                // Lấy icon mặc định của Unity và thêm Tooltip
+                GUIContent dupIcon = EditorGUIUtility.IconContent("TreeEditor.Duplicate");
+                dupIcon.tooltip = "Duplicate this Action Window";
+
+                // Vẽ nút với icon (chỉnh lại Width/Height cho vuông vắn)
+                if (GUILayout.Button(dupIcon, GUILayout.Width(30), GUILayout.Height(22))) 
+                { 
+                    windowsProp.InsertArrayElementAtIndex(i); 
+                    serializedObject.ApplyModifiedProperties(); 
+                    GUIUtility.ExitGUI(); 
+                }
+
+                // NÚT XÓA
                 GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
                 if (GUILayout.Button("✕", GUILayout.Width(25))) 
                 { 
@@ -69,7 +86,8 @@ public class AttackDataEditor : Editor
                     serializedObject.ApplyModifiedProperties(); 
                     GUIUtility.ExitGUI(); 
                 }
-                GUI.backgroundColor = Color.white;
+                
+                GUI.backgroundColor = Color.white; // Reset màu
                 EditorGUILayout.EndHorizontal();
 
                 // --- HÀNG 2: Time Range Slider (Tự động tính thời gian di chuyển) ---

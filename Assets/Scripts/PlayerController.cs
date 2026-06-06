@@ -473,29 +473,33 @@ public class PlayerController : Damageable
 
     private void MoveCharacter()
     {
-        Vector3 comboStep = Vector3.zero;
-        bool isComboActive = false;
+        // 1. TÌM PROVIDER MẠNH NHẤT (Dash/Jump > Combo)
+        IVelocityProvider bestProvider = null;
+        int highestPriority = -1;
 
         foreach (var provider in _velocityProviders)
         {
-            if (provider.IsActive)
+            if (provider.IsActive && provider.Priority > highestPriority)
             {
-                comboStep = provider.GetVelocityModifier();
-                isComboActive = true;
+                bestProvider = provider;
+                highestPriority = provider.Priority;
             }
         }
 
-        if (isComboActive)
+        // 2. NẾU CÓ PROVIDER HOẠT ĐỘNG (Dash, Jump hoặc Combo)
+        if (bestProvider != null)
         {
-            // GHI ĐÈ: Sử dụng trực tiếp quãng đường tính được cho frame này
-            _charController.Move(comboStep);
+            Vector3 moveStep = bestProvider.GetVelocityModifier();
 
-            // Reset lại vận tốc nội tại để không bị trôi sau khi hết combo
+            // Ghi đè trực tiếp vận tốc
+            _charController.Move(moveStep);
+
+            // Reset vận tốc nội tại để không bị cộng dồn ma sát
             _velocity = Vector3.zero;
         }
+        // 3. NẾU KHÔNG CÓ CÁI NÀO HOẠT ĐỘNG THÌ MỚI DI CHUYỂN BÌNH THƯỜNG
         else
         {
-            // Di chuyển bình thường + Ma sát
             _charController.Move(_velocity * Time.deltaTime);
             _velocity.x = Mathf.MoveTowards(_velocity.x, 0, Friction * Time.deltaTime);
             _velocity.z = Mathf.MoveTowards(_velocity.z, 0, Friction * Time.deltaTime);
@@ -691,7 +695,7 @@ public class PlayerController : Damageable
         Debug.Log(
             $"Applying hit stop of {hitStop} seconds for {type}");
 
-        HitStopSystem.Instance?.Trigger(hitStop,0.2f);
+        HitStopSystem.Instance?.Trigger(hitStop,0.05f);
     }
 
     #endregion

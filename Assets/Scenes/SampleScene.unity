@@ -2007,6 +2007,67 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &515577495
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 515577496}
+  - component: {fileID: 515577497}
+  m_Layer: 7
+  m_Name: TargetLock
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &515577496
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515577495}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450651639082101}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &515577497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515577495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a937e8ecddd26f14da9fba361d5bf8fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PhysicsDetection
+  CollisionEnterEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  CollisionExitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PositionEnterEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PositionExitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  radiusCheck: 15
+  layerToCheck:
+    serializedVersion: 2
+    m_Bits: 64
+  color: {r: 0.016323686, g: 1, b: 0, a: 0}
 --- !u!1001 &516575741
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6509,6 +6570,7 @@ Transform:
   - {fileID: 1694630871}
   - {fileID: 1505605927}
   - {fileID: 233429364}
+  - {fileID: 515577496}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &608321761254649314
@@ -6729,6 +6791,7 @@ GameObject:
   - component: {fileID: 5866666019943822864}
   - component: {fileID: 1654161215}
   - component: {fileID: 5866666019943822867}
+  - component: {fileID: 5866666019943822868}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -8230,6 +8293,7 @@ MonoBehaviour:
   normalAttackCombo: {fileID: 11400000, guid: e9717781b0cfd7c4f917acced7c2ee65, type: 2}
   skillECombo: {fileID: 11400000, guid: 1ae07ae0ebc7a604d898300776184a6e, type: 2}
   skillQCombo: {fileID: 11400000, guid: e9717781b0cfd7c4f917acced7c2ee65, type: 2}
+  _targetLock: {fileID: 0}
 --- !u!95 &5866666019943822867
 Animator:
   serializedVersion: 7
@@ -8252,6 +8316,20 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &5866666019943822868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132147901970127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104753b8ae540264f9c33d52b601aaac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetLockManager
+  Detection: {fileID: 515577497}
+  IsLockingEnabled: 0
 --- !u!4 &5901452233704472310
 Transform:
   m_ObjectHideFlags: 0
