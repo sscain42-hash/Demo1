@@ -713,8 +713,10 @@ namespace NodeCanvas.Framework
         //Shows the breakpoint mark icon if node is set as a breakpoint
         static void DrawBreakpoint(Node node) {
             if ( node.isBreakpoint ) {
-                var rect = new Rect(node.rect.xMax - 18, node.rect.y - 18, 16, 16);
-                GUI.DrawTexture(rect, Icons.redCircle);
+                var rect = new Rect(node.rect.xMax - 16, node.rect.y - 16, 14, 14);
+                GUI.color = new Color(1f, 0.3f, 0.3f);
+                GUI.DrawTexture(rect, StyleSheet.circle);
+                GUI.color = Color.white;
             }
         }
 

@@ -185,29 +185,17 @@ namespace ParadoxNotion.Design
 
         private static GUIStyle _buttonLeft;
         public static GUIStyle buttonLeft {
-#if UNITY_2019_3_OR_NEWER
             get { return _buttonLeft ?? ( _buttonLeft = new GUIStyle((GUIStyle)"AppCommandLeft") ); }
-#else
-            get { return _buttonLeft ?? ( _buttonLeft = new GUIStyle((GUIStyle)"ButtonLeft") ); }
-#endif
         }
 
         private static GUIStyle _buttonMid;
         public static GUIStyle buttonMid {
-#if UNITY_2019_3_OR_NEWER
             get { return _buttonMid ?? ( _buttonMid = new GUIStyle((GUIStyle)"AppCommandMid") ); }
-#else
-            get { return _buttonMid ?? ( _buttonMid = new GUIStyle((GUIStyle)"ButtonMid") ); }
-#endif
         }
 
         private static GUIStyle _buttonRight;
         public static GUIStyle buttonRight {
-#if UNITY_2019_3_OR_NEWER
             get { return _buttonRight ?? ( _buttonRight = new GUIStyle((GUIStyle)"AppCommandRight") ); }
-#else
-            get { return _buttonRight ?? ( _buttonRight = new GUIStyle((GUIStyle)"ButtonRight") ); }
-#endif
         }
 
         private static GUIStyle _highlightBox;
@@ -217,20 +205,12 @@ namespace ParadoxNotion.Design
 
         private static GUIStyle _toolbarSearchField;
         public static GUIStyle toolbarSearchTextField {
-#if UNITY_2022_3_OR_NEWER
             get { return _toolbarSearchField ?? ( _toolbarSearchField = new GUIStyle((GUIStyle)"ToolbarSearchTextField") ); }
-#else
-            get { return _toolbarSearchField ?? ( _toolbarSearchField = new GUIStyle((GUIStyle)"ToolbarSeachTextField") ); }
-#endif
         }
 
         private static GUIStyle _toolbarSearchButton;
         public static GUIStyle toolbarSearchCancelButton {
-#if UNITY_2022_3_OR_NEWER
             get { return _toolbarSearchButton ?? ( _toolbarSearchButton = new GUIStyle((GUIStyle)"ToolbarSearchCancelButton") ); }
-#else
-            get { return _toolbarSearchButton ?? ( _toolbarSearchButton = new GUIStyle((GUIStyle)"ToolbarSeachCancelButton") ); }
-#endif
         }
 
         private static GUIStyle _shadowedBackground;

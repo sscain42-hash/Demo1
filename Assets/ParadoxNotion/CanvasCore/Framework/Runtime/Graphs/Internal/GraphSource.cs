@@ -28,7 +28,7 @@ namespace NodeCanvas.Framework.Internal
         ///----------------------------------------------------------------------------------------------
 
 
-        public const float FRAMEWORK_VERSION = 3.29f;
+        public const float FRAMEWORK_VERSION = 3.31f;
 
         [SerializeField, fsSerializeAs("version"), fsWriteOnly, fsIgnoreInBuild]
         private float _version;

@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeaf8e8a267f6b648b0a8f4873b6ad46, type: 3}
+  m_Name: 2Hand-Sword-Attack2
+  m_EditorClassIdentifier: Assembly-CSharp::AttackData
+  animationName: 2Hand-Sword-Attack1
+  damage: 0
+  windows:
+  - actionName: Slash
+    startTime: 0.312
+    endTime: 0.459
+    enableVFX: 1
+    vfxTransform:
+      positionOffset: {x: 0, y: 0.836, z: -0}
+      rotationOffset: {x: 68.44979, y: 90, z: 90}
+      scale: {x: 0.6, y: 0.6, z: 0.6}
+    targetDistance: {x: 0, y: 0, z: 0}
+    eventEffects:
+    - {fileID: 11400000, guid: 4c58a90411b8c8a4a9ea2d1519259975, type: 2}
+    eventTriggered: 1
+  - actionName: ComboInputBuffer
+    startTime: 0.653
+    endTime: 1
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 0.4, y: 0.4, z: 0.4}
+    targetDistance: {x: 0, y: 0, z: 0}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: JumpCancel
+    startTime: 0
+    endTime: 0.99999994
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    targetDistance: {x: 0, y: 0, z: 0}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: DashCancel
+    startTime: 0
+    endTime: 0.99999994
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    targetDistance: {x: 0, y: 0, z: 0}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0
+    endTime: 0.303
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    targetDistance: {x: 0, y: 0, z: 7}
+    eventEffects: []
+    eventTriggered: 1

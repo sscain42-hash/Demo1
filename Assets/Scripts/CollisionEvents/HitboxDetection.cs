@@ -1,54 +1,51 @@
 using UnityEngine;
 
-public class HitboxDetection : DetectionBase
+public class HitBoxDetection : DetectionBase
 {
-    [Header("Hitbox Shape")]
-    public Vector3 halfExtents = new Vector3(0.5f,0.5f,0.5f);
-    public Vector3 offset;
+    public enum DetectionType { Box, Sphere }
 
-    [Header("Layer")]
-    public LayerMask layerToCheck;
+    [Header("Detector Settings")]
+    public DetectionType type;
+    public LayerMask mask;
+    public Vector3 boxSize = Vector3.one;
+    public float sphereRadius = 1f;
 
-    [Header("Debug")]
-    public bool drawGizmos = true;
-    public Color gizmosColor = Color.red;
-
-    private readonly Collider[] _hits = new Collider[32];
-
-    public void CheckCollision()
+    private void OnEnable()
     {
-        Vector3 center = transform.position + transform.rotation * offset;
+        CheckCollision();    }
 
-        int count = Physics.OverlapBoxNonAlloc(
-            center,
-            halfExtents,
-            _hits,
-            transform.rotation,
-            layerToCheck
-        );
+    private void CheckCollision()
+    {
+        Collider[] hits = null;
 
-        for (int i = 0; i < count; i++)
+        // Quét 1 l?n duy nh?t khi Enable
+        if (type == DetectionType.Box)
         {
-            var col = _hits[i];
+            hits = Physics.OverlapBox(transform.position, boxSize / 2*transform.localScale.x, transform.rotation, mask);
+        }
+        else
+        {
+            hits = Physics.OverlapSphere(transform.position, sphereRadius*transform.localScale.x, mask);
+        }
 
-            CollisionEnterEvent?.Invoke(col.gameObject);
-            PositionEnterEvent?.Invoke(col.ClosestPoint(center));
+        // G?i k?t qu? qua UnityEvent
+        if (hits != null)
+        {
+            foreach (var hit in hits)
+            {
+                CollisionEnterEvent?.Invoke(hit.gameObject);
+                PositionEnterEvent?.Invoke(hit.transform.position);
+            }
         }
     }
 
-    private void OnDrawGizmos()
+    // V? vùng quét trong Editor d? d? can ch?nh
+    private void OnDrawGizmosSelected()
     {
-        if (!drawGizmos) return;
-
-        Gizmos.color = new Color(gizmosColor.r, gizmosColor.g, gizmosColor.b, 0.6f);
-
-        Vector3 center = transform.position + transform.rotation * offset;
-
-        Matrix4x4 oldMatrix = Gizmos.matrix;
-        Gizmos.matrix = Matrix4x4.TRS(center, transform.rotation, Vector3.one);
-
-        Gizmos.DrawWireCube(Vector3.zero, halfExtents * 2);
-
-        Gizmos.matrix = oldMatrix;
+        Gizmos.color = Color.cyan;
+        if (type == DetectionType.Box)
+            Gizmos.DrawWireCube(transform.position, boxSize);
+        else
+            Gizmos.DrawWireSphere(transform.position, sphereRadius);
     }
 }

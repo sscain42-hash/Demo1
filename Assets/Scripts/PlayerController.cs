@@ -199,8 +199,9 @@ public class PlayerController : Damageable
     public readonly int IDJump = Animator.StringToHash("Jump");
     public readonly int IDFall = Animator.StringToHash("Fall");
     public readonly int IDDash = Animator.StringToHash("Dash");
+    public readonly int IDDashBack = Animator.StringToHash("DashBack");
 
-    public readonly int Anim_Idle = Animator.StringToHash("HumanM@Idle01");
+    public readonly int ID_Idle = Animator.StringToHash("HumanM@Idle01");
     public readonly int Anim_Run_F = Animator.StringToHash("HumanM@Run01_Forward");
     public readonly int Anim_Run_B = Animator.StringToHash("HumanM@Run01_Backward");
     public readonly int Anim_Run_L = Animator.StringToHash("HumanM@Run01_Left");
@@ -214,7 +215,7 @@ public class PlayerController : Damageable
     public readonly int Anim_Falling = Animator.StringToHash("HumanM@Fall01");
     public readonly int Anim_Land = Animator.StringToHash("HumanM@Jump01 - Land");
     public readonly int Anim_Dash = Animator.StringToHash("HumanM@Dash01");
-
+    public readonly int Anim_DashBack = Animator.StringToHash("DashBack");
     #endregion
 
     [SerializeField] private CharacterEffect characterEffect;
@@ -321,7 +322,7 @@ public class PlayerController : Damageable
         _animationHandler =
             new MovementAnimationHandler(
                 Animator,
-                Anim_Idle,
+                ID_Idle,
                 Anim_Run_F,
                 Anim_Run_B,
                 Anim_Run_L,
@@ -794,23 +795,31 @@ public class PlayerController : Damageable
 
     public Vector3 GetHorizontalDashDirection()
     {
-        if (_inputVector.sqrMagnitude < 0.01f)
-            return Model ? Model.forward : Vector3.forward;
+        Vector3 forwardDir;
 
-        Vector3 cameraForward = MainCamera.forward;
-        Vector3 cameraRight = MainCamera.right;
+        // 1. Trường hợp có Input
+        if (_inputVector.sqrMagnitude > 0.01f)
+        {
+            Vector3 cameraForward = MainCamera.forward;
+            Vector3 cameraRight = MainCamera.right;
 
-        cameraForward.y = 0f;
-        cameraRight.y = 0f;
+            cameraForward.y = 0f;
+            cameraRight.y = 0f;
 
-        cameraForward.Normalize();
-        cameraRight.Normalize();
+            cameraForward.Normalize();
+            cameraRight.Normalize();
 
-        Vector3 moveDirection =
-            cameraForward * _inputVector.y +
-            cameraRight * _inputVector.x;
+            forwardDir = cameraForward * _inputVector.y + cameraRight * _inputVector.x;
+        }
+        // 2. Trường hợp không có Input
+        else
+        {
+            // Phải ép Y về 0 để tránh bị nghiêng khi camera nhìn góc cao/thấp
+            forwardDir = -MainCamera.forward;
+            forwardDir.y = 0f;
+        }
 
-        return moveDirection.normalized;
+        return forwardDir.normalized;
     }
 
     public void SetVelocity(float x, float y, float z)

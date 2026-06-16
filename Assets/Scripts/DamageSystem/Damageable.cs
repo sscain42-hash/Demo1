@@ -34,7 +34,7 @@ public abstract class Damageable : MonoBehaviour
     public virtual void TakeDMG(int _damage, bool _isCRIT) { }
 
 
-    /// <summary> Phần trăm sát thương của Normal Attack </summary>  
+   /* /// <summary> Phần trăm sát thương của Normal Attack </summary>  
     public virtual float PercentDMG_NA() => 0;
 
 
@@ -43,6 +43,7 @@ public abstract class Damageable : MonoBehaviour
     
     
     /// <summary> Phần trăm sát thương của Elemental Skill </summary>  
+    /// 
     public virtual float PercentDMG_ES() => 0;
     
     
@@ -51,6 +52,6 @@ public abstract class Damageable : MonoBehaviour
     
     
     /// <summary> Chuyển phần trăm sát thương thành sát thương đầu ra </summary>  
-    public virtual int CalculationDMG(float _percent) => 0;
+    public virtual int CalculationDMG(float _percent) => 0;*/
     
 }

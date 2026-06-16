@@ -9,7 +9,7 @@ public class PlayerIdleState : PlayerBaseState
 
     public override void EnterState()
     {
-        _ctx.PlayAnimation(_ctx.Anim_Idle, 0.1f);
+        _ctx.PlayAnimation(_ctx.ID_Idle, 0.1f);
     }
 
     protected override void UpdateState()

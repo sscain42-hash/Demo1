@@ -27,7 +27,6 @@ namespace ParadoxNotion.Design
             warningIconBig = EditorGUIUtility.FindTexture("d_console.warnicon");
             errorIcon = EditorGUIUtility.FindTexture("d_console.erroricon.sml");
             errorIconBig = EditorGUIUtility.FindTexture("d_console.erroricon");
-            redCircle = EditorGUIUtility.FindTexture("d_winbtn_mac_close");
             folderIcon = EditorGUIUtility.FindTexture("Folder Icon");
             favoriteIcon = EditorGUIUtility.FindTexture("Favorite Icon");
             gearPopupIcon = EditorGUIUtility.FindTexture("d__Popup");
@@ -50,7 +49,6 @@ namespace ParadoxNotion.Design
         public static Texture2D warningIconBig { get; private set; }
         public static Texture2D errorIcon { get; private set; }
         public static Texture2D errorIconBig { get; private set; }
-        public static Texture2D redCircle { get; private set; }
         public static Texture2D folderIcon { get; private set; }
         public static Texture2D favoriteIcon { get; private set; }
         public static Texture2D gearPopupIcon { get; private set; }

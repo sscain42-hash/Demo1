@@ -6,7 +6,7 @@ using ParadoxNotion;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
+public class PhysicsDetection : DetectionBase
 {
     [Tooltip("Bán kính kiểm tra va chạm"), Range(0.1f, 20f)]
     public float radiusCheck;
@@ -28,9 +28,7 @@ public class PhysicsDetection : DetectionBase, IPooled<PhysicsDetection>
         }
     }
 
-   
-    public void Release() => ReleaseCallback?.Invoke(this);
-    public Action<PhysicsDetection> ReleaseCallback { get; set; }
+
 
     void OnDrawGizmos()
     {

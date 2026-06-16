@@ -19,6 +19,7 @@ public class CameraFocusController : MonoBehaviour
     {
         // Thêm mục tiêu vào nhóm Camera
         _targetGroup.AddMember(target.transform, _enemyWeight, _enemyRadius);
+        Debug.Log($"Camera now focusing on: {target.name}");
     }
 
     private void ResetFocus()

@@ -40,7 +40,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     private PlayerController _player;
     private int _attackCount;
     private EnemyAttack enemyAttack;
-    private EnemyBehaviourTree _behavior;
+   
     private readonly List<int> _levelTable =
         new() { 11,21,31,41,51,61,71,81,91,101 };
 
@@ -71,7 +71,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
         ResolveDependencies();
         RegisterEvents();
         SyncBlackboardBase();
-        ApplyScalingFromPlayer();
+   
         InitializeStats();
     }
 
@@ -82,7 +82,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     }
     private void Update()
     {
-        _behavior.Tick();
+        
     }
     #endregion
 
@@ -97,12 +97,12 @@ public class EnemyController : Damageable, IPooled<EnemyController>
         if (_player == null)
         {
             Debug.LogError($"[EnemyController] PlayerController not found for enemy '{name}'. Disabling behaviour until player is available.");
-            _behavior = null;
+
             return;
         }
 
         enemyAttack = GetComponent<EnemyAttack>();
-        _behavior = new EnemyBehaviourTree(new EnemyBlackboard(_player.transform), transform, enemyAttack);
+   
     }
 
     private void RegisterEvents()
@@ -124,12 +124,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
 
     #region === Scaling System ===
 
-    private void ApplyScalingFromPlayer()
-    {
-       // ScaleStat(_player.PlayerConfig.GetHP(), RuntimeConfig.GetHPRatio(),value=> RuntimeConfig.SetHP(value));
-       // ScaleStat(_player.PlayerConfig.GetDEF(), RuntimeConfig.GetDEFRatio(), value => RuntimeConfig.SetDEF(value));
-       // ScaleStat(_player.PlayerConfig.GetLevel(), RuntimeConfig.GetLevelRatio(), value => RuntimeConfig.SetLevel(value));
-    }
+   
 
     private void ScaleStat(int playerValue, float ratio, Action<int> setter)
     {
@@ -189,10 +184,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     {
         return type switch
         {
-            AttackType.NormalAttack => PercentDMG_NA(),
-            AttackType.ChargedAttack => PercentDMG_CA(),
-            AttackType.E => PercentDMG_ES(),
-            AttackType.Q => PercentDMG_EB(),
+          
             _ => 1
         };
     }
@@ -264,7 +256,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     {
         gameObject.SetObjectLayer(ignoreLayer.value);
 
-        EnemyTracker.Remove(transform);
+   
 
         SetDie(true);
         SetChaseSensor(false);
@@ -287,21 +279,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
 
     public void SetAttackCount(int value) => _attackCount = value;
 
-    public override float PercentDMG_NA()
-        => RuntimeConfig.GetNormalAttackMultiplier()[_attackCount]
-            .GetMultiplier()[FindLevelIndex()];
-
-    public override float PercentDMG_CA()
-        => RuntimeConfig.GetChargedAttackMultiplier()[0]
-            .GetMultiplier()[FindLevelIndex()];
-
-    public override float PercentDMG_ES()
-        => RuntimeConfig.GetElementalSkillMultiplier()[0]
-            .GetMultiplier()[FindLevelIndex()];
-
-    public override float PercentDMG_EB()
-        => RuntimeConfig.GetElementalBurstMultiplier()[0]
-            .GetMultiplier()[FindLevelIndex()];
+    
 
     private int FindLevelIndex()
     {
@@ -381,15 +359,6 @@ public class EnemyController : Damageable, IPooled<EnemyController>
         {
             // Tham số thứ 2 là thời gian chuyển cảnh (giây), tham số thứ 3 là Layer Index (mặc định là 0)
             _animator.CrossFadeInFixedTime(stateName, fixedTransitionDuration, 0);
-        }
-    }
-
-    // Vẫn giữ lại hàm cập nhật Speed cho Blend Tree chạy/đứng yên nếu cần
-    public void UpdateMoveAnimation(float speed)
-    {
-        if (_animator != null)
-        {
-            _animator.SetFloat("Speed", speed);
         }
     }
 

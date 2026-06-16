@@ -101,10 +101,13 @@ PrefabInstance:
       addedObject: {fileID: -5808430431564993702}
     - targetCorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 9151027364727870119}
+      addedObject: {fileID: 2197119031264913018}
     - targetCorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7688008022842793054}
+      addedObject: {fileID: -3269936231095276403}
+    - targetCorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7253595218618136465}
   m_SourcePrefab: {fileID: 100100000, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
 --- !u!1 &6389406066330802589 stripped
 GameObject:
@@ -123,7 +126,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95c436788db796d4bb8c21d1f40f5732, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticleReference
---- !u!135 &9151027364727870119
+--- !u!114 &2197119031264913018
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6389406066330802589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2556caa5ff401b346a05948b72055465, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackEmitter
+  force: 10
+  duration: 0.2
+--- !u!135 &-3269936231095276403
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -142,9 +159,9 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 6
+  m_Radius: 6.25
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7688008022842793054
+--- !u!114 &7253595218618136465
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -153,12 +170,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 6389406066330802589}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cc9b52fb92c5de41b8da139f9fde2cd, type: 3}
+  m_Script: {fileID: 11500000, guid: cf2ee03b9e9174147bd9e011aeac3d97, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TriggerDetection
+  m_EditorClassIdentifier: Assembly-CSharp::HitBoxDetection
   CollisionEnterEvent:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2197119031264913018}
+        m_TargetAssemblyTypeName: KnockbackEmitter, Assembly-CSharp
+        m_MethodName: EmitKnockback
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   CollisionExitEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -168,6 +197,9 @@ MonoBehaviour:
   PositionExitEvent:
     m_PersistentCalls:
       m_Calls: []
-  layerToCheck:
+  type: 1
+  mask:
     serializedVersion: 2
     m_Bits: 64
+  boxSize: {x: 1, y: 0, z: 0}
+  sphereRadius: 7

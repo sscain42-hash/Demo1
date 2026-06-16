@@ -7,11 +7,7 @@ public class CharacterEffect : MonoBehaviour, IAttack
     [Tooltip("Script điều khiển chính (Chỉ Player có, Enemy để trống)"), SerializeField]
     private PlayerController _ctx;
 
-    [Header("⚔️ DETECTOR CẬN CHIẾN TRÊN NGƯỜI")]
-    [SerializeField] private PhysicsDetection NA_Detection;
-    [SerializeField] private HitboxDetection CA_Detection;
-    [SerializeField] private ParticleDetection ES_Detection;
-    [SerializeField] private ParticleDetection EB_Detection;
+
 
     private Dictionary<GameObject, ObjectPooler<Reference>> _dynamicPools = new Dictionary<GameObject, ObjectPooler<Reference>>();
     private AttackType _currentFiringAttackType = AttackType.NormalAttack;
@@ -21,11 +17,7 @@ public class CharacterEffect : MonoBehaviour, IAttack
 
     private void Awake()
     {
-        // Đăng ký các đòn cận chiến cơ bản
-        if (NA_Detection != null) NA_Detection.CollisionEnterEvent.AddListener(Detection_NA);
-        if (CA_Detection != null) CA_Detection.CollisionEnterEvent.AddListener(Detection_CA);
-        if (ES_Detection != null) ES_Detection.CollisionEnterEvent.AddListener(Detection_E);
-        if (EB_Detection != null) EB_Detection.CollisionEnterEvent.AddListener(Detection_Q);
+      
 
         // Khởi tạo Anchor ở không gian thế giới nếu chưa có ai tạo
         InitializeWorldAnchor();
@@ -113,8 +105,6 @@ public class CharacterEffect : MonoBehaviour, IAttack
         }
     }
 
-    public void CheckNACollision() => NA_Detection?.CheckCollision();
-    public void CheckCACollision() => CA_Detection?.CheckCollision();
 
     public void Detection_NA(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.NormalAttack);
     public void Detection_CA(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.ChargedAttack);

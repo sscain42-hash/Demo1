@@ -9757,8 +9757,9 @@ GameObject:
   - component: {fileID: 5942177893964023154}
   - component: {fileID: 5942177893964023155}
   - component: {fileID: 2899506186345213818}
-  - component: {fileID: -6852977510020937611}
-  - component: {fileID: -369954391590582716}
+  - component: {fileID: 4117728803604303060}
+  - component: {fileID: 5403903313189366670}
+  - component: {fileID: -7451390395404315581}
   m_Layer: 0
   m_Name: fireslash
   m_TagString: Untagged
@@ -14597,7 +14598,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95c436788db796d4bb8c21d1f40f5732, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticleReference
---- !u!135 &-6852977510020937611
+--- !u!114 &4117728803604303060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5942177893964023165}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2556caa5ff401b346a05948b72055465, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackEmitter
+  force: 20
+  duration: 0.2
+--- !u!135 &5403903313189366670
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -14616,9 +14631,9 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 6
+  m_Radius: 7
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-369954391590582716
+--- !u!114 &-7451390395404315581
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -14627,12 +14642,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 5942177893964023165}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cc9b52fb92c5de41b8da139f9fde2cd, type: 3}
+  m_Script: {fileID: 11500000, guid: cf2ee03b9e9174147bd9e011aeac3d97, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TriggerDetection
+  m_EditorClassIdentifier: Assembly-CSharp::HitBoxDetection
   CollisionEnterEvent:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 4117728803604303060}
+        m_TargetAssemblyTypeName: KnockbackEmitter, Assembly-CSharp
+        m_MethodName: EmitKnockback
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   CollisionExitEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -14642,9 +14669,12 @@ MonoBehaviour:
   PositionExitEvent:
     m_PersistentCalls:
       m_Calls: []
-  layerToCheck:
+  type: 1
+  mask:
     serializedVersion: 2
     m_Bits: 64
+  boxSize: {x: 1, y: 1, z: 1}
+  sphereRadius: 7
 --- !u!1 &5942177894242009866
 GameObject:
   m_ObjectHideFlags: 0

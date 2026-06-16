@@ -1,0 +1,30 @@
+{
+  type NodeCanvas.BehaviourTrees.BehaviourTree,
+  nodes [
+    {
+      _customName Enemy AI Root,
+      _position { x 0, y 0 },
+      type NodeCanvas.BehaviourTrees.PrioritySelector,
+      nodes [
+        {
+          type NodeCanvas.BehaviourTrees.Sequence,
+          nodes [
+            { type NodeCanvas.Tasks.Conditions.Condition_CheckBoolean, boolVariable AttackSensor, checkValue true },
+            { type NodeCanvas.Tasks.Actions.Action_EnemyAttack }
+          ]
+        },
+        {
+          type NodeCanvas.BehaviourTrees.Sequence,
+          nodes [
+            { type NodeCanvas.Tasks.Conditions.Condition_CheckBoolean, boolVariable ChaseSensor, checkValue true },
+            { type NodeCanvas.Tasks.Actions.Action_MoveToTarget, target Player, speed WalkSpeed }
+          ]
+        },
+        {
+          type NodeCanvas.Tasks.Actions.Action_Patrol,
+          speed WalkSpeed
+        }
+      ]
+    }
+  ]
+}

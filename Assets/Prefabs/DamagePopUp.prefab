@@ -93,8 +93,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 68
-  m_fontSizeBase: 68
+  m_fontSize: 22
+  m_fontSizeBase: 22
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -247,6 +247,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  CRDColor: {r: 1, g: 0.57986295, b: 0, a: 0}
+  CRDColor: {r: 0, g: 0, b: 0, a: 0}
   EnemyDMGColor: {r: 0, g: 0, b: 0, a: 0}
-  PlayerDMGColor: {r: 1, g: 0.43593612, b: 0, a: 1}
+  PlayerDMGColor: {r: 0, g: 0, b: 0, a: 1}

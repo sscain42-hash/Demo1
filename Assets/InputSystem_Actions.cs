@@ -382,7 +382,7 @@ public partial class @Inputs: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""a757549a-4532-4f66-b8bd-69a636184df8"",
-                    ""path"": ""<Keyboard>/leftShift"",
+                    ""path"": ""<Mouse>/rightButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",

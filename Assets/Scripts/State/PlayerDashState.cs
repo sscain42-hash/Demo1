@@ -12,8 +12,9 @@ public class PlayerDashState : PlayerBaseState
 
     public override void EnterState()
     {
-
-        _ctx.PlayAnimation(_ctx.Anim_Dash, 0.05f);
+        int targetAnim = _ctx.IDDashBack;
+        if (_ctx.InputVector.sqrMagnitude > 0.01f) targetAnim = _ctx.Anim_DashBack;
+            _ctx.PlayAnimation(targetAnim, 0.05f);
         _ctx.ResetDashCooldown();
 
         ComputeDashVelocity();
@@ -42,7 +43,8 @@ public class PlayerDashState : PlayerBaseState
         if (_ctx.Model != null)
         {
             Vector3 dashDir = _ctx.GetHorizontalDashDirection();
-            _ctx.Model.rotation = Quaternion.LookRotation(dashDir);
+       
+                _ctx.Model.rotation = Quaternion.LookRotation(dashDir);
         }
 
     }

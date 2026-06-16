@@ -275,7 +275,7 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
         }
 
         var anim = GetComponentInChildren<Animator>();
-        if (anim != null) anim.CrossFadeInFixedTime("Idle", 0.1f);
+        if (anim != null) _ctx.AnimationHandler.PlayAnimation(_ctx.ID_Idle, 0.1f);
     }
 
     private AttackType ConvertActionToAttackType(BufferedAction action) => action switch

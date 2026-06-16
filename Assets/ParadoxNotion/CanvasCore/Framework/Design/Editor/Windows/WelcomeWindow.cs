@@ -111,7 +111,7 @@ namespace NodeCanvas.Editor
                 GUI.Label(headerRect, $"\t\t<size=30><b>{packageName}</b></size>", Styles.leftLabel);
             }
 
-            var copyrightText = "<color=#9c9c9c><size=10><b>© 2014-2023 Paradox Notion. All rights reserved.</b></size></color>";
+            var copyrightText = "<color=#9c9c9c><size=10><b>© 2014-2024 Paradox Notion. All rights reserved.</b></size></color>";
             var size = Styles.leftLabel.CalcSize(new GUIContent(copyrightText));
             var copyrightRect = new Rect(92, 69, size.x, size.y);
             GUI.color = Color.black.WithAlpha(0.05f);
