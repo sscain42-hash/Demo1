@@ -11,7 +11,7 @@ public class Ev_SpawnVFXAtPosition : AnimationEventEffect
     public override void Trigger(GameObject caster, ActionWindow sourceWindow)
     {
         CharacterEffect effectManager = caster.GetComponent<CharacterEffect>();
-        PlayerActionComboManager comboManager = caster.GetComponent<PlayerActionComboManager>();
+        IComboCharacter comboManager = caster.GetComponent<IComboCharacter>();
 
         if (effectManager == null || comboManager == null || comboManager.CurrentAttackData == null) return;
         AttackType currentType = comboManager.CurrentRuntimeAttackType;

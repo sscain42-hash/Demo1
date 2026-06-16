@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System;
 
-public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
+public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider,IComboCharacter
 {
     [Header("Core Dependencies")]
     [SerializeField] private PlayerInputs playerInputs;
@@ -17,6 +17,8 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
     public Vector3 CurrentStepVelocity { get; private set; }
     public bool IsActive => IsAttacking && !_isForceCancelled;
     public int Priority => 1;
+    // combo
+    
     private void OnEnable()
     {
         var controller = GetComponent<PlayerController>();
@@ -58,7 +60,6 @@ public class PlayerActionComboManager : MonoBehaviour, IVelocityProvider
 
     private ComboState _activeState = null;
     private AttackData _currentAttackData;
-    private AttackType _currentRuntimeAttackType;
     private List<ComboState> _allStates;
 
     public AttackData CurrentAttackData => _currentAttackData;

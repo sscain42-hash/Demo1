@@ -200,6 +200,6 @@ MonoBehaviour:
   type: 1
   mask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 128
   boxSize: {x: 1, y: 0, z: 0}
   sphereRadius: 7

@@ -44,3 +44,4 @@ public class HitVFXHandler : MonoBehaviour
         if (ps != null) ps.Play();
     }
 }
+

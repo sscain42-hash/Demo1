@@ -318,33 +318,8 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     private Vector3 _originalLocalPos;
     private Animator _animator;
 
-    public void PlayFlinch(float duration = 0.08f, float strength = 0.05f)
-    {
-        if (_flinchRoutine != null)
-            StopCoroutine(_flinchRoutine);
-
-        _flinchRoutine = StartCoroutine(FlinchRoutine(duration, strength));
-    }
-
-    private IEnumerator FlinchRoutine(float duration, float strength)
-    {
-        float time = 0f;
-
-        while (time < duration)
-        {
-            time += Time.deltaTime;
-
-            float offsetX = Random.Range(-1f, 1f) * strength;
-            float offsetY = Random.Range(-1f, 1f) * strength;
-
-            transform.localPosition = _originalLocalPos + new Vector3(offsetX, offsetY, 0f);
-
-            yield return null;
-        }
-
-        transform.localPosition = _originalLocalPos;
-        _flinchRoutine = null;
-    }
+   
+   
 
     #region === Animation CrossFade ===
 

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyAttack : MonoBehaviour, IAttack
+public class EnemyAttack : MonoBehaviour, IAttack, IComboCharacter,IDamageProvider
 {
     private Damageable _damageable;
     private EnemyController _controller;
@@ -11,9 +11,11 @@ public class EnemyAttack : MonoBehaviour, IAttack
 
     private HashSet<string> _activeWindows = new HashSet<string>();
     private AttackData _currentAttackData;
-
-    // Cờ đánh dấu đã tự động kích hoạt đòn kế tiếp trong cửa sổ hiện tại chưa
     private bool _comboExecutedInThisWindow = false;
+
+    // --- THỰC THI INTERFACE ICOMBOCHARACTER CHO ENEMY ---
+    public AttackData CurrentAttackData => _currentAttackData;
+    public AttackType CurrentRuntimeAttackType => AttackType.NormalAttack; // Mặc định quái đánh thường, bạn có thể đổi theo trạng thái quái nếu cần
 
     private void Awake()
     {
@@ -39,19 +41,23 @@ public class EnemyAttack : MonoBehaviour, IAttack
         _comboExecutedInThisWindow = false;
         _currentAttackData = _controller.ComboSeq.attacks[CurrentComboIndex];
 
-        // Reset toàn bộ trạng thái window của đòn mới
-        foreach (var window in _currentAttackData.windows)
-            window.ResetRuntime();
+        // Ép tất cả các ô cửa sổ reset lại cờ hiệu để sẵn sàng kích hoạt hiệu ứng mới
+        if (_currentAttackData != null && _currentAttackData.windows != null)
+        {
+            for (int i = 0; i < _currentAttackData.windows.Count; i++)
+            {
+                _currentAttackData.windows[i].eventTriggered = false;
+                _currentAttackData.windows[i].ResetRuntime();
+            }
+        }
 
         _activeWindows.Clear();
 
         if (_controller.Animator != null)
         {
-            // Ép Animator chuyển đòn dứt khoát từ giây 0 (Animation Cancel)
             _controller.Animator.CrossFadeInFixedTime(_currentAttackData.animationName, 0.1f, 0, 0f);
         }
-
-        Debug.Log($"[Enemy Combo] Kích hoạt đòn: {_currentAttackData.animationName} (Index: {CurrentComboIndex})");
+        Debug.Log($"[Enemy Combo] Phát động: {_currentAttackData.animationName} (Index: {CurrentComboIndex})");
     }
 
     private void MoveToNextComboStep()
@@ -65,24 +71,20 @@ public class EnemyAttack : MonoBehaviour, IAttack
         if (!IsAttacking || _controller == null || _controller.ComboSeq == null || _currentAttackData == null)
             return false;
 
-        // Nếu đang blend chuyển đòn, giữ trạng thái chạy cho BT
         if (_controller.Animator.IsInTransition(0))
             return true;
 
-        Animator stateAnimator = _controller.Animator;
-        AnimatorStateInfo stateInfo = stateAnimator.GetCurrentAnimatorStateInfo(0);
+        AnimatorStateInfo stateInfo = _controller.Animator.GetCurrentAnimatorStateInfo(0);
 
         if (!stateInfo.IsName(_currentAttackData.animationName))
             return true;
 
-        // Tính toán thời gian thực tế dựa trên Animation Speed (Giống Player)
         float animSpeed = stateInfo.speed;
         float effectiveLength = stateInfo.length / Mathf.Max(animSpeed, 0.001f);
 
         float nTime = stateInfo.normalizedTime;
         if (stateInfo.loop) nTime %= 1f;
 
-        // Tự động xoay mặt về phía Player khi combo
         if (playerTransform != null)
         {
             Vector3 direction = (playerTransform.position - transform.position).normalized;
@@ -91,12 +93,12 @@ public class EnemyAttack : MonoBehaviour, IAttack
                 transform.rotation = Quaternion.LookRotation(direction);
         }
 
-        // QUÉT CỬA SỔ WINDOWS
+        // VÒNG LẶP QUÉT CỬA SỔ WINDOWS (ĐỒNG BỘ 100% VỚI PLAYER)
         foreach (var window in _currentAttackData.windows)
         {
             if (window.IsInside(nTime))
             {
-                // TỰ ĐỘNG CANCELED HOẠT ẢNH SỚM TẠI ĐÂY (GIẢ LẬP LỆNH BẤM CỦA PLAYER)
+                // GIẢ LẬP INPUT CỦA PLAYER BẰNG KHOẢNG CÁCH:
                 if (window.actionName == "ComboInputBuffer" && !_comboExecutedInThisWindow)
                 {
                     if (playerTransform != null)
@@ -104,24 +106,22 @@ public class EnemyAttack : MonoBehaviour, IAttack
                         float distance = Vector3.Distance(playerTransform.position, transform.position);
                         if (distance <= attackRange)
                         {
-                            // Đánh dấu để không bấm lặp lại trong cùng một cửa sổ
-                            _comboExecutedInThisWindow = true;
+                            _comboExecutedInThisWindow = true; // Đánh dấu đã "bấm nút"
 
-                            Debug.Log($"[Enemy Combo] Nhận diện cửa sổ ComboInputBuffer tại nTime: {nTime}. Tự động HỦY HOẠT ẢNH SỚM để nối đòn!");
+                            Debug.Log($"[Enemy] Nhận diện cửa sổ ComboInputBuffer. Tự động HỦY HOẠT ẢNH SỚM để nối đòn!");
                             MoveToNextComboStep();
-                            return true; // Ngắt update frame cũ để sang đòn mới ngay lập tức
+                            return true;
                         }
                     }
                 }
 
-                // Gây sát thương Hitbox
                 if (window.actionName == "Hitbox" && !_activeWindows.Contains("Hitbox"))
                 {
                     _activeWindows.Add("Hitbox");
                     if (playerTransform != null) Detection_NA(playerTransform.gameObject);
                 }
 
-                // Kích hoạt các hiệu ứng SO Event nếu có
+                // KÍCH HOẠT HIỆU ỨNG: Bây giờ caster truyền vào là Enemy, hàm Trigger vẫn chạy mượt!
                 if (window.eventEffects != null && !window.eventTriggered)
                 {
                     window.eventTriggered = true;
@@ -138,11 +138,10 @@ public class EnemyAttack : MonoBehaviour, IAttack
             }
         }
 
-        // BIỆN PHÁP AN TOÀN: Nếu đi hết 95% hoạt ảnh mà không thể nối combo (Player chạy mất)
         if (nTime >= 0.95f)
         {
             ExitAttackState();
-            return false; // Trả về false để BT biết chuỗi combo kết thúc thất bại
+            return false;
         }
 
         return true;
@@ -164,7 +163,6 @@ public class EnemyAttack : MonoBehaviour, IAttack
                 _controller.Animator.CrossFadeInFixedTime("Idle", 0.2f, 0, 0f);
             }
         }
-        Debug.Log("[Enemy Combo] Chuỗi combo kết thúc hoàn toàn. Trả về Idle.");
     }
 
     public void Detection_NA(GameObject _gameObject)
@@ -175,4 +173,6 @@ public class EnemyAttack : MonoBehaviour, IAttack
     public void Detection_CA(GameObject _gameObject) { }
     public void Detection_E(GameObject _gameObject) { }
     public void Detection_Q(GameObject _gameObject) { }
+
+    public void ExecuteDamage(GameObject victim, AttackType attackType) => _controller.CauseDMG(victim, attackType);
 }

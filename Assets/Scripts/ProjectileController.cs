@@ -3,8 +3,7 @@
 public class ProjectileController : MonoBehaviour
 {
     [Header("Settings")]
-    [SerializeField] private float defaultSpeed = 10f;
-    [SerializeField] private float defaultLifeTime = 2f;
+  
 
     private ProjectileMover _mover;
     private float _lifeTimer;

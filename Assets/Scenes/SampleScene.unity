@@ -276,6 +276,41 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 1
   m_ObstacleAvoidanceType: 4
+--- !u!114 &13431693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 13431675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36a3e937d66cdc742932f6e685583a49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterEffect
+--- !u!136 &13431694
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 13431675}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!1 &39916755
 GameObject:
   m_ObjectHideFlags: 0
@@ -3298,6 +3333,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 81bb9eea30387e442899949a80011e55, type: 3}
       insertIndex: -1
       addedObject: {fileID: 13431689}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 81bb9eea30387e442899949a80011e55, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 13431693}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 81bb9eea30387e442899949a80011e55, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 13431694}
   m_SourcePrefab: {fileID: 100100000, guid: 81bb9eea30387e442899949a80011e55, type: 3}
 --- !u!1 &991033254
 GameObject:
@@ -6560,7 +6601,6 @@ GameObject:
   - component: {fileID: 1654161214}
   - component: {fileID: 5866666019943822865}
   - component: {fileID: 5866666019943822866}
-  - component: {fileID: 5866666019943822864}
   - component: {fileID: 1654161215}
   - component: {fileID: 5866666019943822867}
   - component: {fileID: 5866666019943822868}
@@ -8009,29 +8049,6 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.04292378, y: -0.11088595, z: 0.0039365888}
     m_Extent: {x: 0.5769073, y: 0.9035156, z: 0.35076052}
   m_DirtyAABB: 0
---- !u!136 &5866666019943822864
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919132147901970127}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 1, z: 0}
 --- !u!114 &5866666019943822865
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8044,7 +8061,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36a3e937d66cdc742932f6e685583a49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterEffect
-  _ctx: {fileID: 1654161214}
 --- !u!114 &5866666019943822866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8060,8 +8076,8 @@ MonoBehaviour:
   playerInputs: {fileID: 1298750254}
   normalAttackCombo: {fileID: 11400000, guid: e9717781b0cfd7c4f917acced7c2ee65, type: 2}
   skillECombo: {fileID: 11400000, guid: 1ae07ae0ebc7a604d898300776184a6e, type: 2}
-  skillQCombo: {fileID: 11400000, guid: e9717781b0cfd7c4f917acced7c2ee65, type: 2}
-  _targetLock: {fileID: 0}
+  skillQCombo: {fileID: 11400000, guid: e9832e3a68f662249b40b0cfda6679e9, type: 2}
+  _targetLock: {fileID: 5866666019943822868}
 --- !u!95 &5866666019943822867
 Animator:
   serializedVersion: 7

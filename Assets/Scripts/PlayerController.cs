@@ -6,7 +6,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerController : Damageable
+public class PlayerController : Damageable,IDamageProvider
 {
     #region CONFIG
 
@@ -681,6 +681,8 @@ public class PlayerController : Damageable
     public override void TakeDMG(int _damage, bool _isCRIT)
     {
         DMGPopUpGenerator.Instance.Create(transform.position, _damage, false, false);
+        Debug.Log("takedame" + _damage);
+
     }
     public void ApplyHit(AttackType type)
     {
@@ -847,5 +849,6 @@ public class PlayerController : Damageable
         _velocity += delta;
     }
 
+    public void ExecuteDamage(GameObject victim, AttackType attackType)=> CauseDMG(victim, attackType);
     #endregion
 }

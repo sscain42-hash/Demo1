@@ -5,7 +5,7 @@ using UnityEngine;
 public class CharacterEffect : MonoBehaviour, IAttack
 {
     [Tooltip("Script điều khiển chính (Chỉ Player có, Enemy để trống)"), SerializeField]
-    private PlayerController _ctx;
+    private IDamageProvider Sender;
 
 
 
@@ -65,10 +65,10 @@ public class CharacterEffect : MonoBehaviour, IAttack
             // GÁN EVENT CHO CẢ BỂ CHỨA CỦA LOẠI ĐẠN NÀY
             foreach (var spawnedVFX in newPool.List)
             {
-                DetectionBase bulletDetector = spawnedVFX.GetComponent<DetectionBase>();
-                if (bulletDetector != null)
+                DetectionBase vfx = spawnedVFX.GetComponent<DetectionBase>();
+                if (vfx != null)
                 {
-                    bulletDetector.CollisionEnterEvent.AddListener(HandleHit);
+                    vfx.CollisionEnterEvent.AddListener(HandleHit);
                    
                 }
             }
@@ -90,10 +90,11 @@ public class CharacterEffect : MonoBehaviour, IAttack
 
     private void HandleHit(GameObject victim)
     {
+        Debug.LogError("hit " + victim);
         if (gameObject.CompareTag("Player") && !victim.CompareTag("Enemy")) return;
         if (gameObject.CompareTag("Enemy") && !victim.CompareTag("Player")) return;
 
-        if (_ctx != null)
+        if (Sender != null)
         {
             switch (_currentFiringAttackType)
             {
@@ -103,13 +104,15 @@ public class CharacterEffect : MonoBehaviour, IAttack
                 case AttackType.Q: Detection_Q(victim); break;
             }
         }
+        
+       
     }
 
 
-    public void Detection_NA(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.NormalAttack);
-    public void Detection_CA(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.ChargedAttack);
-    public void Detection_E(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.E);
-    public void Detection_Q(GameObject _gameObject) => _ctx?.CauseDMG(_gameObject, AttackType.Q);
+    public void Detection_NA(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.NormalAttack);
+    public void Detection_CA(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.ChargedAttack);
+    public void Detection_E(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.E);
+    public void Detection_Q(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.Q);
 
     private void OnDestroy()
     {
