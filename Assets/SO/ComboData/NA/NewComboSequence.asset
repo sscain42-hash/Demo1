@@ -13,9 +13,5 @@ MonoBehaviour:
   m_Name: NewComboSequence
   m_EditorClassIdentifier: Assembly-CSharp::ComboSequence
   attacks:
-  - {fileID: 11400000, guid: 90d42322af9223349840ff174389b47b, type: 2}
-  - {fileID: 11400000, guid: 95047c14c86676340a44e47bcdadcdfa, type: 2}
-  - {fileID: 11400000, guid: c88700be33c5b7e49a87cf48d83d4189, type: 2}
-  - {fileID: 11400000, guid: 026fbac6a45dac4468beea8a27908b80, type: 2}
-  - {fileID: 11400000, guid: 2edd0c9fef111014e9a574a03a3dcac9, type: 2}
   - {fileID: 11400000, guid: 034c44e8e3073c0478b8159ba815a363, type: 2}
+  - {fileID: 11400000, guid: 95047c14c86676340a44e47bcdadcdfa, type: 2}
