@@ -47,7 +47,7 @@ public class PlayerGroundedState : PlayerBaseState
         if (!_ctx.CharController.isGrounded)
             SwitchState(_factory.Falling());
         // Thêm điều kiện chuyển sang Attack
-        if (_ctx._playerInputs.HasCommand(BufferedAction.NormalAttack))
+        if (_ctx.TryNormalAttack)
         {
             SwitchState(_factory.Attack());
             return;

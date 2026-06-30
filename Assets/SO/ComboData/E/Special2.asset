@@ -27,42 +27,6 @@ MonoBehaviour:
     eventEffects:
     - {fileID: 11400000, guid: 4c58a90411b8c8a4a9ea2d1519259975, type: 2}
     eventTriggered: 1
-  - actionName: Slash
-    startTime: 0
-    endTime: 0.17244455
-    enableVFX: 1
-    vfxTransform:
-      positionOffset: {x: 0, y: 0.836, z: -0}
-      rotationOffset: {x: -60, y: 90, z: 180}
-      scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects:
-    - {fileID: 11400000, guid: 4c58a90411b8c8a4a9ea2d1519259975, type: 2}
-    eventTriggered: 1
-  - actionName: Slash
-    startTime: 0
-    endTime: 0.1724445
-    enableVFX: 1
-    vfxTransform:
-      positionOffset: {x: 0, y: 0.836, z: -0}
-      rotationOffset: {x: -90, y: 90, z: 180}
-      scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects:
-    - {fileID: 11400000, guid: 4c58a90411b8c8a4a9ea2d1519259975, type: 2}
-    eventTriggered: 1
-  - actionName: Slash
-    startTime: 0
-    endTime: 0.17244452
-    enableVFX: 1
-    vfxTransform:
-      positionOffset: {x: 0, y: 0.836, z: -0}
-      rotationOffset: {x: -120, y: 0, z: 180}
-      scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects:
-    - {fileID: 11400000, guid: 4c58a90411b8c8a4a9ea2d1519259975, type: 2}
-    eventTriggered: 1
   - actionName: ComboInputBuffer
     startTime: 0.87200004
     endTime: 1
@@ -73,7 +37,7 @@ MonoBehaviour:
       scale: {x: 0.4, y: 0.4, z: 0.4}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: JumpCancel
     startTime: 0
     endTime: 0.99999994

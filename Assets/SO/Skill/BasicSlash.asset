@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: BasicSlash
   m_EditorClassIdentifier: Assembly-CSharp::Ev_SpawnVFXAtPosition
   vfxPrefab: {fileID: -5808430431564993702, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+  hitVFXPrefab: {fileID: 7711260855055991557, guid: 841004c4c6a39e244abe2257394de913, type: 3}

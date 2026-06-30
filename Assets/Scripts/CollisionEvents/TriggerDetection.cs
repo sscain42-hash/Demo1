@@ -2,8 +2,7 @@ using UnityEngine;
 
 public class TriggerDetection : DetectionBase
 {
-    [Space, Tooltip("Layer cần kiểm tra va chạm")]
-    public LayerMask layerToCheck;
+ 
     
     private void OnTriggerEnter(Collider other)
     {

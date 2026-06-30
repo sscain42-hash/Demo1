@@ -11,8 +11,7 @@ public class PhysicsDetection : DetectionBase
     [Tooltip("Bán kính kiểm tra va chạm"), Range(0.1f, 20f)]
     public float radiusCheck;
 
-    [Tooltip("Layer cần kiểm tra va chạm")]
-    public LayerMask layerToCheck;
+   
 
     [SerializeField] private Color color ;
  

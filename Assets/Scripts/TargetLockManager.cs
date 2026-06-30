@@ -73,6 +73,7 @@ public class TargetLockManager : MonoBehaviour
 
         _currentTarget = target;
         Detection.enabled = false; // Dừng quét khi đã bắt dính mục tiêu để tiết kiệm hiệu năng
+        IndicatorManager.Instance.SpawnIndicator(IndicatorKey.LockOnTarget, target.transform,Vector3.zero);
         OnTargetLocked?.Invoke(_currentTarget);
     }
 

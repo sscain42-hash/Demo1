@@ -1,37 +1,47 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.AI;
+using System.Collections.Generic;
 
-public class EnemyAttack : MonoBehaviour, IAttack, IComboCharacter,IDamageProvider
+public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
 {
-    private Damageable _damageable;
     private EnemyController _controller;
+    private NavMeshAgent _agent;
+    private ComboEngine _comboEngine;
 
     public int CurrentComboIndex { get; private set; } = 0;
     public bool IsAttacking { get; private set; } = false;
+    public ComboSequence CurrentComboSeq { get; private set; }
 
-    private HashSet<string> _activeWindows = new HashSet<string>();
-    private AttackData _currentAttackData;
     private bool _comboExecutedInThisWindow = false;
 
-    // --- THỰC THI INTERFACE ICOMBOCHARACTER CHO ENEMY ---
-    public AttackData CurrentAttackData => _currentAttackData;
-    public AttackType CurrentRuntimeAttackType => AttackType.NormalAttack; // Mặc định quái đánh thường, bạn có thể đổi theo trạng thái quái nếu cần
+    public AttackData CurrentAttackData => _comboEngine?.CurrentAttackData;
+    public AttackType CurrentRuntimeAttackType => AttackType.NormalAttack;
 
     private void Awake()
     {
-        _damageable = GetComponent<Damageable>();
         _controller = GetComponent<EnemyController>();
+        _agent = GetComponent<NavMeshAgent>();
+
+        Animator anim = GetComponentInChildren<Animator>();
+        _comboEngine = new ComboEngine(gameObject, anim, this);
     }
 
-    public void EnterAttackState()
+    public void EnterAttackState(ComboSequence targetCombo)
     {
-        if (_controller == null || _controller.ComboSeq == null || _controller.ComboSeq.attacks.Count == 0) return;
+        if (targetCombo == null || targetCombo.attacks.Count == 0) return;
 
+        CurrentComboSeq = targetCombo;
         IsAttacking = true;
         CurrentComboIndex = 0;
-        _activeWindows.Clear();
         _comboExecutedInThisWindow = false;
-        _controller.SetAttackSensor(true);
+
+        if (_agent != null && _agent.gameObject.activeInHierarchy)
+        {
+            _agent.ResetPath(); // 🔥 Xóa đường đi cũ để tránh xung đột di chuyển cũ
+            _agent.velocity = Vector3.zero; // Triệt tiêu lực quán tính di chuyển cũ
+            _agent.isStopped = true;
+            _agent.updatePosition = false;
+        }
 
         ExecuteComboStep();
     }
@@ -39,140 +49,133 @@ public class EnemyAttack : MonoBehaviour, IAttack, IComboCharacter,IDamageProvid
     private void ExecuteComboStep()
     {
         _comboExecutedInThisWindow = false;
-        _currentAttackData = _controller.ComboSeq.attacks[CurrentComboIndex];
-
-        // Ép tất cả các ô cửa sổ reset lại cờ hiệu để sẵn sàng kích hoạt hiệu ứng mới
-        if (_currentAttackData != null && _currentAttackData.windows != null)
+        if (CurrentComboSeq != null && CurrentComboIndex < CurrentComboSeq.attacks.Count)
         {
-            for (int i = 0; i < _currentAttackData.windows.Count; i++)
-            {
-                _currentAttackData.windows[i].eventTriggered = false;
-                _currentAttackData.windows[i].ResetRuntime();
-            }
+            _comboEngine.ChangeAttackData(CurrentComboSeq.attacks[CurrentComboIndex]);
         }
-
-        _activeWindows.Clear();
-
-        if (_controller.Animator != null)
-        {
-            _controller.Animator.CrossFadeInFixedTime(_currentAttackData.animationName, 0.1f, 0, 0f);
-        }
-        Debug.Log($"[Enemy Combo] Phát động: {_currentAttackData.animationName} (Index: {CurrentComboIndex})");
     }
 
     private void MoveToNextComboStep()
     {
-        CurrentComboIndex = (CurrentComboIndex + 1) % _controller.ComboSeq.attacks.Count;
+        CurrentComboIndex++;
         ExecuteComboStep();
     }
 
-    public bool UpdateAttackState(Transform playerTransform, float attackRange)
+    public bool UpdateAttackState(Transform targetTransform, float attackRange,bool continuos)
     {
-        if (!IsAttacking || _controller == null || _controller.ComboSeq == null || _currentAttackData == null)
+        if (!IsAttacking || CurrentComboSeq == null || CurrentAttackData == null)
             return false;
 
-        if (_controller.Animator.IsInTransition(0))
-            return true;
-
-        AnimatorStateInfo stateInfo = _controller.Animator.GetCurrentAnimatorStateInfo(0);
-
-        if (!stateInfo.IsName(_currentAttackData.animationName))
-            return true;
-
-        float animSpeed = stateInfo.speed;
-        float effectiveLength = stateInfo.length / Mathf.Max(animSpeed, 0.001f);
-
-        float nTime = stateInfo.normalizedTime;
-        if (stateInfo.loop) nTime %= 1f;
-
-        if (playerTransform != null)
+        // 1. Luôn luôn quay mặt về phía Target
+        if (targetTransform != null)
         {
-            Vector3 direction = (playerTransform.position - transform.position).normalized;
+            Vector3 direction = (targetTransform.position - transform.position).normalized;
             direction.y = 0;
             if (direction != Vector3.zero)
                 transform.rotation = Quaternion.LookRotation(direction);
         }
 
-        // VÒNG LẶP QUÉT CỬA SỔ WINDOWS (ĐỒNG BỘ 100% VỚI PLAYER)
-        foreach (var window in _currentAttackData.windows)
+        // 2. CẬP NHẬT CỬA SỔ WINDOWS TRƯỚC: Phải update để lấy dữ liệu liên tục
+        _comboEngine.UpdateWindows();
+
+        // 3. 🔥 KHÓA CHUYỂN ĐỔI: Nếu Animator đang chuyển đòn (Transition), 
+        // giữ nguyên trạng thái tấn công và bỏ qua các logic check Exit ở dưới.
+        if (_controller.Animator.IsInTransition(0))
+            return true;
+
+        // 🔥 KIỂM TRA AN TOÀN: Đảm bảo Animator đã thực sự chuyển sang đúng tên đòn hiện tại
+        AnimatorStateInfo stateInfo = _controller.Animator.GetCurrentAnimatorStateInfo(0);
+        if (!stateInfo.IsName(CurrentAttackData.animationName))
+            return true; // Chờ cho đến khi tên hoạt ảnh khớp hoàn toàn mới xử lý tiếp
+
+        float normalizedTime = _comboEngine.GetNormalizedTime();
+        bool isLastAttackNode = (CurrentComboIndex >= CurrentComboSeq.attacks.Count - 1);
+
+        // 4. LOGIC XỬ LÝ CHUYỂN NHỊP COMBO (Chỉ xử lý khi CHƯA PHẢI đòn cuối)
+        if (!isLastAttackNode && _comboEngine.IsComboWindowActive && !_comboExecutedInThisWindow && targetTransform != null)
         {
-            if (window.IsInside(nTime))
+            float distance = Vector3.Distance(targetTransform.position, transform.position);
+            float maxComboBufferRange = attackRange + 1.2f;
+
+            if (distance <= maxComboBufferRange)
             {
-                // GIẢ LẬP INPUT CỦA PLAYER BẰNG KHOẢNG CÁCH:
-                if (window.actionName == "ComboInputBuffer" && !_comboExecutedInThisWindow)
-                {
-                    if (playerTransform != null)
-                    {
-                        float distance = Vector3.Distance(playerTransform.position, transform.position);
-                        if (distance <= attackRange)
-                        {
-                            _comboExecutedInThisWindow = true; // Đánh dấu đã "bấm nút"
+                _comboExecutedInThisWindow = true;
+                MoveToNextComboStep();
+                return true; // 🔥 Bỏ qua luôn đoạn check Exit ở dưới vì đã sang đòn mới!
+            }
+        }
 
-                            Debug.Log($"[Enemy] Nhận diện cửa sổ ComboInputBuffer. Tự động HỦY HOẠT ẢNH SỚM để nối đòn!");
-                            MoveToNextComboStep();
-                            return true;
-                        }
-                    }
-                }
+        // 5. Áp dụng lực tịnh tiến của đòn đánh
+        if (_comboEngine.CurrentStepVelocity != Vector3.zero)
+        {
+            transform.position += _comboEngine.CurrentStepVelocity;
+            if (_agent != null && _agent.gameObject.activeInHierarchy)
+                _agent.nextPosition = transform.position;
+        }
 
-                if (window.actionName == "Hitbox" && !_activeWindows.Contains("Hitbox"))
+        // 6. 🔥 LOGIC CHECK EXIT (KẾT THÚC CHIÊU) CỰC KỲ MINH BẠCH
+        if (isLastAttackNode)
+        {
+            if (continuos)
+            {
+                if (normalizedTime >= 0.95f)
                 {
-                    _activeWindows.Add("Hitbox");
-                    if (playerTransform != null) Detection_NA(playerTransform.gameObject);
-                }
-
-                // KÍCH HOẠT HIỆU ỨNG: Bây giờ caster truyền vào là Enemy, hàm Trigger vẫn chạy mượt!
-                if (window.eventEffects != null && !window.eventTriggered)
-                {
-                    window.eventTriggered = true;
-                    foreach (var effect in window.eventEffects)
-                        effect?.Trigger(gameObject, window);
+                    ExitAttackState();
+                    return false;
                 }
             }
             else
             {
-                if (window.actionName == "Hitbox" && _activeWindows.Contains("Hitbox"))
+                var bufferWindow = CurrentAttackData.windows.Find(w => w.actionName == "ComboInputBuffer");
+                if (bufferWindow != null && normalizedTime >= bufferWindow.startTime)
                 {
-                    _activeWindows.Remove("Hitbox");
+                    ExitAttackState();
+                    return false;
+                }
+                else if (normalizedTime >= 0.95f)
+                {
+                    ExitAttackState();
+                    return false;
                 }
             }
         }
-
-        if (nTime >= 0.95f)
+        else
         {
-            ExitAttackState();
-            return false;
+            // Nếu KHÔNG bấm nối đòn và đòn cũ đã chạy hết sạch hoạt ảnh (>95%) mà không có đòn mới
+            if (normalizedTime >= 0.95f)
+            {
+                ExitAttackState();
+                return false;
+            }
         }
 
         return true;
     }
-
     public void ExitAttackState()
     {
-        _activeWindows.Clear();
+        if (!IsAttacking) return;
+
         IsAttacking = false;
         CurrentComboIndex = 0;
         _comboExecutedInThisWindow = false;
-        _currentAttackData = null;
+        CurrentComboSeq = null;
+        _comboEngine.ChangeAttackData(null);
 
-        if (_controller != null)
+        if (_agent != null && _agent.gameObject.activeInHierarchy)
         {
-            _controller.SetAttackSensor(false);
-            if (_controller.Animator != null)
-            {
-                _controller.Animator.CrossFadeInFixedTime("Idle", 0.2f, 0, 0f);
-            }
+            _agent.updatePosition = true;
+            _agent.isStopped = false;
+            _agent.velocity = Vector3.zero; // Đảm bảo đứng yên sau khi kết thúc đòn
+        }
+
+        if (_controller != null && _controller.Animator != null)
+        {
+            _controller.Animator.CrossFadeInFixedTime("Idle", 0.15f, 0, 0f);
         }
     }
 
-    public void Detection_NA(GameObject _gameObject)
+    public void ExecuteDamage(GameObject victim, AttackType attackType)
     {
-        if (_damageable == null) return;
-        _damageable.CauseDMG(_gameObject, AttackType.NormalAttack);
+        _controller.CauseDMG(victim, attackType);
     }
-    public void Detection_CA(GameObject _gameObject) { }
-    public void Detection_E(GameObject _gameObject) { }
-    public void Detection_Q(GameObject _gameObject) { }
-
-    public void ExecuteDamage(GameObject victim, AttackType attackType) => _controller.CauseDMG(victim, attackType);
 }

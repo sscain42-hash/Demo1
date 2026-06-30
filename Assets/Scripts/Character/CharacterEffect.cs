@@ -1,130 +1,103 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CharacterEffect : MonoBehaviour, IAttack
+public class CharacterEffect : MonoBehaviour
 {
-    [Tooltip("Script điều khiển chính (Chỉ Player có, Enemy để trống)"), SerializeField]
     private IDamageProvider Sender;
 
-
-
-    private Dictionary<GameObject, ObjectPooler<Reference>> _dynamicPools = new Dictionary<GameObject, ObjectPooler<Reference>>();
-    private AttackType _currentFiringAttackType = AttackType.NormalAttack;
-
-    // 🔥 ĐỐI TƯỢNG NEO GIỮ CHUNG Ở WORLD SPACE (TRÁNH LÀM CON CỦA PLAYER) 🔥
+    // 📦 POOL STORAGE
+    private static Dictionary<GameObject, ObjectPooler<Reference>> _globalDynamicPools = new Dictionary<GameObject, ObjectPooler<Reference>>();
     private static Transform _projectilePoolAnchor;
+
+    // ⚡ CHÌA KHÓA HIỆU NĂNG (CACHING SYSTEM)
+    private static Dictionary<Reference, DetectionBase> _componentCache = new Dictionary<Reference, DetectionBase>();
+    // 🔥 MỚI: Cache lại Transform của các Anchor để không bao giờ phải gánh GameObject.Find() nữa
+    private static Dictionary<GameObject, Transform> _anchorCache = new Dictionary<GameObject, Transform>();
 
     private void Awake()
     {
-      
-
-        // Khởi tạo Anchor ở không gian thế giới nếu chưa có ai tạo
+        Sender = GetComponent<IDamageProvider>();
         InitializeWorldAnchor();
     }
 
-    /// <summary>
-    /// Tự động sinh ra một Empty Object quản lý chung ngoài Hierarchy thế giới
-    /// </summary>
     private void InitializeWorldAnchor()
     {
         if (_projectilePoolAnchor == null)
         {
             GameObject anchor = GameObject.Find("[DYNAMIC_PROJECTILE_POOL]");
-            if (anchor == null)
-            {
-                anchor = new GameObject("[DYNAMIC_PROJECTILE_POOL]");
-                // Đảm bảo không dính líu đến bất kỳ Parent nào khác
-                anchor.transform.SetParent(null);
-            }
+            if (anchor == null) anchor = new GameObject("[DYNAMIC_PROJECTILE_POOL]");
             _projectilePoolAnchor = anchor.transform;
         }
     }
 
-    /// <summary>
-    /// Hàm xuất đạn thông minh từ AttackData - Hoàn toàn độc lập Transform với Player
-    /// </summary>
-    public Reference SpawnProjectileFromData(Reference prefabFromData, Vector3 position, Quaternion rotation, AttackType type)
+    public Reference SpawnVFXFromData(Reference prefabFromData, Vector3 position, Quaternion rotation, AttackType type)
     {
         if (prefabFromData == null) return null;
 
-        _currentFiringAttackType = type;
         GameObject prefabKey = prefabFromData.gameObject;
 
-        // 1. Nếu chưa từng tạo Pool cho loại đạn này -> Tạo và nhét vào World Anchor
-        if (!_dynamicPools.ContainsKey(prefabKey))
+        // 1. KHỞI TẠO VÀ CACHE ANCHOR / POOL (Chỉ chạy DUY NHẤT lần đầu tiên gọi Prefab này)
+        if (!_globalDynamicPools.ContainsKey(prefabKey))
         {
-            int defaultSize = 5;
+            int defaultSize = 15;
 
-            // Đảm bảo Anchor thế giới luôn tồn tại an toàn
-            InitializeWorldAnchor();
-
-            // 🔥 SỬA TẠI ĐÂY: Thay vì truyền 'transform' (Player), truyền '_projectilePoolAnchor' (World Space)
-            var newPool = new ObjectPooler<Reference>(prefabFromData, _projectilePoolAnchor, defaultSize);
-
-            // GÁN EVENT CHO CẢ BỂ CHỨA CỦA LOẠI ĐẠN NÀY
-            foreach (var spawnedVFX in newPool.List)
+            // Kiểm tra xem Anchor của riêng Prefab này đã được tìm và lưu lại trước đó chưa
+            if (!_anchorCache.TryGetValue(prefabKey, out Transform specificAnchor))
             {
-                DetectionBase vfx = spawnedVFX.GetComponent<DetectionBase>();
+                GameObject anchorGO = GameObject.Find($"[POOL_{prefabKey.name}]");
+                if (anchorGO == null)
+                {
+                    anchorGO = new GameObject($"[POOL_{prefabKey.name}]");
+                    anchorGO.transform.SetParent(_projectilePoolAnchor);
+                }
+                specificAnchor = anchorGO.transform;
+
+                // Lưu lại vào bộ nhớ đệm
+                _anchorCache.Add(prefabKey, specificAnchor);
+            }
+
+            var newPool = new ObjectPooler<Reference>(prefabFromData, specificAnchor, defaultSize);
+            _globalDynamicPools.Add(prefabKey, newPool);
+        }
+
+        // 2. LẤY ĐẠN TỪ POOL RA (Tốc độ tối đa O(1))
+        Reference spawnedInstance = _globalDynamicPools[prefabKey].Get(position, rotation);
+
+        if (spawnedInstance != null)
+        {
+            // 3. TRUY XUẤT COMPONENT TỪ CACHE (Bỏ qua GetComponent)
+            if (!_componentCache.TryGetValue(spawnedInstance, out DetectionBase vfx))
+            {
+                vfx = spawnedInstance.GetComponent<DetectionBase>();
                 if (vfx != null)
                 {
-                    vfx.CollisionEnterEvent.AddListener(HandleHit);
-                   
+                    _componentCache.Add(spawnedInstance, vfx);
                 }
             }
 
-            _dynamicPools.Add(prefabKey, newPool);
-        }
-
-        // 2. Lấy đạn ra từ đúng Pool thế giới của nó
-        Reference spawnedInstance = _dynamicPools[prefabKey].Get(position, rotation);
-
-        // BIỆN PHÁP AN TOÀN TUYỆT ĐỐI: Ép đạn ngắt hoàn toàn liên kết Parent nếu ObjectPooler có logic tự động gán
-        if (spawnedInstance != null && spawnedInstance.transform.parent != _projectilePoolAnchor)
-        {
-            spawnedInstance.transform.SetParent(_projectilePoolAnchor);
+            // 4. NẠP ĐỒNG BỘ EVENT VÀ CHẠY NGAY LẬP TỨC
+            if (vfx != null)
+            {
+                vfx.CollisionEnterEvent.RemoveAllListeners();
+                vfx.CollisionEnterEvent.AddListener((victim) => HandleHit(victim, type));
+            }
         }
 
         return spawnedInstance;
     }
 
-    private void HandleHit(GameObject victim)
+    private void HandleHit(GameObject victim, AttackType type)
     {
-        Debug.LogError("hit " + victim);
+        if (victim == null) return;
+
+        // Bộ lọc phân biệt phe phái (Team Filter)
         if (gameObject.CompareTag("Player") && !victim.CompareTag("Enemy")) return;
         if (gameObject.CompareTag("Enemy") && !victim.CompareTag("Player")) return;
 
         if (Sender != null)
         {
-            switch (_currentFiringAttackType)
-            {
-                case AttackType.NormalAttack: Detection_NA(victim); break;
-                case AttackType.ChargedAttack: Detection_CA(victim); break;
-                case AttackType.E: Detection_E(victim); break;
-                case AttackType.Q: Detection_Q(victim); break;
-            }
+            Sender.ExecuteDamage(victim, type);
         }
-        
        
     }
-
-
-    public void Detection_NA(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.NormalAttack);
-    public void Detection_CA(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.ChargedAttack);
-    public void Detection_E(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.E);
-    public void Detection_Q(GameObject _gameObject) => Sender?.ExecuteDamage(_gameObject, AttackType.Q);
-
-    private void OnDestroy()
-    {
-        foreach (var pool in _dynamicPools.Values)
-        {
-            foreach (var spawnedVFX in pool.List)
-            {
-                if (spawnedVFX == null) continue;
-                DetectionBase bulletDetector = spawnedVFX.GetComponent<DetectionBase>();
-                if (bulletDetector != null) bulletDetector.CollisionEnterEvent.RemoveListener(HandleHit);
-            }
-        }
-    }
 }
-

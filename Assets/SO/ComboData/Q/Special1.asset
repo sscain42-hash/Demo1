@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: Special1
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   animationName: 2Hand-Sword-Attack4
-  damage: 0
   windows:
   - actionName: Slash
     startTime: 0
@@ -26,7 +25,7 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 1
+    eventTriggered: 0
   - actionName: Slash
     startTime: 0.10666667
     endTime: 0.37066668
@@ -38,7 +37,7 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 1
+    eventTriggered: 0
   - actionName: Slash
     startTime: 0.3057778
     endTime: 0.552
@@ -50,7 +49,7 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 1
+    eventTriggered: 0
   - actionName: Slash
     startTime: 0.51200014
     endTime: 0.73688924
@@ -95,7 +94,7 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 1
+    eventTriggered: 0
   - actionName: DashCancel
     startTime: 0
     endTime: 0.99999994
@@ -106,15 +105,15 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 1
+    eventTriggered: 0
   - actionName: Step
     startTime: 0
-    endTime: 0.44888893
+    endTime: 0.17704427
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 10}
+    targetDistance: {x: 0, y: 0, z: 11}
     eventEffects: []
-    eventTriggered: 1
+    eventTriggered: 0

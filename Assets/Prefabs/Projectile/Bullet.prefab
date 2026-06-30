@@ -9,12 +9,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4344736110947706}
-  - component: {fileID: 1997007472068320045}
   - component: {fileID: 6047982656313426459}
   - component: {fileID: 5958491561574663025}
   - component: {fileID: 8808085603238550649}
   - component: {fileID: 6352741823984652198}
-  - component: {fileID: 2161863500304428554}
+  - component: {fileID: 808182268924560067}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Untagged
@@ -38,27 +37,6 @@ Transform:
   - {fileID: 4219880938127674474}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &1997007472068320045
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1981131855061102}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 2.16
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &6047982656313426459
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -202,8 +180,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c738def7e8f6fa447ac259d88d473e1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileController
-  defaultSpeed: 10
-  defaultLifeTime: 2
 --- !u!114 &6352741823984652198
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,6 +192,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cc9b52fb92c5de41b8da139f9fde2cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TriggerDetection
+  layerToCheck:
+    serializedVersion: 2
+    m_Bits: 192
   CollisionEnterEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -224,50 +203,31 @@ MonoBehaviour:
       m_Calls: []
   PositionEnterEvent:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 8808085603238550649}
-        m_TargetAssemblyTypeName: ProjectileController, Assembly-CSharp
-        m_MethodName: OnDetectionHitPosition
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 2161863500304428554}
-        m_TargetAssemblyTypeName: HitVFXHandler, Assembly-CSharp
-        m_MethodName: PlayHitVFX
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   PositionExitEvent:
     m_PersistentCalls:
       m_Calls: []
-  layerToCheck:
-    serializedVersion: 2
-    m_Bits: 64
---- !u!114 &2161863500304428554
-MonoBehaviour:
+--- !u!135 &808182268924560067
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1981131855061102}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8bf85742085b3e47aff0efdc29ff713, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitVFXHandler
-  prefab: {fileID: 447409866740539227, guid: da34d66431c8cd04aa98411a543a83bf, type: 3}
+  serializedVersion: 3
+  m_Radius: 1.85
+  m_Center: {x: 0.0025, y: -0.117, z: 0.1515}
 --- !u!1 &4734976212551149481
 GameObject:
   m_ObjectHideFlags: 0
@@ -296,7 +256,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.48381, y: 0.48381, z: 0.48381}
+  m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4344736110947706}

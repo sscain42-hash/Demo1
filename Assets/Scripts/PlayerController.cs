@@ -4,9 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Events;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerController : Damageable,IDamageProvider
+public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 {
     #region CONFIG
 
@@ -229,7 +230,7 @@ public class PlayerController : Damageable,IDamageProvider
         InitializeReferences();
         ComputePhysicsConstants();
         InitializeServices();
-
+       
         States = new PlayerStateFactory(this);
     }
 
@@ -309,6 +310,7 @@ public class PlayerController : Damageable,IDamageProvider
 
         if (Animator == null)
             Animator = GetComponentInChildren<Animator>();
+        
     }
 
     private void InitializeServices()
@@ -339,7 +341,7 @@ public class PlayerController : Damageable,IDamageProvider
             new ResponsiveMovementHandler(
                 RunMaxSpeed,
                 TAttack);
-        var comboManager = GetComponent<PlayerActionComboManager>();
+        var comboManager = GetComponent<PlayerSkillManager>();
         _airMovementHandler =
             new ResponsiveMovementHandler(
                 RunMaxSpeed,
@@ -615,7 +617,10 @@ public class PlayerController : Damageable,IDamageProvider
     public PlayerBaseState CurrentState1 { get => _currentState; set => _currentState = value; }
 
     public SO_PlayerConfiguration PlayerConfig;
-   
+
+    public event Action<AttackType> OnPlayerSkillCast;
+    public void RaiseSkillCast(AttackType skillType) => OnPlayerSkillCast?.Invoke(skillType);
+
     #endregion
 
     #region ANIMATION
@@ -676,20 +681,17 @@ public class PlayerController : Damageable,IDamageProvider
 
         ApplyHit(attackType);
 
-        receiver.TakeDMG(999, true);
+        receiver.TakeDMG(100, true);
+   
+        DMGPopUpGenerator.Instance.Create(target.transform.position,100,false,true);
     }
-    public override void TakeDMG(int _damage, bool _isCRIT)
-    {
-        DMGPopUpGenerator.Instance.Create(transform.position, _damage, false, false);
-        Debug.Log("takedame" + _damage);
 
-    }
     public void ApplyHit(AttackType type)
     {
         float hitStop = type switch
         {
-            AttackType.NormalAttack => 0.1f,
-            AttackType.ChargedAttack => 0.06f,
+            AttackType.NormalAttack => 0.06f,
+            AttackType.ChargedAttack => 0.07f,
             AttackType.E => 0.08f,
             AttackType.Q => 0.12f,
             _ => 0.03f
@@ -697,96 +699,12 @@ public class PlayerController : Damageable,IDamageProvider
 
         Debug.Log(
             $"Applying hit stop of {hitStop} seconds for {type}");
-
-        HitStopSystem.Instance?.Trigger(hitStop,0.05f);
+        HitStopSystem.Instance.Trigger(hitStop);
+     
     }
 
     #endregion
 
-    #region LUNGE
-
-
-    public void RotateToTarget(Vector3 target)
-    {
-
-        if (_inputVector.sqrMagnitude > 0.01f) return;
-        Vector3 direction =
-            target - transform.position;
-
-        direction.y = 0f;
-        Debug.Log($"Rotating towards target at {target} with direction {direction}");
-        RotateModel(direction);
-    }
-
-    public void LungeToTarget(GameObject target)
-    {
-        bool hasInput =
-        _inputVector.sqrMagnitude > 0.01f;
-        if (hasInput) return;
-        if (_lungeRoutine != null)
-            StopCoroutine(_lungeRoutine);
-
-
-        Debug.Log($"Lunging towards target at {target}");
-        _lungeRoutine =
-            StartCoroutine(
-                LungeRoutine(target.transform.position));
-    }
-
-    private IEnumerator LungeRoutine(
-        Vector3 target)
-    {
-        while (true)
-        {
-            Vector3 current =
-                transform.position;
-
-            Vector3 direction =
-                target - current;
-
-            direction.y = 0f;
-
-            float distance =
-                direction.magnitude;
-
-            if (distance <= offsetLunge)
-                yield break;
-
-            direction.Normalize();
-
-            Vector3 desiredPosition =
-                target -
-                direction * offsetLunge;
-
-            Vector3 next =
-                Vector3.MoveTowards(
-                    current,
-                    desiredPosition,
-                    lungeSpd *
-                    Time.deltaTime);
-
-            Vector3 delta =
-                next - current;
-
-            _charController.Move(delta);
-
-            RotateModel(direction);
-
-            yield return null;
-        }
-    }
-
-    public void StopLunge()
-    {
-        if (_lungeRoutine == null)
-            return;
-
-        StopCoroutine(_lungeRoutine);
-
-        _lungeRoutine = null;
-    }
-
-    #endregion
 
     #region UTILITIES
 
@@ -851,4 +769,47 @@ public class PlayerController : Damageable,IDamageProvider
 
     public void ExecuteDamage(GameObject victim, AttackType attackType)=> CauseDMG(victim, attackType);
     #endregion
+    // Đặt đoạn này bên trong class PlayerController của bạn
+    [Header("== Detection Components ==")]
+    [SerializeField] private PhysicsDetection lungePhysicsComponent;
+
+    /// <summary>
+    /// Hàm kích hoạt cấu phần PhysicsDetection chủ động quét vùng không gian và trả về mục tiêu gần nhất
+    /// </summary>
+    public GameObject ScanAndGetClosestLungeTarget()
+    {
+        if (lungePhysicsComponent == null) return null;
+
+        GameObject closestTarget = null;
+        float minDistance = float.MaxValue;
+        Vector3 currentPos = transform.position;
+
+        // 1. Tạo một UnityAction (Tương đương với Action thông thường nhưng dành riêng cho UnityEvent)
+        UnityAction<GameObject> onCollisionEnterHandler = null;
+        onCollisionEnterHandler = (hitObject) =>
+        {
+            // Loại bỏ chính Player hoặc các object không hợp lệ
+            if (hitObject == null || hitObject == gameObject || !hitObject.activeInHierarchy) return;
+
+            // Tính toán tìm đối tượng gần nhất trong các đối tượng quét trúng
+            float distance = Vector3.SqrMagnitude(hitObject.transform.position - currentPos);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestTarget = hitObject;
+            }
+        };
+
+        // 2. 🎯 SỬA TẠI ĐÂY: Dùng AddListener thay cho +=
+        lungePhysicsComponent.CollisionEnterEvent.AddListener(onCollisionEnterHandler);
+
+        // 3. ÉP CHỦ ĐỘNG QUÉT: Gọi hàm xử lý lõi của bạn để bắn phá vòng lặp OverlapSphereNonAlloc
+        lungePhysicsComponent.CheckCollision();
+
+        // 4. 🎯 SỬA TẠI ĐÂY: Dùng RemoveListener thay cho -= để dọn dẹp bộ nhớ đệm sạch sẽ
+        lungePhysicsComponent.CollisionEnterEvent.RemoveListener(onCollisionEnterHandler);
+
+        return closestTarget;
+    }
 }
+

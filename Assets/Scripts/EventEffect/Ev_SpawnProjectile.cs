@@ -10,11 +10,13 @@ public class Ev_SpawnProjectile : AnimationEventEffect
     [Header("🚀 SPEED & LIFETIME")]
     [SerializeField] private float projectileSpeed = 15f;
     [SerializeField] private float lifeTime = 3f;
-
-    public override void Trigger(GameObject caster,ActionWindow actionWindow)
+    [Header("💥 HIT EFFECT CONFIGS")]
+    // 🔥 THÊM BIẾN NÀY: Để bạn gán tay loại VFX Hit tương ứng của đòn này qua Inspector
+    [SerializeField] private Reference hitVFXPrefab;
+    public override void Trigger(GameObject caster, ActionWindow actionWindow)
     {
         CharacterEffect effectManager = caster.GetComponent<CharacterEffect>();
-        PlayerActionComboManager comboManager = caster.GetComponent<PlayerActionComboManager>();
+        IComboCharacter comboManager = caster.GetComponent<IComboCharacter>();
 
         if (effectManager == null || comboManager == null || comboManager.CurrentAttackData == null) return;
 
@@ -26,7 +28,7 @@ public class Ev_SpawnProjectile : AnimationEventEffect
             Debug.LogWarning($"Event '{this.name}' trên {caster.name} chưa được kéo Prefab viên đạn vào!");
             return;
         }
-
+       
         Vector3 spawnPosition = caster.transform.position + caster.transform.forward + (Vector3.up * 1.2f);
         Quaternion spawnRotation = caster.transform.rotation;
 
@@ -44,23 +46,54 @@ public class Ev_SpawnProjectile : AnimationEventEffect
             referenceToSpawn = runtimeTemplate.AddComponent<Reference>();
         }
 
+
+
+        var data = actionWindow.vfxTransform;
         // 🔥 ĐÃ HẾT LỖI: Bây giờ biến "referenceToSpawn" đã mang kiểu dữ liệu 'Reference' chuẩn xác
         // Truyền thẳng nó vào hàm của bạn mà không bị báo lỗi ép kiểu Argument 1 nữa
-        Reference spawnedEffect = effectManager.SpawnProjectileFromData(referenceToSpawn, spawnPosition, spawnRotation, currentType) as Reference;
-
-        if (spawnedEffect != null)
+        Reference vfxInstance = effectManager.SpawnVFXFromData(referenceToSpawn, spawnPosition, spawnRotation, currentType);
+        if (vfxInstance != null)
         {
-            // Lấy bộ não điều khiển ProjectileController từ viên đạn đã được sinh ra để nạp dữ liệu bay
-            ProjectileController controller = spawnedEffect.GetComponent<ProjectileController>();
-            if (controller != null)
+            vfxInstance.transform.localScale = data.scale;
+
+            // 2. 🔥 TIẾN HÀNH GẮN ĐOẠN CODE CỦA BẠN VÀO ĐÂY:
+            // Lấy Component nhận diện va chạm (vốn dùng để xử lý sát thương) từ vfxInstance ra
+            DetectionBase detection = vfxInstance.GetComponent<DetectionBase>();
+            detection.layerToCheck = caster.layer.GetOpponentLayerMask();
+
+            // Điều kiện an toàn: Phải có component quét va chạm và bạn phải có gán hitVFXPrefab trong Inspector
+            if (detection != null && hitVFXPrefab != null)
             {
-                // Kích hoạt nạp hướng bắn, tốc độ và thời gian sống
-                controller.Initialize(caster.transform.forward, projectileSpeed, lifeTime);
+                // Trước khi đăng ký Listener mới, hãy xóa sạch Listener của lần reuse trước trong Pool (nếu có)
+                // để tránh việc một Object tích tụ quá nhiều Lambda trùng lặp gây lag/lỗi.
+                detection.PositionEnterEvent.RemoveAllListeners();
+
+                // Đăng ký đoạn logic kiểm tra ĐIỀU KIỆN TRÚNG ĐÒN
+                detection.PositionEnterEvent.AddListener((victimPos) =>
+                {
+                    if (victimPos == null) return;
+
+                    // Lấy vị trí của nạn nhân tại frame trúng đòn
+                    Vector3 hitPosition = victimPos;
+
+
+                    // Tính góc nổ: Quay ngược lại hướng nhìn của người chém (caster) để tạo lực phản hồi trực quan
+                    Quaternion hitRotation = Quaternion.LookRotation(-caster.transform.forward);
+
+                    // 🔥 Gọi thẳng Service tĩnh toàn cục bạn vừa viết để bắn VFX Hit ra màn hình
+                    GlobalVFXManager.SpawnGlobalVFX(hitVFXPrefab, hitPosition.GetRandomPosition3D(1), hitRotation);
+                });
             }
-            else
-            {
-                Debug.LogWarning($"Prefab đạn '{spawnedEffect.name}' đang thiếu script ProjectileController!");
-            }
+         
+                // Lấy bộ não điều khiển ProjectileController từ viên đạn đã được sinh ra để nạp dữ liệu bay
+                ProjectileController controller = vfxInstance.GetComponent<ProjectileController>();
+                if (controller != null)
+                {
+                    // Kích hoạt nạp hướng bắn, tốc độ và thời gian sống
+                    controller.Initialize(caster.transform.forward, projectileSpeed, lifeTime);
+                }
+             
+            
         }
     }
 }

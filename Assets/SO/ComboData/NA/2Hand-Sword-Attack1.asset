@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: 2Hand-Sword-Attack1
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   animationName: 2Hand-Sword-Attack2
-  damage: 0
   windows:
   - actionName: Slash
     startTime: 0.312
@@ -24,11 +23,19 @@ MonoBehaviour:
       rotationOffset: {x: 292, y: 90, z: 90}
       scale: {x: 0.3, y: 0.3, z: 0.3}
     targetDistance: {x: 0, y: 0, z: 0}
+    enableLunge: 0
+    lungeSpeed: 12
+    maxLungeDistance: 4
+    keepDistanceOffset: 1.2
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
     eventTriggered: 1
+    isLungeInitialized: 0
+    actualLungeDistanceLeft: 0
+    lungeDirection: {x: 0, y: 0, z: 1}
+    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: ComboInputBuffer
-    startTime: 0.742
+    startTime: 0.744
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -36,8 +43,16 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
+    enableLunge: 0
+    lungeSpeed: 12
+    maxLungeDistance: 4
+    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
+    isLungeInitialized: 0
+    actualLungeDistanceLeft: 0
+    lungeDirection: {x: 0, y: 0, z: 1}
+    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: JumpCancel
     startTime: 0.0054126885
     endTime: 1
@@ -47,8 +62,16 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
+    enableLunge: 0
+    lungeSpeed: 12
+    maxLungeDistance: 4
+    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
+    isLungeInitialized: 0
+    actualLungeDistanceLeft: 0
+    lungeDirection: {x: 0, y: 0, z: 1}
+    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: DashCancel
     startTime: 0
     endTime: 1
@@ -58,8 +81,16 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
+    enableLunge: 0
+    lungeSpeed: 12
+    maxLungeDistance: 4
+    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
+    isLungeInitialized: 0
+    actualLungeDistanceLeft: 0
+    lungeDirection: {x: 0, y: 0, z: 1}
+    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: Step
     startTime: 0
     endTime: 0.303
@@ -68,6 +99,33 @@ MonoBehaviour:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 1}
+    targetDistance: {x: 0, y: 0, z: 0}
+    enableLunge: 0
+    lungeSpeed: 12
+    maxLungeDistance: 4
+    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
+    isLungeInitialized: 0
+    actualLungeDistanceLeft: 0
+    lungeDirection: {x: 0, y: 0, z: 1}
+    calculatedTargetPos: {x: 0, y: 0, z: 0}
+  - actionName: Lunge
+    startTime: 0
+    endTime: 0.162
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    targetDistance: {x: 0, y: 0, z: 0}
+    enableLunge: 1
+    lungeSpeed: 11
+    maxLungeDistance: 7
+    keepDistanceOffset: 2
+    eventEffects: []
+    eventTriggered: 1
+    isLungeInitialized: 0
+    actualLungeDistanceLeft: 0
+    lungeDirection: {x: -0.7100654, y: 0, z: 0.70413566}
+    calculatedTargetPos: {x: 19.994081, y: 0.018999606, z: 17.236288}

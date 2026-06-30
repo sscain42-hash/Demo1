@@ -14672,7 +14672,7 @@ MonoBehaviour:
   type: 1
   mask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 192
   boxSize: {x: 1, y: 1, z: 1}
   sphereRadius: 7
 --- !u!1 &5942177894242009866

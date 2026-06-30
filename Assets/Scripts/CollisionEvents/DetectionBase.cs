@@ -4,6 +4,7 @@ using UnityEngine.Events;
 
 public class DetectionBase : MonoBehaviour
 {
+    public LayerMask layerToCheck;
     [Space,Header("RETURN => Object Collision")]
     public UnityEvent<GameObject> CollisionEnterEvent;
     public UnityEvent<GameObject> CollisionExitEvent;

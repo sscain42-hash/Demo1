@@ -169,42 +169,32 @@ public partial class PlayerInputs : MonoBehaviour
     // BUFFER
     // =========================================================
 
-    private void AddCommand(
-        BufferedAction action)
+    private void AddCommand(BufferedAction action)
     {
-        CleanupExpiredCommands();
-
-        // chống spam cùng input
         if (HasRecentInput(action))
             return;
 
-        if (_commandBuffer.Count >=
-            maxBufferSize)
+        if (_commandBuffer.Count >= maxBufferSize)
         {
             _commandBuffer.Dequeue();
         }
 
-        _commandBuffer.Enqueue(
-            new InputCommand(
-                action,
-                Time.time));
+        // 🟢 SỬA THÀNH: unscaledTime
+        _commandBuffer.Enqueue(new InputCommand(action, Time.unscaledTime));
     }
 
-    private bool HasRecentInput(
-        BufferedAction action)
+    private bool HasRecentInput(BufferedAction action)
     {
         foreach (var cmd in _commandBuffer)
         {
-            if (cmd.action != action)
-                continue;
+            if (cmd.action != action) continue;
 
-            if (Time.time - cmd.timestamp
-                < 0.05f)
+            // 🟢 SỬA THÀNH: unscaledTime
+            if (Time.unscaledTime - cmd.timestamp < 0.02f)
             {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -212,11 +202,10 @@ public partial class PlayerInputs : MonoBehaviour
     {
         while (_commandBuffer.Count > 0)
         {
-            InputCommand cmd =
-                _commandBuffer.Peek();
+            InputCommand cmd = _commandBuffer.Peek();
 
-            if (Time.time - cmd.timestamp
-                > bufferTime)
+            // 🟢 SỬA THÀNH: unscaledTime
+            if (Time.unscaledTime - cmd.timestamp > bufferTime)
             {
                 _commandBuffer.Dequeue();
             }

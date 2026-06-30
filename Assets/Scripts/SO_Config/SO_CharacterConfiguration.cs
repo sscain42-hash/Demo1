@@ -37,12 +37,7 @@ public class SO_CharacterConfiguration : ScriptableObject
     
     [Tooltip("Giới thiệu nhân vật"), SerializeField, JsonProperty]
     private string Infor;
-    
-    [Header("ATTACK MULTIPLIER")]
-    [SerializeField, JsonProperty] private List<FloatMultiplier> NormalAttackMultiplier;
-    [SerializeField, JsonProperty] private List<FloatMultiplier> ChargedAttackMultiplier;
-    [SerializeField, JsonProperty] private List<FloatMultiplier> SkillMultiplier;
-    [SerializeField, JsonProperty] private List<FloatMultiplier> SpecialMultiplier;
+
     
     [Header("CHARACTER STATS")]
     [Tooltip("Máu tối đa"), SerializeField, JsonProperty] 
@@ -94,26 +89,13 @@ public class SO_CharacterConfiguration : ScriptableObject
     public int GetCRITDMG() => CRITDMG;
     public int SetCRITDMG(int _value) => CRITDMG = _value;
     
-    public int GetDEF() => DEF;
-    public int SetDEF(int _value) => DEF = _value;
-    
+ 
     public float GetWalkSpeed() => WalkSpeed;
     public float SetWalkSpeed(float _value) => WalkSpeed = _value;
     
     public float GetRunSpeed() => RunSpeed;
     public float SetRunSpeed(float _value) => RunSpeed = _value;
     
-    public List<FloatMultiplier> GetChargedAttackMultiplier() => ChargedAttackMultiplier;
-    public List<FloatMultiplier> GetNormalAttackMultiplier() => NormalAttackMultiplier;
-    public List<FloatMultiplier> GetElementalSkillMultiplier() => SkillMultiplier;
-    public List<FloatMultiplier> GetElementalBurstMultiplier() => SpecialMultiplier;
-    public void AddNormalAttackMultiplier() => NormalAttackMultiplier.Add(new FloatMultiplier("", new List<float> { 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0} ));
-    public void AddChargedAttackMultiplier() => ChargedAttackMultiplier.Add(new FloatMultiplier("", new List<float> { 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0} ));
-    public void AddElementalSkillMultiplier() => SkillMultiplier.Add(new FloatMultiplier("", new List<float> { 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0} ));
-    public void AddElementalBurstMultiplier() => SpecialMultiplier.Add(new FloatMultiplier("", new List<float> { 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0} ));
-    public void RemoveNormalAttackMultiplier() => NormalAttackMultiplier.Remove(NormalAttackMultiplier[^1]);
-    public void RemoveChargedAttackMultiplier() => ChargedAttackMultiplier.Remove(ChargedAttackMultiplier[^1]);
-    public void RemoveElementalSkillMultiplier() => SkillMultiplier.Remove(SkillMultiplier[^1]);
-    public void RemoveElementalBurstMultiplier() => SpecialMultiplier.Remove(SpecialMultiplier[^1]);
+ 
     
 }
