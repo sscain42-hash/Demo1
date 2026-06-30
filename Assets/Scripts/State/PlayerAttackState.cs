@@ -32,7 +32,15 @@ public class PlayerAttackState : PlayerBaseState
     {
         if (_comboManager == null || _hasExited) return;
 
-     
+        // 🎯 1. HỦY ĐÒN SỚM BẰNG NÚT DI CHUYỂN (WASD)
+        // Nếu cửa sổ nhận Combo Input đang mở VÀ người chơi đang chủ động bấm nút di chuyển
+        if (_comboManager.IsAttacking && _ctx.InputVector.sqrMagnitude > 0.01f)
+        {
+            _hasExited = true;
+            _comboManager.ForceCancelCombo(); // Ngắt combo hiện tại
+            SwitchState(_factory.Grounded()); // Chuyển ngay lập tức về trạng thái di chuyển tự do
+            return;
+        }
 
         // 🎯 2. HỦY ĐÒN SỚM BẰNG DASH
         if (_comboManager.CanDashCancelNow && _ctx.TryDash)
