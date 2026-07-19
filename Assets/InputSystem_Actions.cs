@@ -392,6 +392,17 @@ public partial class @Inputs: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""ad7fd2bf-b3fd-4b3c-a8c9-43e1bdac69c0"",
+                    ""path"": ""<Keyboard>/leftShift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""21813cda-2680-48a9-82f7-6b024edaa002"",
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",

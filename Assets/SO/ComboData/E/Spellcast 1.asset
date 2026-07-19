@@ -13,35 +13,22 @@ MonoBehaviour:
   m_Name: Spellcast 1
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   animationName: SpellCast
-  damage: 1
   windows:
   - actionName: Cast
     startTime: 0.53245324
     endTime: 0.9251926
     enableVFX: 1
     vfxTransform:
-      positionOffset: {x: -0.5, y: 0, z: 0}
+      positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects:
-    - {fileID: 11400000, guid: 5c09079fd3a2c0f4c8e5e76d9081e049, type: 2}
-    eventTriggered: 1
-  - actionName: Cast
-    startTime: 0
-    endTime: 0.2959296
-    enableVFX: 0
-    vfxTransform:
-      positionOffset: {x: -0.5, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
+      scale: {x: 0.5, y: 0.5, z: 0.5}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 5c09079fd3a2c0f4c8e5e76d9081e049, type: 2}
     eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.99999994
-    endTime: 0.99999994
+    startTime: 0.62593216
+    endTime: 1
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -49,7 +36,7 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: JumpCancel
     startTime: 0.0054126885
     endTime: 1
@@ -70,5 +57,16 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.45783147
+    endTime: 0.5375789
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    targetDistance: {x: 0, y: 0, z: -0.01}
     eventEffects: []
     eventTriggered: 1

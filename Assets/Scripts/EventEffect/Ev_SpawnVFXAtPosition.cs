@@ -1,6 +1,5 @@
 ﻿using Assets.VFXPACK_IMPACT_WALLCOEUR.Scripts;
 using NodeCanvas.Tasks.Actions;
-using System;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Ev_SpawnVFXAtPosition", menuName = "Combo System/Events/Spawn VFX At Position")]
@@ -52,15 +51,16 @@ public class Ev_SpawnVFXAtPosition : AnimationEventEffect
 
                     // Lấy vị trí của nạn nhân tại frame trúng đòn
                     Vector3 hitPosition = victimPos;
-                   
+
 
                     // Tính góc nổ: Quay ngược lại hướng nhìn của người chém (caster) để tạo lực phản hồi trực quan
-                    Quaternion hitRotation = Quaternion.LookRotation(-caster.transform.forward);
+                    Quaternion hitRotation = vfxInstance.transform.rotation;
 
                     // 🔥 Gọi thẳng Service tĩnh toàn cục bạn vừa viết để bắn VFX Hit ra màn hình
-                    GlobalVFXManager.SpawnGlobalVFX(hitVFXPrefab, hitPosition.GetRandomPosition3D(1), hitRotation);
+                    GlobalVFXManager.SpawnGlobalVFX(hitVFXPrefab, hitPosition,hitRotation);
                 });
             }
         }
     }
 }
+

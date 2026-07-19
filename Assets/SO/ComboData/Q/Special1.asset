@@ -25,7 +25,7 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: Slash
     startTime: 0.10666667
     endTime: 0.37066668
@@ -37,9 +37,9 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: Slash
-    startTime: 0.3057778
+    startTime: 0.30577782
     endTime: 0.552
     enableVFX: 1
     vfxTransform:
@@ -49,7 +49,7 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: Slash
     startTime: 0.51200014
     endTime: 0.73688924
@@ -61,7 +61,7 @@ MonoBehaviour:
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: Slash
     startTime: 0.775111
     endTime: 1
@@ -83,7 +83,7 @@ MonoBehaviour:
       scale: {x: 0.4, y: 0.4, z: 0.4}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: JumpCancel
     startTime: 0
     endTime: 0.99999994
@@ -94,7 +94,7 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: DashCancel
     startTime: 0
     endTime: 0.99999994
@@ -105,15 +105,17 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
-    eventTriggered: 0
+    eventTriggered: 1
   - actionName: Step
     startTime: 0
-    endTime: 0.17704427
+    endTime: 0.43866217
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 11}
+    targetDistance: {x: 0, y: 0, z: 0.08}
     eventEffects: []
-    eventTriggered: 0
+    eventTriggered: 1
+  useScreenShake: 1
+  shakeForce: 0.2

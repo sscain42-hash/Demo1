@@ -180,7 +180,7 @@ public partial class PlayerInputs : MonoBehaviour
         }
 
         // 🟢 SỬA THÀNH: unscaledTime
-        _commandBuffer.Enqueue(new InputCommand(action, Time.unscaledTime));
+        _commandBuffer.Enqueue(new InputCommand(action, Time.time));
     }
 
     private bool HasRecentInput(BufferedAction action)
@@ -190,7 +190,7 @@ public partial class PlayerInputs : MonoBehaviour
             if (cmd.action != action) continue;
 
             // 🟢 SỬA THÀNH: unscaledTime
-            if (Time.unscaledTime - cmd.timestamp < 0.02f)
+            if (Time.time - cmd.timestamp < 0.02f)
             {
                 return true;
             }
@@ -205,7 +205,7 @@ public partial class PlayerInputs : MonoBehaviour
             InputCommand cmd = _commandBuffer.Peek();
 
             // 🟢 SỬA THÀNH: unscaledTime
-            if (Time.unscaledTime - cmd.timestamp > bufferTime)
+            if (Time.time - cmd.timestamp > bufferTime)
             {
                 _commandBuffer.Dequeue();
             }
@@ -286,4 +286,60 @@ public partial class PlayerInputs : MonoBehaviour
 
     public int BufferCount =>
         _commandBuffer.Count;
+    // =========================================================
+    // PRIORITY BASED QUERY
+    // =========================================================
+
+    /// <summary>
+    /// Trả về điểm ưu tiên của từng hành động (Số càng cao càng ưu tiên)
+    /// </summary>
+    private int GetActionPriority(BufferedAction action)
+    {
+        return action switch
+        {
+            BufferedAction.ElementalBurst => 3,   // Q: Ưu tiên tối cao
+            BufferedAction.ElementalSkill => 2,   // E: Ưu tiên trung bình
+            BufferedAction.NormalAttack => 1,   // Normal: Ưu tiên thấp nhất
+            _ => 0
+        };
+    }
+
+    /// <summary>
+    /// Tìm hành động có ưu tiên cao nhất trong Buffer. 
+    /// Nếu độ ưu tiên bằng nhau, hành động nào bấm trước (FIFO) sẽ được chọn.
+    /// </summary>
+    public BufferedAction? GetHighestPriorityBufferedAction(params BufferedAction[] actionsToCheck)
+    {
+        CleanupExpiredCommands();
+
+        BufferedAction? bestAction = null;
+        int highestPriority = -1;
+        float earliestTimestamp = float.MaxValue;
+
+        foreach (var cmd in _commandBuffer)
+        {
+            foreach (var action in actionsToCheck)
+            {
+                if (cmd.action != action) continue;
+
+                int currentPriority = GetActionPriority(cmd.action);
+
+                // Trường hợp 1: Tìm thấy đòn có ưu tiên cao hơn hẳn (Ví dụ: Q đè E)
+                if (currentPriority > highestPriority)
+                {
+                    highestPriority = currentPriority;
+                    bestAction = cmd.action;
+                    earliestTimestamp = cmd.timestamp;
+                }
+                // Trường hợp 2: Cùng độ ưu tiên (Ví dụ: Normal và Normal), áp dụng FIFO (chọn đòn bấm trước)
+                else if (currentPriority == highestPriority && cmd.timestamp < earliestTimestamp)
+                {
+                    earliestTimestamp = cmd.timestamp;
+                    bestAction = cmd.action;
+                }
+            }
+        }
+
+        return bestAction;
+    }
 }

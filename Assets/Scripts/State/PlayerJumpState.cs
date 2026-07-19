@@ -1,5 +1,4 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 public class PlayerJumpingState : PlayerBaseState
 {
     private const float JUMP_RELEASE_MULTIPLIER = 0.5f;
@@ -13,6 +12,7 @@ public class PlayerJumpingState : PlayerBaseState
     public override void EnterState()
     {
         _ctx.PlayAnimation(_ctx.Anim_Jump_Begin, 0.05f);
+      
         ApplyJumpVelocity();
     }
 
@@ -39,13 +39,20 @@ public class PlayerJumpingState : PlayerBaseState
 
     public override void CheckSwitchState()
     {
+        // Allow attacking from air immediately when input present
+        if (_ctx.TryNormalAttack || _ctx.TryElementalSkill || _ctx.TryElementalBurst)
+        {
+            SwitchState(_factory.Attack());
+            return;
+        }
+
         if (_ctx.Velocity.y <= 0f)
         {
             SwitchState(_factory.Falling());
             return;
         }
 
-        if ( _ctx.TryDash)
+        if (_ctx.TryDash)
         {
             SwitchState(_factory.Dash());
         }

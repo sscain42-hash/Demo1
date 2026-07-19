@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic; // Cần thiết để sử dụng HashSet
+using UnityEngine;
 
 public class ComboEngine
 {
@@ -6,49 +7,49 @@ public class ComboEngine
     private readonly Animator _animator;
 
     public AttackData CurrentAttackData { get; private set; }
+
+    public Vector3 CurrentStepDisplacement { get; private set; }
     public Vector3 CurrentStepVelocity { get; private set; }
+
     public bool IsComboWindowActive { get; private set; }
     public bool CanDashCancelNow { get; private set; }
     public bool CanJumpCancelNow { get; private set; }
 
-    private GameObject _trackedLungeTarget;
+    private float _lastNormalizedTime;
+    private string _lastActiveAnimation;
+
+    // 🔥 GIẢI PHÁP MỚI: Dùng HashSet runtime để lưu trữ các Window đã kích hoạt, 
+    // không ghi đè trực tiếp lên file Asset ScriptableObject để chống lỗi lặp x2 Event
+    private readonly HashSet<ActionWindow> _triggeredWindows = new HashSet<ActionWindow>();
 
     public ComboEngine(GameObject owner, Animator animator, IComboCharacter character)
     {
         _owner = owner;
         _animator = animator;
+        _lastNormalizedTime = -1f;
+        _lastActiveAnimation = string.Empty;
     }
 
     public void ChangeAttackData(AttackData newData)
     {
         CurrentAttackData = newData;
-        CurrentStepVelocity = Vector3.zero;
-        _trackedLungeTarget = null;
         ResetFlags();
 
-        // 🌟 NẾU LÀ NULL (BỊ FORCE CANCEL): Dừng hoàn toàn, không gọi Animator nữa để tránh kẹt đè hoạt ảnh cũ
-        if (CurrentAttackData == null) return;
+        _lastNormalizedTime = -1f;
 
-        if (CurrentAttackData.windows != null)
+        // 🔥 SỬA: Xóa sạch bộ nhớ tạm các sự kiện đã chạy của đòn đánh trước
+        _triggeredWindows.Clear();
+
+        if (CurrentAttackData == null)
         {
-            foreach (var window in CurrentAttackData.windows)
-                window.ResetRuntime();
+            CurrentStepDisplacement = Vector3.zero;
+            CurrentStepVelocity = Vector3.zero;
+            return;
         }
 
-        // Kiểm tra xem đòn đánh mới có chứa cấu hình Lunge hay không
-        bool hasLungeWindow = false;
-        foreach (var window in CurrentAttackData.windows)
-        {
-            if (window.enableLunge) { hasLungeWindow = true; break; }
-        }
+        // XÓA BỎ: Đoạn mã window.ResetRuntime() cũ vì nó can thiệp trực tiếp làm hỏng dữ liệu Asset cứng
 
-        var playerCtrl = _owner.GetComponent<PlayerController>();
-        if (hasLungeWindow && playerCtrl != null && playerCtrl.InputVector.sqrMagnitude <= 0.01f)
-        {
-            _trackedLungeTarget = playerCtrl.ScanAndGetClosestLungeTarget();
-        }
-
-        if (_animator != null)
+        if (_animator != null && !string.IsNullOrEmpty(CurrentAttackData.animationName))
         {
             _animator.CrossFadeInFixedTime(CurrentAttackData.animationName, 0.1f, 0, 0f);
         }
@@ -56,122 +57,97 @@ public class ComboEngine
 
     public void UpdateWindows()
     {
-        // Nếu không có dữ liệu đòn đánh, lập tức triệt tiêu vận tốc và thoát
         if (_animator == null || CurrentAttackData == null)
         {
+            CurrentStepDisplacement = Vector3.zero;
             CurrentStepVelocity = Vector3.zero;
             return;
         }
 
-        AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
-        if (!stateInfo.IsName(CurrentAttackData.animationName))
+        bool isInTransition = _animator.IsInTransition(0);
+        AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+        AnimatorStateInfo nextStateInfo = isInTransition ? _animator.GetNextAnimatorStateInfo(0) : default;
+
+        bool isCurrentTarget = currentStateInfo.IsName(CurrentAttackData.animationName);
+        bool isNextTarget = isInTransition && nextStateInfo.IsName(CurrentAttackData.animationName);
+
+        if (!isCurrentTarget && !isNextTarget)
         {
             ResetFlags();
+            CurrentStepDisplacement = Vector3.zero;
             CurrentStepVelocity = Vector3.zero;
+            _lastNormalizedTime = -1f;
             return;
         }
 
-        float nTime = stateInfo.normalizedTime;
-        float effectiveLength = stateInfo.length / Mathf.Max(stateInfo.speed, 0.001f);
+        AnimatorStateInfo targetStateInfo = isCurrentTarget ? currentStateInfo : nextStateInfo;
+        float currentNTime = targetStateInfo.normalizedTime;
+
+        if (_lastActiveAnimation != CurrentAttackData.animationName)
+        {
+            _lastNormalizedTime = -1f;
+            _lastActiveAnimation = CurrentAttackData.animationName;
+            _triggeredWindows.Clear(); // Đảm bảo dọn sạch sẽ khi đổi tên đòn
+        }
+
+        if (_lastNormalizedTime < 0f)
+        {
+            _lastNormalizedTime = currentNTime;
+        }
+
+        if (currentNTime < _lastNormalizedTime)
+        {
+            _lastNormalizedTime = currentNTime;
+        }
 
         ResetFlags();
-        Vector3 accumulatedVelocity = Vector3.zero;
+        Vector3 accumulatedDisplacement = Vector3.zero;
 
         foreach (var window in CurrentAttackData.windows)
         {
-            if (window.IsInside(nTime))
+            if (isCurrentTarget && window.IsInside(currentNTime))
             {
-                // 1. SMART LUNGE (Giữ nguyên logic hoạt động tốt của bạn)
-                if (window.enableLunge)
-                {
-                    if (!window.isLungeInitialized)
-                    {
-                        window.lungeDirection = _owner.transform.forward;
-
-                        if (_trackedLungeTarget != null)
-                        {
-                            window.calculatedTargetPos = _trackedLungeTarget.transform.position;
-                            Vector3 currentPos = _owner.transform.position;
-                            Vector3 targetPos = window.calculatedTargetPos;
-                            targetPos.y = currentPos.y;
-
-                            float distance = Vector3.Distance(currentPos, targetPos);
-                            window.actualLungeDistanceLeft = Mathf.Min(Mathf.Max(distance - window.keepDistanceOffset, 0f), window.maxLungeDistance);
-                        }
-                        else
-                        {
-                            window.actualLungeDistanceLeft = 0f;
-                            window.calculatedTargetPos = _owner.transform.position;
-                        }
-
-                        window.isLungeInitialized = true;
-                    }
-
-                    if (window.actualLungeDistanceLeft > 0f)
-                    {
-                        Vector3 currentPos = _owner.transform.position;
-                        Vector3 targetPos = window.calculatedTargetPos;
-                        Vector3 dir = (targetPos - currentPos).normalized;
-
-                        Vector3 desiredPos = targetPos - dir * window.keepDistanceOffset;
-                        desiredPos.y = currentPos.y;
-
-                        Vector3 nextPos = Vector3.MoveTowards(currentPos, desiredPos, window.lungeSpeed * Time.deltaTime);
-                        Vector3 deltaMovement = nextPos - currentPos;
-
-                        if (Time.deltaTime > 0f) accumulatedVelocity = deltaMovement / Time.deltaTime;
-                        _owner.transform.rotation = Quaternion.LookRotation(dir);
-                    }
-                }
-                // 2. MOVEMENT STEP (🔥 SỬA TẠI ĐÂY: Làm mượt lực lướt tiêu hao dần)
-                else if (!window.enableLunge && window.targetDistance != Vector3.zero)
-                {
-                    if (!window.isLungeInitialized)
-                    {
-                        // Khởi tạo hành trình ban đầu
-                        window.actualLungeDistanceLeft = window.targetDistance.magnitude;
-                        window.lungeDirection = _owner.transform.TransformDirection(window.targetDistance.normalized);
-                        window.isLungeInitialized = true;
-                    }
-
-                    if (window.actualLungeDistanceLeft > 0f)
-                    {
-                        float duration = Mathf.Max((window.endTime - window.startTime) * effectiveLength, 0.001f);
-
-                        // Vận tốc cơ sở ban đầu
-                        float baseSpeed = window.targetDistance.magnitude / duration;
-
-                        // Tính toán tỷ lệ phần trăm thời gian đã trôi qua trong ô Window này để giảm tốc (Decay)
-                        float progress = (nTime - window.startTime) / (window.endTime - window.startTime);
-                        progress = Mathf.Clamp01(progress);
-
-                        // Tốc độ mượt mà giảm dần về 0 theo thời gian đòn đánh trôi qua
-                        float smoothSpeed = Mathf.Lerp(baseSpeed * 1.5f, 0f, progress);
-
-                        // Trừ dần hành trình thực tế tránh bị bay quá xa
-                        window.actualLungeDistanceLeft -= smoothSpeed * Time.deltaTime;
-
-                        accumulatedVelocity += window.lungeDirection * smoothSpeed;
-                    }
-                }
-
                 if (window.actionName == "ComboInputBuffer") IsComboWindowActive = true;
                 if (window.actionName == "DashCancel") CanDashCancelNow = true;
                 if (window.actionName == "JumpCancel") CanJumpCancelNow = true;
 
-                if (window.eventEffects != null && !window.eventTriggered)
+                // 🔥 SỬA: Chốt chặn bảo vệ tối cao dựa trên HashSet. 
+                // Nếu Window này chưa nằm trong danh sách đã trigger của frame này -> Tiến hành Trigger
+                if (window.eventEffects != null && !_triggeredWindows.Contains(window))
                 {
-                    window.eventTriggered = true;
-                    foreach (var effect in window.eventEffects) effect?.Trigger(_owner, window);
+                    _triggeredWindows.Add(window); // Khóa ngay lập tức
+                    foreach (var effect in window.eventEffects)
+                        effect?.Trigger(_owner, window);
                 }
             }
-            else
+
+            if (window.actionName == "Step")
             {
-                if (window.isLungeInitialized) window.isLungeInitialized = false;
+                float windowWidth = window.endTime - window.startTime;
+                if (windowWidth > 0.001f)
+                {
+                    float clampLast = Mathf.Clamp(_lastNormalizedTime, window.startTime, window.endTime);
+                    float clampCurr = Mathf.Clamp(currentNTime, window.startTime, window.endTime);
+
+                    float deltaInWindow = clampCurr - clampLast;
+
+                    if (deltaInWindow > 0f)
+                    {
+                        Vector3 worldDirection = _owner.transform.TransformDirection(window.targetDistance.normalized);
+                        float distance = window.targetDistance.magnitude;
+
+                        float progressThisFrame = deltaInWindow / windowWidth;
+                        accumulatedDisplacement += worldDirection * (distance * progressThisFrame);
+                    }
+                }
             }
         }
 
-        CurrentStepVelocity = accumulatedVelocity;
+        float dt = Time.deltaTime;
+        CurrentStepDisplacement = accumulatedDisplacement;
+        CurrentStepVelocity = dt > 0.0001f ? (accumulatedDisplacement / dt) : Vector3.zero;
+
+        _lastNormalizedTime = currentNTime;
     }
 
     private void ResetFlags()
@@ -183,8 +159,19 @@ public class ComboEngine
 
     public float GetNormalizedTime()
     {
-        if (_animator == null) return 0f;
+        if (_animator == null || CurrentAttackData == null) return 0f;
+
+        if (_animator.IsInTransition(0))
+        {
+            AnimatorStateInfo nextStateInfo = _animator.GetNextAnimatorStateInfo(0);
+            if (nextStateInfo.IsName(CurrentAttackData.animationName))
+                return nextStateInfo.normalizedTime;
+            return 0f;
+        }
+
         AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+        if (!stateInfo.IsName(CurrentAttackData.animationName)) return 0f;
+
         return stateInfo.normalizedTime;
     }
 }

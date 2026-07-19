@@ -74,7 +74,9 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     private const float MIN_DISTANCE_THRESHOLD = 0.01f;
     private const float LUNGE_TOLERANCE = 0.05f;
-
+    //KnockBack
+    public  float knockBackForce = 15f;
+    public AnimationCurve knockBackcurve;
     #endregion
 
     #region COMPONENTS
@@ -577,7 +579,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     private void RotateModel(Vector3 direction)
     {
-        if (Model == null)
+        if (Model == null||_rotationLocked)
             return;
 
         if (direction.sqrMagnitude < 0.001f)
@@ -612,7 +614,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
     public bool CanAttack =>
         !_isAttacking &&
         !_attackLocked;
-
+  
     public PlayerStateFactory States { get => _states; set => _states = value; }
     public PlayerBaseState CurrentState1 { get => _currentState; set => _currentState = value; }
 
@@ -682,24 +684,32 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
         ApplyHit(attackType);
 
         receiver.TakeDMG(100, true);
-   
+        var knockbackTarget = target.GetComponent<IKnockbackable>();
+        if (knockbackTarget != null)
+        {
+            Vector3 dir = (target.transform.position - transform.position).normalized;
+            dir.y = 0;
+            knockbackTarget.OnKnockback(dir, knockBackForce,knockBackcurve);
+            Debug.Log($"Knockback applied to {target.name} with direction {dir} and force 15f");
+        }
+     
         DMGPopUpGenerator.Instance.Create(target.transform.position,100,false,true);
     }
 
     public void ApplyHit(AttackType type)
     {
-        float hitStop = type switch
+        float hitValue = type switch
         {
-            AttackType.NormalAttack => 0.06f,
-            AttackType.ChargedAttack => 0.07f,
-            AttackType.E => 0.08f,
-            AttackType.Q => 0.12f,
-            _ => 0.03f
+            AttackType.NormalAttack => 0.1f,
+            AttackType.ChargedAttack => 0.12f,
+            AttackType.E => 0.15f,
+            AttackType.Q => 0.15f,
+            _ => 0.05f
         };
-
+        ScreenShakeManager.Instance.TriggerShake(hitValue);
         Debug.Log(
-            $"Applying hit stop of {hitStop} seconds for {type}");
-        HitStopSystem.Instance.Trigger(hitStop);
+            $"Applying hit stop of {hitValue} seconds for {type}");
+        HitStopSystem.Instance.Trigger(hitValue);
      
     }
 
@@ -772,6 +782,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
     // Đặt đoạn này bên trong class PlayerController của bạn
     [Header("== Detection Components ==")]
     [SerializeField] private PhysicsDetection lungePhysicsComponent;
+ 
 
     /// <summary>
     /// Hàm kích hoạt cấu phần PhysicsDetection chủ động quét vùng không gian và trả về mục tiêu gần nhất

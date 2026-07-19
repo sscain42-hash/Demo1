@@ -48,6 +48,13 @@ public class PlayerFallingState : PlayerBaseState
 
     public override void CheckSwitchState()
     {
+        // Allow attacking from falling state immediately
+        if (_ctx.TryNormalAttack || _ctx.TryElementalSkill || _ctx.TryElementalBurst)
+        {
+            SwitchState(_factory.Attack());
+            return;
+        }
+
         if (_ctx.CharController.isGrounded)
         {
             SwitchState(_factory.Grounded());
@@ -60,7 +67,7 @@ public class PlayerFallingState : PlayerBaseState
             return;
         }
 
-        if ( _ctx.TryDash)
+        if (_ctx.TryDash)
             SwitchState(_factory.Dash());
     }
 

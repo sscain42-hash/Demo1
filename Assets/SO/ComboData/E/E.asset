@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: E
   m_EditorClassIdentifier: Assembly-CSharp::ComboSequence
   attacks:
-  - {fileID: 11400000, guid: ea787967bfe82184999fa504d82892a1, type: 2}
+  - {fileID: 11400000, guid: db46a828bad8c2d46a3619b8843e391f, type: 2}

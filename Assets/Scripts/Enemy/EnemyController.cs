@@ -117,7 +117,6 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     private void SyncBlackboardBase()
     {
         Blackboard.SetVariableValue("RootPosition", transform.position);
-
         SetDie(false);
         SetTakeDMG(false);
     }
@@ -165,7 +164,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     {
         int finalDamage = Mathf.Max(0, damage);
         Health.Decreases(finalDamage);
-
+        
 
         SetTakeDMG(true);
         OnTakeDamageEvent?.Invoke(this);
@@ -180,7 +179,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>
         gameObject.SetObjectLayer(ignoreLayer.value);
         SetDie(true);
         SetTakeDMG(false);
-      
+        
         OnDieEvent?.Invoke(this);
         gameObject.SetActive(false);
     }
@@ -210,19 +209,11 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     private Vector3 _originalLocalPos;
     private Animator _animator;
 
-    #region === Animation CrossFade ===
-
-    public void PlayAnimationCrossFade(string stateName, float fixedTransitionDuration = 0.15f)
-    {
-        if (_animator != null)
-        {
-            _animator.CrossFadeInFixedTime(stateName, fixedTransitionDuration, 0);
-        }
-    }
+  
 
     #endregion
 
     public Action<EnemyController> ReleaseCallback { get; set; }
 
-    #endregion
+
 }

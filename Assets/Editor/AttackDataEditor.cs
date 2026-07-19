@@ -1,193 +1,162 @@
 ﻿#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
+using UnityEditor.Animations;
+using System.Linq;
+using System.Reflection;
 
 [CustomEditor(typeof(AttackData))]
 public class AttackDataEditor : Editor
 {
-    private readonly string[] _actionPresets = { "ComboInputBuffer", "DashCancel", "JumpCancel" };
+    private readonly string[] _actionPresets = { "ComboInputBuffer", "DashCancel", "JumpCancel", "Step" };
     private bool _showWindows = true;
+
+    private static RuntimeAnimatorController _previewAnimator;
+    private static int _selectedClipIndex = 0;
 
     public override void OnInspectorGUI()
     {
-        // 🌟 BẮT BUỘC: Cập nhật trạng thái đối tượng được serialization liên tục mỗi frame vẽ
         serializedObject.Update();
 
-        // 1. Vẽ các thuộc tính gốc
+        // 1. Vẽ các thuộc tính mặc định
         DrawPropertiesExcluding(serializedObject, "windows");
 
         EditorGUILayout.Space(10);
-        SerializedProperty windowsProp = serializedObject.FindProperty("windows");
 
-        if (windowsProp == null)
+        // 2. Editor Helper (Animator Controller & Animation Window Integration)
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        EditorGUILayout.LabelField("Editor Animator Helper", EditorStyles.boldLabel);
+        _previewAnimator = (RuntimeAnimatorController)EditorGUILayout.ObjectField("Animator Controller", _previewAnimator, typeof(RuntimeAnimatorController), false);
+
+        AnimationClip selectedClip = null;
+        if (_previewAnimator is AnimatorController controller)
         {
-            EditorGUILayout.HelpBox("Không tìm thấy thuộc tính 'windows' trong AttackData. Hãy kiểm tra lại tên biến gốc!", MessageType.Error);
-            serializedObject.ApplyModifiedProperties();
-            return;
-        }
+            var clips = controller.animationClips;
+            string[] clipNames = clips.Select(c => c.name).ToArray();
 
-        // 2. Foldout quản lý danh sách Windows
+            EditorGUI.BeginChangeCheck();
+            _selectedClipIndex = EditorGUILayout.Popup("Select Animation", _selectedClipIndex, clipNames);
+            if (EditorGUI.EndChangeCheck())
+            {
+                selectedClip = clips[_selectedClipIndex];
+                OpenAndFocusAnimationWindow(selectedClip);
+            }
+
+            if (_selectedClipIndex >= 0 && _selectedClipIndex < clips.Length)
+                selectedClip = clips[_selectedClipIndex];
+        }
+        EditorGUILayout.EndVertical();
+
+        EditorGUILayout.Space(10);
+
+        // 3. Action Windows
+        SerializedProperty windowsProp = serializedObject.FindProperty("windows");
         _showWindows = EditorGUILayout.Foldout(_showWindows, $"⏱ Action Windows ({windowsProp.arraySize})", true, EditorStyles.foldoutHeader);
 
         if (_showWindows)
         {
-            EditorGUI.indentLevel++;
+            float totalFrames = (selectedClip != null) ? selectedClip.length * selectedClip.frameRate : 60f;
 
+            EditorGUI.indentLevel++;
             for (int i = 0; i < windowsProp.arraySize; i++)
             {
                 SerializedProperty windowRef = windowsProp.GetArrayElementAtIndex(i);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                // --- HÀNG 1: Tên Action & Duplicate & Xóa ---
+                // --- Header: Controls ---
                 EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0) windowsProp.MoveArrayElement(i, i - 1);
+                if (GUILayout.Button("▼", GUILayout.Width(20)) && i < windowsProp.arraySize - 1) windowsProp.MoveArrayElement(i, i + 1);
 
-                if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0)
-                {
-                    windowsProp.MoveArrayElement(i, i - 1);
-                    serializedObject.ApplyModifiedProperties();
-                    GUIUtility.ExitGUI();
-                }
-
-                if (GUILayout.Button("▼", GUILayout.Width(20)) && i < windowsProp.arraySize - 1)
-                {
-                    windowsProp.MoveArrayElement(i, i + 1);
-                    serializedObject.ApplyModifiedProperties();
-                    GUIUtility.ExitGUI();
-                }
-
+                // 🌟 ĐOẠN ĐÃ SỬA: Xử lý logic hiển thị Dropdown và ô TextBox Custom
                 SerializedProperty nameProp = windowRef.FindPropertyRelative("actionName");
-
-                int selectedIndex = -1;
-                for (int j = 0; j < _actionPresets.Length; j++)
-                {
-                    if (nameProp.stringValue == _actionPresets[j]) { selectedIndex = j; break; }
-                }
-
+                int selectedIndex = System.Array.IndexOf(_actionPresets, nameProp.stringValue);
                 int displayIndex = (selectedIndex == -1) ? _actionPresets.Length : selectedIndex;
-                EditorGUI.BeginChangeCheck();
-                int newIndex = EditorGUILayout.Popup(displayIndex, AppendCustomOption(_actionPresets), GUILayout.Width(100));
 
-                if (EditorGUI.EndChangeCheck())
+                int newIndex = EditorGUILayout.Popup(displayIndex, AppendCustomOption(_actionPresets), GUILayout.Width(130));
+
+                if (newIndex < _actionPresets.Length)
                 {
-                    nameProp.stringValue = (newIndex < _actionPresets.Length) ? _actionPresets[newIndex] : "";
-                }
-
-                if (selectedIndex == -1)
-                {
-                    nameProp.stringValue = EditorGUILayout.TextField(nameProp.stringValue);
-                }
-
-                // NÚT DUPLICATE
-                GUI.backgroundColor = new Color(0.6f, 0.8f, 1f);
-                GUIContent dupIcon = EditorGUIUtility.IconContent("TreeEditor.Duplicate");
-                dupIcon.tooltip = "Duplicate this Action Window";
-                if (GUILayout.Button(dupIcon, GUILayout.Width(30), GUILayout.Height(22)))
-                {
-                    windowsProp.InsertArrayElementAtIndex(i);
-                    serializedObject.ApplyModifiedProperties();
-                    GUIUtility.ExitGUI();
-                }
-
-                // NÚT XÓA
-                GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
-                if (GUILayout.Button("✕", GUILayout.Width(25)))
-                {
-                    windowsProp.DeleteArrayElementAtIndex(i);
-                    serializedObject.ApplyModifiedProperties();
-                    GUIUtility.ExitGUI();
-                }
-
-                GUI.backgroundColor = Color.white;
-                EditorGUILayout.EndHorizontal();
-
-                // --- HÀNG 2: Time Range Slider ---
-                SerializedProperty startProp = windowRef.FindPropertyRelative("startTime");
-                SerializedProperty endProp = windowRef.FindPropertyRelative("endTime");
-                float start = startProp.floatValue;
-                float end = endProp.floatValue;
-
-                EditorGUILayout.MinMaxSlider(new GUIContent("Time Range"), ref start, ref end, 0f, 1f);
-                startProp.floatValue = start;
-                endProp.floatValue = end;
-
-                // --- 🎯 HÀNG 3: KHU VỰC CẤU HÌNH LUNGE MỚI THÔNG MINH ---
-                SerializedProperty enableLungeProp = windowRef.FindPropertyRelative("enableLunge");
-
-                // Sử dụng EditorGUI.BeginChangeCheck để bắt sự kiện click thay đổi nút tích ngay lập tức
-                EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(enableLungeProp, new GUIContent("💥 Enable Smart Lunge", "Bật chế độ lao đến khóa mục tiêu thông minh"));
-                if (EditorGUI.EndChangeCheck())
-                {
-                    serializedObject.ApplyModifiedProperties();
-                }
-
-                if (enableLungeProp.boolValue)
-                {
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-                    // Vẽ an toàn kèm kiểm tra thuộc tính để tránh NullReference gãy Layout hệ thống
-                    var pSpeed = windowRef.FindPropertyRelative("lungeSpeed");
-                    var pMaxDist = windowRef.FindPropertyRelative("maxLungeDistance");
-                    var pKeepDist = windowRef.FindPropertyRelative("keepDistanceOffset");
-                    var pLayer = windowRef.FindPropertyRelative("enemyLayer");
-
-                    if (pSpeed != null) EditorGUILayout.PropertyField(pSpeed, new GUIContent("Lunge Speed (m/s)"));
-                    if (pMaxDist != null) EditorGUILayout.PropertyField(pMaxDist, new GUIContent("Max Distance (m)"));
-                    if (pKeepDist != null) EditorGUILayout.PropertyField(pKeepDist, new GUIContent("Keep Distance (m)"));
-                    if (pLayer != null) EditorGUILayout.PropertyField(pLayer, new GUIContent("Enemy Layer"));
-
-                    EditorGUILayout.EndVertical();
-                    EditorGUI.indentLevel--;
+                    nameProp.stringValue = _actionPresets[newIndex];
                 }
                 else
                 {
-                    var pTargetDist = windowRef.FindPropertyRelative("targetDistance");
-                    if (pTargetDist != null) EditorGUILayout.PropertyField(pTargetDist, new GUIContent("Target Distance (Local)"));
+                    if (selectedIndex != -1)
+                    {
+                        nameProp.stringValue = ""; // Giải phóng chuỗi cũ để mở ô nhập text
+                    }
                 }
 
-                // --- HÀNG 4: VFX Config ---
+                if (System.Array.IndexOf(_actionPresets, nameProp.stringValue) == -1)
+                {
+                    nameProp.stringValue = EditorGUILayout.TextField(nameProp.stringValue);
+                }
+                // ---------------------------------------------------------------------
+
+                if (GUILayout.Button(EditorGUIUtility.IconContent("TreeEditor.Duplicate"), GUILayout.Width(30))) windowsProp.InsertArrayElementAtIndex(i);
+                if (GUILayout.Button("✕", GUILayout.Width(25))) windowsProp.DeleteArrayElementAtIndex(i);
+                EditorGUILayout.EndHorizontal();
+
+                // --- Time Range (Slider hiển thị Frame) ---
+                SerializedProperty startProp = windowRef.FindPropertyRelative("startTime");
+                SerializedProperty endProp = windowRef.FindPropertyRelative("endTime");
+
+                float startFrame = startProp.floatValue * totalFrames;
+                float endFrame = endProp.floatValue * totalFrames;
+
+                EditorGUILayout.LabelField($"Frame Range: {Mathf.RoundToInt(startFrame)} - {Mathf.RoundToInt(endFrame)}");
+
+                float start = startFrame;
+                float end = endFrame;
+                EditorGUILayout.MinMaxSlider(ref start, ref end, 0f, totalFrames);
+
+                startProp.floatValue = start / totalFrames;
+                endProp.floatValue = end / totalFrames;
+
+                // --- Movement & VFX ---
+                EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("targetDistance"));
+
                 SerializedProperty enableVFXProp = windowRef.FindPropertyRelative("enableVFX");
                 EditorGUILayout.PropertyField(enableVFXProp);
 
                 if (enableVFXProp.boolValue)
                 {
-                    EditorGUI.indentLevel++;
                     SerializedProperty vfxData = windowRef.FindPropertyRelative("vfxTransform");
-                    if (GUILayout.Button("Copy from Selection", GUILayout.Height(20)))
+                    if (GUILayout.Button("Copy from Selection", GUILayout.Height(20)) && Selection.activeGameObject != null)
                     {
-                        if (Selection.activeGameObject != null)
-                        {
-                            Transform t = Selection.activeGameObject.transform;
-                            vfxData.FindPropertyRelative("positionOffset").vector3Value = t.localPosition;
-                            vfxData.FindPropertyRelative("rotationOffset").vector3Value = t.localEulerAngles;
-                            vfxData.FindPropertyRelative("scale").vector3Value = t.localScale;
-                        }
+                        Transform t = Selection.activeGameObject.transform;
+                        vfxData.FindPropertyRelative("positionOffset").vector3Value = t.localPosition;
+                        vfxData.FindPropertyRelative("rotationOffset").vector3Value = t.localEulerAngles;
+                        vfxData.FindPropertyRelative("scale").vector3Value = t.localScale;
                     }
-                    if (vfxData != null) EditorGUILayout.PropertyField(vfxData, new GUIContent("VFX Settings"), true);
-                    EditorGUI.indentLevel--;
+                    EditorGUILayout.PropertyField(vfxData, true);
                 }
 
-                // --- HÀNG 5: Event Effects ---
-                SerializedProperty eventEffectsProp = windowRef.FindPropertyRelative("eventEffects");
-                if (eventEffectsProp != null) EditorGUILayout.PropertyField(eventEffectsProp, true);
-
+                EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("eventEffects"), true);
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space(5);
             }
 
-            // Nút Add
-            GUI.backgroundColor = new Color(0.5f, 1f, 0.5f);
-            if (GUILayout.Button("+ Add New Action Window"))
-            {
-                windowsProp.arraySize++;
-            }
-            GUI.backgroundColor = Color.white;
+            if (GUILayout.Button("+ Add New Action Window")) windowsProp.arraySize++;
             EditorGUI.indentLevel--;
         }
 
-        // 🌟 BẮT BUỘC ĐỂ LƯU DỮ LIỆU: Áp dụng các thay đổi từ Inspector vào ScriptableObject gốc
         serializedObject.ApplyModifiedProperties();
+    }
+
+    private void OpenAndFocusAnimationWindow(AnimationClip clip)
+    {
+        EditorWindow animWindow = EditorWindow.GetWindow(typeof(EditorWindow).Assembly.GetType("UnityEditor.AnimationWindow"));
+        animWindow.Show();
+        animWindow.Focus();
+
+        var field = animWindow.GetType().GetField("m_AnimEditor", BindingFlags.NonPublic | BindingFlags.Instance);
+        var animEditor = field?.GetValue(animWindow);
+        var stateField = animEditor?.GetType().GetField("m_State", BindingFlags.NonPublic | BindingFlags.Instance);
+        var state = stateField?.GetValue(animEditor);
+
+        var method = state?.GetType().GetMethod("set_activeAnimationClip", BindingFlags.Public | BindingFlags.Instance);
+        method?.Invoke(state, new object[] { clip });
     }
 
     private string[] AppendCustomOption(string[] presets)

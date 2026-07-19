@@ -12,30 +12,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eeaf8e8a267f6b648b0a8f4873b6ad46, type: 3}
   m_Name: 2Hand-Sword-Attack2
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  animationName: 2Hand-Sword-Attack1
+  animationName: 2Hand-Sword-Attack3
   windows:
   - actionName: Slash
-    startTime: 0.312
-    endTime: 1
+    startTime: 0.32232717
+    endTime: 0.82444066
     enableVFX: 1
     vfxTransform:
       positionOffset: {x: 0, y: 0.836, z: -0}
-      rotationOffset: {x: 68.44979, y: 90, z: 90}
-      scale: {x: 0.3, y: 0.3, z: 0.3}
+      rotationOffset: {x: -90, y: 270, z: 90}
+      scale: {x: 0.4, y: 0.4, z: 0.4}
     targetDistance: {x: 0, y: 0, z: 0}
-    enableLunge: 0
-    lungeSpeed: 12
-    maxLungeDistance: 4
-    keepDistanceOffset: 1.2
     eventEffects:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
     eventTriggered: 1
-    isLungeInitialized: 0
-    actualLungeDistanceLeft: 0
-    lungeDirection: {x: 0, y: 0, z: 1}
-    calculatedTargetPos: {x: 0, y: 0, z: 0}
+  - actionName: Slash
+    startTime: 0.31259948
+    endTime: 0.7842799
+    enableVFX: 1
+    vfxTransform:
+      positionOffset: {x: 0, y: 0.836, z: -0}
+      rotationOffset: {x: -90, y: 90, z: 90}
+      scale: {x: 0.4, y: 0.4, z: 0.4}
+    targetDistance: {x: 0, y: 0, z: 0}
+    eventEffects:
+    - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
+    eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.744
+    startTime: 0.42829007
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -43,16 +47,8 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 0.4, y: 0.4, z: 0.4}
     targetDistance: {x: 0, y: 0, z: 0}
-    enableLunge: 0
-    lungeSpeed: 12
-    maxLungeDistance: 4
-    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
-    isLungeInitialized: 0
-    actualLungeDistanceLeft: 0
-    lungeDirection: {x: 0, y: 0, z: 1}
-    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: JumpCancel
     startTime: 0
     endTime: 0.99999994
@@ -62,16 +58,8 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
-    enableLunge: 0
-    lungeSpeed: 12
-    maxLungeDistance: 4
-    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
-    isLungeInitialized: 0
-    actualLungeDistanceLeft: 0
-    lungeDirection: {x: 0, y: 0, z: 1}
-    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: DashCancel
     startTime: 0
     endTime: 0.99999994
@@ -81,35 +69,19 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
-    enableLunge: 0
-    lungeSpeed: 12
-    maxLungeDistance: 4
-    keepDistanceOffset: 1.2
     eventEffects: []
     eventTriggered: 1
-    isLungeInitialized: 0
-    actualLungeDistanceLeft: 0
-    lungeDirection: {x: 0, y: 0, z: 1}
-    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: Step
-    startTime: 0
-    endTime: 0.303
+    startTime: 0.029833604
+    endTime: 0.33283362
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
-    enableLunge: 0
-    lungeSpeed: 12
-    maxLungeDistance: 4
-    keepDistanceOffset: 1.2
+    targetDistance: {x: 0, y: 0, z: 0.02}
     eventEffects: []
     eventTriggered: 1
-    isLungeInitialized: 0
-    actualLungeDistanceLeft: 0
-    lungeDirection: {x: 0, y: 0, z: 1}
-    calculatedTargetPos: {x: 0, y: 0, z: 0}
   - actionName: Lunge
     startTime: 0
     endTime: 0.162
@@ -119,13 +91,7 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     targetDistance: {x: 0, y: 0, z: 0}
-    enableLunge: 1
-    lungeSpeed: 11
-    maxLungeDistance: 7
-    keepDistanceOffset: 2
     eventEffects: []
     eventTriggered: 1
-    isLungeInitialized: 0
-    actualLungeDistanceLeft: 0
-    lungeDirection: {x: 0.71006876, y: 0, z: -0.7041323}
-    calculatedTargetPos: {x: 19.464296, y: 0.018999606, z: 17.761644}
+  useScreenShake: 1
+  shakeForce: 0.2

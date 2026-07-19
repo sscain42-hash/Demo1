@@ -32,13 +32,14 @@ public class PlayerAttackState : PlayerBaseState
     {
         if (_comboManager == null || _hasExited) return;
 
-     
-
         // 🎯 2. HỦY ĐÒN SỚM BẰNG DASH
         if (_comboManager.CanDashCancelNow && _ctx.TryDash)
         {
             _hasExited = true;
-            _comboManager.ForceCancelCombo();
+
+            // 🔥 SỬA: Truyền 'false' để KHÔNG ép Animator chạy hoạt ảnh Idle, tránh xung đột lệnh làm x2 VFX
+            _comboManager.ForceCancelCombo(false);
+
             SwitchState(_factory.Dash());
             return;
         }
@@ -47,7 +48,10 @@ public class PlayerAttackState : PlayerBaseState
         if (_comboManager.CanJumpCancelNow && _ctx.JumpBufferCounter > 0)
         {
             _hasExited = true;
-            _comboManager.ForceCancelCombo();
+
+            // 🔥 SỬA: Truyền 'false' để chặn lỗi giật mốc thời gian Animator gây x2 Hitbox/VFX
+            _comboManager.ForceCancelCombo(false);
+
             SwitchState(_factory.Jump());
             return;
         }
@@ -56,7 +60,9 @@ public class PlayerAttackState : PlayerBaseState
         if (!_comboManager.IsAttacking)
         {
             _hasExited = true;
-            _comboManager.ForceCancelCombo();
+
+            // Khi đòn đánh tự kết thúc tự nhiên, cho phép chạy Idle bình thường
+            _comboManager.ForceCancelCombo(true);
             SwitchState(_factory.Grounded());
             return;
         }
@@ -77,13 +83,6 @@ public class PlayerAttackState : PlayerBaseState
 
         _ctx.SetAttackLock(false); // Mở khóa hệ thống điều khiển di chuyển gốc
 
-        if (_ctx.Animator != null)
-        {
-            _ctx.Animator.StopPlayback();
-            _ctx.Animator.Update(0f);
-        }
-
-        // Khi thoát trạng thái, nạp ngay hướng di chuyển WASD vào vận tốc để nhân vật mượt mà chạy tiếp
         if (_ctx.InputVector.sqrMagnitude > 0.01f)
         {
             Vector3 movementDirection = new Vector3(_ctx.InputVector.x, 0f, _ctx.InputVector.y).normalized;

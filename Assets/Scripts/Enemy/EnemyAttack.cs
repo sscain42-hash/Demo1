@@ -61,7 +61,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         ExecuteComboStep();
     }
 
-    public bool UpdateAttackState(Transform targetTransform, float attackRange,bool continuos)
+    public bool UpdateAttackState(Transform targetTransform)
     {
         if (!IsAttacking || CurrentComboSeq == null || CurrentAttackData == null)
             return false;
@@ -95,14 +95,12 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         if (!isLastAttackNode && _comboEngine.IsComboWindowActive && !_comboExecutedInThisWindow && targetTransform != null)
         {
             float distance = Vector3.Distance(targetTransform.position, transform.position);
-            float maxComboBufferRange = attackRange + 1.2f;
+           
 
-            if (distance <= maxComboBufferRange)
-            {
                 _comboExecutedInThisWindow = true;
                 MoveToNextComboStep();
                 return true; // 🔥 Bỏ qua luôn đoạn check Exit ở dưới vì đã sang đòn mới!
-            }
+          
         }
 
         // 5. Áp dụng lực tịnh tiến của đòn đánh
@@ -116,16 +114,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         // 6. 🔥 LOGIC CHECK EXIT (KẾT THÚC CHIÊU) CỰC KỲ MINH BẠCH
         if (isLastAttackNode)
         {
-            if (continuos)
-            {
-                if (normalizedTime >= 0.95f)
-                {
-                    ExitAttackState();
-                    return false;
-                }
-            }
-            else
-            {
+          
                 var bufferWindow = CurrentAttackData.windows.Find(w => w.actionName == "ComboInputBuffer");
                 if (bufferWindow != null && normalizedTime >= bufferWindow.startTime)
                 {
@@ -137,7 +126,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
                     ExitAttackState();
                     return false;
                 }
-            }
+           
         }
         else
         {

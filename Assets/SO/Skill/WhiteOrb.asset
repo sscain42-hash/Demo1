@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: WhiteOrb
   m_EditorClassIdentifier: Assembly-CSharp::Ev_SpawnProjectile
   projectilePrefab: {fileID: 1981131855061102, guid: 7ec354ef3daae7641b7a3fa5e1fe0c81, type: 3}
-  projectileSpeed: 111
-  lifeTime: 1
-  hitVFXPrefab: {fileID: 7711260855055991557, guid: 841004c4c6a39e244abe2257394de913, type: 3}
+  projectileSpeed: 100
+  lifeTime: 0.3
+  hitVFXPrefab: {fileID: 7435858469370871880, guid: 8693a488cd506514a916b2fa02158771, type: 3}

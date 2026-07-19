@@ -16,10 +16,10 @@ public class PlayerIdleState : PlayerBaseState
             // - Tham số thứ 2 (0.15f): Thời gian hòa trộn tính bằng giây. Giúp tư thế chém hạ xuống tư thế đứng yên cực mượt.
             // - Tham số thứ 3 (0): Ép chạy trên Layer 0 (Base Layer).
             // - Tham số thứ 4 (0f): Ép hoạt ảnh Idle phải phát ĐÈ từ giây đầu tiên (0f) của clip Idle, không cho phép lấy bộ đệm cũ.
-            _ctx.Animator.CrossFadeInFixedTime(_ctx.ID_Idle, 0.15f, 0, 0f);
+            _ctx.Animator.CrossFadeInFixedTime(_ctx.ID_Idle, 0.2f, 0, 0f);
         }
 
-        Debug.Log("<color=green>➔ ĐÃ CHUYỂN MƯỢT MÀ VỀ IDLE STATE!</color>");
+      
     }
     protected override void UpdateState()
     {

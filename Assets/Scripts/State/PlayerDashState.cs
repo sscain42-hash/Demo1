@@ -12,6 +12,8 @@ public class PlayerDashState : PlayerBaseState
 
     public override void EnterState()
     {
+        _ctx._playerInputs.ConsumeCommand(BufferedAction.Dash);
+        _ctx.SetRotationLock(true);
         int targetAnim = _ctx.IDDashBack;
         if (_ctx.InputVector.sqrMagnitude > 0.01f) targetAnim = _ctx.Anim_DashBack;
             _ctx.PlayAnimation(targetAnim, 0.05f);
@@ -52,7 +54,7 @@ public class PlayerDashState : PlayerBaseState
     protected override void ExitState()
     {
 
-
+        _ctx.SetRotationLock(false);
         // Celeste-style momentum retention
         _ctx.SetVelocity(
             _ctx.Velocity.x * MOMENTUM_RETENTION,
