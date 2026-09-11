@@ -700,10 +700,10 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
     {
         float hitValue = type switch
         {
-            AttackType.NormalAttack => 0.1f,
-            AttackType.ChargedAttack => 0.12f,
-            AttackType.E => 0.15f,
-            AttackType.Q => 0.15f,
+            AttackType.NormalAttack => 0.02f,
+            AttackType.ChargedAttack => 0.04f,
+            AttackType.E => 0.07f,
+            AttackType.Q => 0.09f,
             _ => 0.05f
         };
         ScreenShakeManager.Instance.TriggerShake(hitValue);

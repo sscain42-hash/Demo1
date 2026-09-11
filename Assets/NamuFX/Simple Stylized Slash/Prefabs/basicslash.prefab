@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4866590592333119618, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4866590592333119623, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
       value: 3
@@ -18,7 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4866590592725736491, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: stopAction
@@ -87,6 +91,10 @@ PrefabInstance:
     - target: {fileID: 4866590594007536920, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594181247918, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed

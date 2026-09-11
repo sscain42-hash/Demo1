@@ -11,4 +11,7 @@ public class AttackData : ScriptableObject
     public bool useScreenShake = true;
     public float shakeForce = 0.2f; // Đòn đánh thường nên để từ 0.1 - 0.3
 
+    [Header("Camera Effect Settings")]
+    public bool enableCameraZoom = false; // Tích chọn nếu chiêu này cần Zoom
+ 
 }

@@ -78,7 +78,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         UpdateComboTimers(stateNormal);
         UpdateComboTimers(stateE);
         UpdateComboTimers(stateQ);
-
+        HandleCamera();
         CheckAndProcessInputs();
 
         if (IsAttacking)
@@ -206,6 +206,21 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         if (state.currentIndex >= state.sequence.attacks.Count) state.currentIndex = 0;
 
         _comboEngine.ChangeAttackData(state.sequence.attacks[state.currentIndex]);
+      
+    }
+
+    private void HandleCamera()
+    {
+        if (CurrentAttackData != null && CurrentAttackData.enableCameraZoom)
+        {
+
+            SkillCameraZoom.Instance?.ZoomIn();
+        }
+        else
+        {
+            SkillCameraZoom.Instance?.ZoomOut();
+
+        }
     }
 
     private void MoveToNextComboStep(ComboState state)
@@ -240,11 +255,12 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         }
 
         _comboEngine.ChangeAttackData(null);
-
         if (playIdleAnimation)
         {
-            _ctx.AnimationHandler?.PlayAnimation(_ctx.ID_Idle, 0.1f);
+            _ctx.AnimationHandler?.PlayAnimation(_ctx.ID_Idle, 0.2f);
         }
+
+
     }
 
     private void HandleTargetLocked(GameObject target)

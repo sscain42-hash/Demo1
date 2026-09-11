@@ -1,3 +1,4 @@
+using NaughtyAttributes;
 using NodeCanvas.BehaviourTrees;
 using NodeCanvas.Framework;
 using System.Collections.Generic;
@@ -17,9 +18,9 @@ public class PetController : MonoBehaviour
     [SerializeField] private List<PetSkillConfig> skillConfigurations = new List<PetSkillConfig>();
     [SerializeField] private float defaultAttackDuration = 0.5f;
     [SerializeField] private int maxBufferSize = 10;
-
+    [SerializeField] private Blackboard blackboard;
     private bool _isTamed = false;
-    private BehaviourTreeOwner _btOwner;
+
     private IPlayerCombatEvents _masterCombatEvents;
     public GameObject playerObj;
 
@@ -38,15 +39,12 @@ public class PetController : MonoBehaviour
     private readonly Queue<PetCommand> _petCommandBuffer = new Queue<PetCommand>();
     private AttackType? _executingAttackType = null;
 
-    private void Awake()
-    {
-        _btOwner = GetComponent<BehaviourTreeOwner>();
-    }
+   
     private void Start()
     {
         OnTamed();
     }
-    [ContextMenu("tame")]
+    [Button]
     public void OnTamed()
     {
         _isTamed = true;
@@ -83,6 +81,7 @@ public class PetController : MonoBehaviour
 
         CleanupExpiredCommands();
         ProcessPetCommandBuffer();
+ 
     }
 
     private void CleanupExpiredCommands()
@@ -98,8 +97,8 @@ public class PetController : MonoBehaviour
 
     private void ProcessPetCommandBuffer()
     {
-        if (_btOwner == null || _btOwner.blackboard == null) return;
-        IBlackboard blackboard = _btOwner.blackboard;
+     
+      
 
         if (!_executingAttackType.HasValue && _petCommandBuffer.Count > 0)
         {
@@ -118,7 +117,7 @@ public class PetController : MonoBehaviour
                     break;
             }
 
-            _btOwner.StartBehaviour();
+        
         }
     }
 
@@ -137,7 +136,7 @@ public class PetController : MonoBehaviour
 
     public void ClearExecutingState(AttackType type)
     {
-        if (_btOwner == null || _btOwner.blackboard == null) return;
+        if (blackboard == null) return;
 
         if (_executingAttackType == type)
         {
@@ -146,13 +145,13 @@ public class PetController : MonoBehaviour
             switch (type)
             {
                 case AttackType.NormalAttack:
-                    _btOwner.blackboard.SetVariableValue("Normal", false);
+                    blackboard.SetVariableValue("Normal", false);
                     break;
                 case AttackType.E:
-                    _btOwner.blackboard.SetVariableValue("E", false);
+                    blackboard.SetVariableValue("E", false);
                     break;
                 case AttackType.Q:
-                    _btOwner.blackboard.SetVariableValue("Q", false);
+                    blackboard.SetVariableValue("Q", false);
                     break;
             }
         }

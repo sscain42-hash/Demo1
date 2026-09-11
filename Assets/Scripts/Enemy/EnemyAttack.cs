@@ -65,7 +65,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
     {
         if (!IsAttacking || CurrentComboSeq == null || CurrentAttackData == null)
             return false;
-
+        Vector3 targetPos = transform.forward;
         // 1. Luôn luôn quay mặt về phía Target
         if (targetTransform != null)
         {
@@ -73,6 +73,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
             direction.y = 0;
             if (direction != Vector3.zero)
                 transform.rotation = Quaternion.LookRotation(direction);
+            targetPos= targetTransform.position;
         }
 
         // 2. CẬP NHẬT CỬA SỔ WINDOWS TRƯỚC: Phải update để lấy dữ liệu liên tục
@@ -92,9 +93,9 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         bool isLastAttackNode = (CurrentComboIndex >= CurrentComboSeq.attacks.Count - 1);
 
         // 4. LOGIC XỬ LÝ CHUYỂN NHỊP COMBO (Chỉ xử lý khi CHƯA PHẢI đòn cuối)
-        if (!isLastAttackNode && _comboEngine.IsComboWindowActive && !_comboExecutedInThisWindow && targetTransform != null)
+        if (!isLastAttackNode && _comboEngine.IsComboWindowActive && !_comboExecutedInThisWindow )
         {
-            float distance = Vector3.Distance(targetTransform.position, transform.position);
+            float distance = Vector3.Distance(targetPos, transform.position);
            
 
                 _comboExecutedInThisWindow = true;

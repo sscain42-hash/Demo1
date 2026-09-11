@@ -21,10 +21,9 @@ MonoBehaviour:
     vfxTransform:
       positionOffset: {x: 0, y: 0.836, z: -0}
       rotationOffset: {x: -90, y: 270, z: 90}
-      scale: {x: 0.4, y: 0.4, z: 0.4}
+      scale: {x: 0.5, y: 0.5, z: 0.5}
     targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects:
-    - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
+    eventEffects: []
     eventTriggered: 1
   - actionName: Slash
     startTime: 0.31259948
@@ -68,7 +67,7 @@ MonoBehaviour:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
+    targetDistance: {x: 0, y: 0, z: 0.05}
     eventEffects: []
     eventTriggered: 1
   - actionName: Step
@@ -95,3 +94,4 @@ MonoBehaviour:
     eventTriggered: 1
   useScreenShake: 1
   shakeForce: 0.2
+  enableCameraZoom: 0
