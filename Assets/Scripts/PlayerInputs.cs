@@ -1,345 +1,112 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public partial class PlayerInputs : MonoBehaviour
 {
-    // =========================================================
-    // REALTIME INPUT
-    // =========================================================
+    [Header("Buffer Settings")]
+    [SerializeField] private float bufferDuration = 0.15f; // Thời gian sống tối đa của 1 lệnh (150ms là chuẩn)
 
-    public Vector2 Move { get; private set; }
+    // Lưu duy nhất 1 lệnh đang chờ xử lý (Slot-based đè lệnh)
+    private InputCommand? _bufferedCommand;
 
-    public bool JumpHeld { get; private set; }
-
-    [Serializable]
     public struct InputCommand
     {
         public BufferedAction action;
         public float timestamp;
 
-        public InputCommand(
-            BufferedAction action,
-            float timestamp)
+        public InputCommand(BufferedAction action, float timestamp)
         {
             this.action = action;
             this.timestamp = timestamp;
         }
     }
 
-    [Header("Input Buffer")]
-    [SerializeField]
-    private float bufferTime = 0.2f;
-
-    [SerializeField]
-    private int maxBufferSize = 10;
-
-    private readonly Queue<InputCommand>
-        _commandBuffer = new();
-
-    // =========================================================
-    // INPUT SYSTEM
-    // =========================================================
+    public Vector2 Move { get; private set; }
+    public bool JumpHeld { get; private set; }
 
     private Inputs _input;
 
-    // =========================================================
-    // UNITY
-    // =========================================================
-
-    private void Awake()
-    {
-        _input =
-            new Inputs();
-    }
+    private void Awake() => _input = new Inputs();
 
     private void OnEnable()
     {
         _input.Enable();
-
         RegisterGameplayInputs();
     }
 
     private void OnDisable()
     {
         UnregisterGameplayInputs();
-
         _input.Disable();
     }
 
     private void Update()
     {
-        CleanupExpiredCommands();
+        // Tự động hết hạn Buffer nếu quá thời gian bufferDuration
+        if (_bufferedCommand.HasValue && (Time.unscaledTime - _bufferedCommand.Value.timestamp > bufferDuration))
+        {
+            _bufferedCommand = null;
+        }
     }
 
     // =========================================================
-    // REGISTER
+    // INPUT BUFFERING (Smart Overwrite)
+    // =========================================================
+
+    private void BufferAction(BufferedAction action)
+    {
+        // 🔥 ĐÈ LỆNH: Nút bấm mới nhất luôn ghi đè lệnh cũ lập tức
+        _bufferedCommand = new InputCommand(action, Time.unscaledTime);
+    }
+
+    public bool HasCommand(BufferedAction action)
+    {
+        if (!_bufferedCommand.HasValue) return false;
+        return _bufferedCommand.Value.action == action;
+    }
+
+    /// <summary>
+    /// Đọc và xóa lệnh trong Buffer (Chỉ gọi hàm này khi State thực sự sẵn sàng nhận Input)
+    /// </summary>
+    public bool ConsumeCommand(BufferedAction action)
+    {
+        if (HasCommand(action))
+        {
+            _bufferedCommand = null; // Nuốt lệnh
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Xóa sạch Buffer khi FSM đổi State (Grounded -> Falling, Attack -> Hurt...)
+    /// </summary>
+    public void ClearBuffer()
+    {
+        _bufferedCommand = null;
+    }
+
+    // =========================================================
+    // REGISTER INPUTS
     // =========================================================
 
     private void RegisterGameplayInputs()
     {
-        // ================= MOVE =================
+        _input.Player.Move.performed += ctx => Move = ctx.ReadValue<Vector2>();
+        _input.Player.Move.canceled += _ => Move = Vector2.zero;
 
-        _input.Player.Move.performed +=
-            OnMovePerformed;
+        _input.Player.Jump.performed += _ => { JumpHeld = true; BufferAction(BufferedAction.Jump); };
+        _input.Player.Jump.canceled += _ => JumpHeld = false;
 
-        _input.Player.Move.canceled +=
-            OnMoveCanceled;
-
-        // ================= JUMP =================
-
-        _input.Player.Jump.performed +=
-            OnJumpPerformed;
-
-        _input.Player.Jump.canceled +=
-            OnJumpCanceled;
-
-        // ================= COMMANDS =================
-
-        _input.Player.Dash.performed +=
-            _ => AddCommand(
-                BufferedAction.Dash);
-
-        _input.Player.NormalAttack.performed +=
-            _ => AddCommand(
-                BufferedAction.NormalAttack);
-
-        _input.Player.ElementalSkill.performed +=
-            _ => AddCommand(
-                BufferedAction.ElementalSkill);
-
-        _input.Player.ElementalBurst.performed +=
-            _ => AddCommand(
-                BufferedAction.ElementalBurst);
+        _input.Player.Dash.performed += _ => BufferAction(BufferedAction.Dash);
+        _input.Player.NormalAttack.performed += _ => BufferAction(BufferedAction.NormalAttack);
+        _input.Player.ElementalSkill.performed += _ => BufferAction(BufferedAction.ElementalSkill);
+        _input.Player.ElementalBurst.performed += _ => BufferAction(BufferedAction.ElementalBurst);
     }
 
     private void UnregisterGameplayInputs()
     {
-        _input.Player.Move.performed -=
-            OnMovePerformed;
-
-        _input.Player.Move.canceled -=
-            OnMoveCanceled;
-
-        _input.Player.Jump.performed -=
-            OnJumpPerformed;
-
-        _input.Player.Jump.canceled -=
-            OnJumpCanceled;
-    }
-
-    // =========================================================
-    // MOVE
-    // =========================================================
-
-    private void OnMovePerformed(
-        InputAction.CallbackContext ctx)
-    {
-        Move =
-            ctx.ReadValue<Vector2>();
-    }
-
-    private void OnMoveCanceled(
-        InputAction.CallbackContext ctx)
-    {
-        Move = Vector2.zero;
-    }
-
-    // =========================================================
-    // JUMP
-    // =========================================================
-
-    private void OnJumpPerformed(
-        InputAction.CallbackContext ctx)
-    {
-        JumpHeld = true;
-
-        AddCommand(
-            BufferedAction.Jump);
-    }
-
-    private void OnJumpCanceled(
-        InputAction.CallbackContext ctx)
-    {
-        JumpHeld = false;
-    }
-
-    // =========================================================
-    // BUFFER
-    // =========================================================
-
-    private void AddCommand(BufferedAction action)
-    {
-        if (HasRecentInput(action))
-            return;
-
-        if (_commandBuffer.Count >= maxBufferSize)
-        {
-            _commandBuffer.Dequeue();
-        }
-
-        // 🟢 SỬA THÀNH: unscaledTime
-        _commandBuffer.Enqueue(new InputCommand(action, Time.time));
-    }
-
-    private bool HasRecentInput(BufferedAction action)
-    {
-        foreach (var cmd in _commandBuffer)
-        {
-            if (cmd.action != action) continue;
-
-            // 🟢 SỬA THÀNH: unscaledTime
-            if (Time.time - cmd.timestamp < 0.02f)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void CleanupExpiredCommands()
-    {
-        while (_commandBuffer.Count > 0)
-        {
-            InputCommand cmd = _commandBuffer.Peek();
-
-            // 🟢 SỬA THÀNH: unscaledTime
-            if (Time.time - cmd.timestamp > bufferTime)
-            {
-                _commandBuffer.Dequeue();
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    // =========================================================
-    // QUERY
-    // =========================================================
-
-    public bool HasCommand(
-        BufferedAction action)
-    {
-        CleanupExpiredCommands();
-
-        foreach (var cmd in _commandBuffer)
-        {
-            if (cmd.action == action)
-                return true;
-        }
-
-        return false;
-    }
-
-    // =========================================================
-    // CONSUME
-    // =========================================================
-
-    public bool ConsumeCommand(
-        BufferedAction action)
-    {
-        CleanupExpiredCommands();
-
-        if (_commandBuffer.Count == 0)
-            return false;
-
-        bool found = false;
-
-        Queue<InputCommand> temp =
-            new();
-
-        while (_commandBuffer.Count > 0)
-        {
-            InputCommand cmd =
-                _commandBuffer.Dequeue();
-
-            if (!found &&
-                cmd.action == action)
-            {
-                found = true;
-                continue;
-            }
-
-            temp.Enqueue(cmd);
-        }
-
-        while (temp.Count > 0)
-        {
-            _commandBuffer.Enqueue(
-                temp.Dequeue());
-        }
-
-        return found;
-    }
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
-
-    public void ClearBuffer()
-    {
-        _commandBuffer.Clear();
-    }
-
-    public int BufferCount =>
-        _commandBuffer.Count;
-    // =========================================================
-    // PRIORITY BASED QUERY
-    // =========================================================
-
-    /// <summary>
-    /// Trả về điểm ưu tiên của từng hành động (Số càng cao càng ưu tiên)
-    /// </summary>
-    private int GetActionPriority(BufferedAction action)
-    {
-        return action switch
-        {
-            BufferedAction.ElementalBurst => 3,   // Q: Ưu tiên tối cao
-            BufferedAction.ElementalSkill => 2,   // E: Ưu tiên trung bình
-            BufferedAction.NormalAttack => 1,   // Normal: Ưu tiên thấp nhất
-            _ => 0
-        };
-    }
-
-    /// <summary>
-    /// Tìm hành động có ưu tiên cao nhất trong Buffer. 
-    /// Nếu độ ưu tiên bằng nhau, hành động nào bấm trước (FIFO) sẽ được chọn.
-    /// </summary>
-    public BufferedAction? GetHighestPriorityBufferedAction(params BufferedAction[] actionsToCheck)
-    {
-        CleanupExpiredCommands();
-
-        BufferedAction? bestAction = null;
-        int highestPriority = -1;
-        float earliestTimestamp = float.MaxValue;
-
-        foreach (var cmd in _commandBuffer)
-        {
-            foreach (var action in actionsToCheck)
-            {
-                if (cmd.action != action) continue;
-
-                int currentPriority = GetActionPriority(cmd.action);
-
-                // Trường hợp 1: Tìm thấy đòn có ưu tiên cao hơn hẳn (Ví dụ: Q đè E)
-                if (currentPriority > highestPriority)
-                {
-                    highestPriority = currentPriority;
-                    bestAction = cmd.action;
-                    earliestTimestamp = cmd.timestamp;
-                }
-                // Trường hợp 2: Cùng độ ưu tiên (Ví dụ: Normal và Normal), áp dụng FIFO (chọn đòn bấm trước)
-                else if (currentPriority == highestPriority && cmd.timestamp < earliestTimestamp)
-                {
-                    earliestTimestamp = cmd.timestamp;
-                    bestAction = cmd.action;
-                }
-            }
-        }
-
-        return bestAction;
+        // Unregister logic ở đây
     }
 }

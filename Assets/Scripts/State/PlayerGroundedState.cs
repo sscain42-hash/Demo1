@@ -37,15 +37,13 @@ public class PlayerGroundedState : PlayerBaseState
         }
 
         // Jump với coyote + jump buffer
-        if (_ctx.JumpBufferCounter > 0f && _ctx.CoyoteCounter > 0f)
+        if (_ctx.TryJump)
         {
             SwitchState(_factory.Jump());
             return;
         }
 
-        // Leave ground
-        if (!_ctx.CharController.isGrounded)
-            SwitchState(_factory.Falling());
+
         // Thêm điều kiện chuyển sang Attack
         if (_ctx.TryNormalAttack)
         {

@@ -24,46 +24,48 @@ public class PlayerAttackState : PlayerBaseState
     protected override void UpdateState()
     {
         base.UpdateState();
-        ApplyBaseGravity();
+      
         CheckSwitchState();
     }
 
     public override void CheckSwitchState()
     {
+        Debug.Log(_comboManager.IsAttacking ? "IsAttacking" : "Not Attacking");
         if (_comboManager == null || _hasExited) return;
 
-        // 🎯 2. HỦY ĐÒN SỚM BẰNG DASH
+        // 1. Dash Cancel
         if (_comboManager.CanDashCancelNow && _ctx.TryDash)
         {
             _hasExited = true;
-
-            // 🔥 SỬA: Truyền 'false' để KHÔNG ép Animator chạy hoạt ảnh Idle, tránh xung đột lệnh làm x2 VFX
             _comboManager.ForceCancelCombo(false);
-
             SwitchState(_factory.Dash());
             return;
         }
 
-        // 🎯 3. HỦY ĐÒN SỚM BẰNG JUMP
-        if (_comboManager.CanJumpCancelNow && _ctx.JumpBufferCounter > 0)
+        // 2. Jump Cancel
+        if (_comboManager.CanJumpCancelNow && _ctx.IsGrounded)
         {
             _hasExited = true;
-
-            // 🔥 SỬA: Truyền 'false' để chặn lỗi giật mốc thời gian Animator gây x2 Hitbox/VFX
             _comboManager.ForceCancelCombo(false);
-
             SwitchState(_factory.Jump());
             return;
         }
 
-        // 4. CHUYỂN TRẠNG THÁI TỰ NHIÊN KHI HẾT HOẠT ẢNH CHÉM
+        // 3. Kết thúc đòn đánh tự nhiên
         if (!_comboManager.IsAttacking)
         {
             _hasExited = true;
-
-            // Khi đòn đánh tự kết thúc tự nhiên, cho phép chạy Idle bình thường
             _comboManager.ForceCancelCombo(true);
-            SwitchState(_factory.Grounded());
+
+            // 🔥 CHỦYỂN TRẠNG THÁI LOGIC DỰA VÀO VỊ TRÍ THỰC TẾ (GROUNDED / AIR)
+            if (_characterController.isGrounded)
+            {
+                SwitchState(_factory.Grounded());
+            }
+            else
+            {
+                SwitchState(_factory.Falling());
+            }
             return;
         }
     }

@@ -9,6 +9,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     private PlayerController _ctx;
     private ComboEngine _comboEngine;
 
+
     [Header("Combo Sequences")]
     [SerializeField] private ComboSequence normalAttackCombo;
     [SerializeField] private ComboSequence skillECombo;
@@ -39,7 +40,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
     private bool _isForceCancelled = false;
     public bool CanDashCancelNow => _comboEngine != null && _comboEngine.CanDashCancelNow;
-    public bool CanJumpCancelNow => _comboEngine != null && _comboEngine.CanJumpCancelNow;
+    public bool CanJumpCancelNow => _comboEngine != null && _comboEngine.CanJumpCancelNow&& _ctx.IsGrounded;
 
     private void OnEnable()
     {

@@ -145,11 +145,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     public CharacterController CharController => _charController;
 
-    public PlayerBaseState CurrentState
-    {
-        get => CurrentState1;
-        set => CurrentState1 = value;
-    }
+  
 
     public Vector3 Velocity
     {
@@ -238,8 +234,8 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     private void Start()
     {
-        CurrentState1 = States.Grounded();
-        CurrentState1.EnterState();
+        CurrentState = States.Grounded();
+        CurrentState.EnterState();
 
         _wasGroundedLastFrame = _charController.isGrounded;
 
@@ -381,7 +377,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     private void UpdateStateMachine()
     {
-        CurrentState1.UpdateStates();
+        CurrentState.UpdateStates();
     }
 
     private void CacheFrameState()
@@ -550,7 +546,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     private void HandleRotation()
     {
-        if (CurrentState1 is PlayerDashState)
+        if (CurrentState is PlayerDashState)
             return;
 
         if (_rotationLocked)
@@ -558,7 +554,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
         Vector3 moveDirection = GetLookDirection();
 
-        if (_isAttacking)
+        if (IsAttacking)
         {
             _rotationHandler.RotateTowardCamera(
                 Model,
@@ -593,7 +589,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
 
     #region INPUT ACTIONS
     public bool TryNormalAttack =>
-        !_isAttacking &&
+        !IsAttacking &&
         _playerInputs.HasCommand(BufferedAction.NormalAttack);
 
     public bool TryElementalSkill =>
@@ -609,14 +605,17 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
         _dashCooldownTimer <= 0f &&
         _playerInputs.HasCommand(
             BufferedAction.Dash);
-
+    public bool TryJump =>      
+     _playerInputs.HasCommand(
+         BufferedAction.Jump)&&IsGrounded;
 
     public bool CanAttack =>
-        !_isAttacking &&
+        !IsAttacking &&
         !_attackLocked;
-  
+    public bool IsGrounded => _charController.isGrounded;
     public PlayerStateFactory States { get => _states; set => _states = value; }
-    public PlayerBaseState CurrentState1 { get => _currentState; set => _currentState = value; }
+    public PlayerBaseState CurrentState { get => _currentState; set => _currentState = value; }
+    public bool IsAttacking { get => _isAttacking; }
 
     public SO_PlayerConfiguration PlayerConfig;
 
@@ -631,7 +630,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
     {
         return _animationHandler.GetMovementAnimation(
             _inputVector,
-            _isAttacking);
+            IsAttacking);
     }
 
     public void PlayAnimation(
@@ -659,6 +658,7 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
     public void SetAttackLock(bool value)
     {
         _attackLocked = value;
+        _isAttacking = value;
     }
 
     public void SetRotationLock(bool value)
@@ -787,40 +787,6 @@ public class PlayerController : Damageable,IDamageProvider,IPlayerCombatEvents
     /// <summary>
     /// Hàm kích hoạt cấu phần PhysicsDetection chủ động quét vùng không gian và trả về mục tiêu gần nhất
     /// </summary>
-    public GameObject ScanAndGetClosestLungeTarget()
-    {
-        if (lungePhysicsComponent == null) return null;
-
-        GameObject closestTarget = null;
-        float minDistance = float.MaxValue;
-        Vector3 currentPos = transform.position;
-
-        // 1. Tạo một UnityAction (Tương đương với Action thông thường nhưng dành riêng cho UnityEvent)
-        UnityAction<GameObject> onCollisionEnterHandler = null;
-        onCollisionEnterHandler = (hitObject) =>
-        {
-            // Loại bỏ chính Player hoặc các object không hợp lệ
-            if (hitObject == null || hitObject == gameObject || !hitObject.activeInHierarchy) return;
-
-            // Tính toán tìm đối tượng gần nhất trong các đối tượng quét trúng
-            float distance = Vector3.SqrMagnitude(hitObject.transform.position - currentPos);
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                closestTarget = hitObject;
-            }
-        };
-
-        // 2. 🎯 SỬA TẠI ĐÂY: Dùng AddListener thay cho +=
-        lungePhysicsComponent.CollisionEnterEvent.AddListener(onCollisionEnterHandler);
-
-        // 3. ÉP CHỦ ĐỘNG QUÉT: Gọi hàm xử lý lõi của bạn để bắn phá vòng lặp OverlapSphereNonAlloc
-        lungePhysicsComponent.CheckCollision();
-
-        // 4. 🎯 SỬA TẠI ĐÂY: Dùng RemoveListener thay cho -= để dọn dẹp bộ nhớ đệm sạch sẽ
-        lungePhysicsComponent.CollisionEnterEvent.RemoveListener(onCollisionEnterHandler);
-
-        return closestTarget;
-    }
+   
 }
 

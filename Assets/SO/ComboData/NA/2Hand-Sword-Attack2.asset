@@ -34,8 +34,7 @@ MonoBehaviour:
       rotationOffset: {x: -90, y: 90, z: 90}
       scale: {x: 0.4, y: 0.4, z: 0.4}
     targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects:
-    - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
+    eventEffects: []
     eventTriggered: 1
   - actionName: ComboInputBuffer
     startTime: 0.42829007
