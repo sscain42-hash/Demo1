@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharacter
 {
@@ -37,11 +38,13 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     public bool IsActive => IsAttacking && !_isForceCancelled;
     public int Priority => 1;
     public bool IsAttacking => _activeState != null && _activeState.isAttacking;
-
+    public float CurrrentProgressAnimation => _comboEngine != null ? _comboEngine.GetNormalizedTime() : 0f;
     private bool _isForceCancelled = false;
     public bool CanDashCancelNow => _comboEngine != null && _comboEngine.CanDashCancelNow;
     public bool CanJumpCancelNow => _comboEngine != null && _comboEngine.CanJumpCancelNow&& _ctx.IsGrounded;
-
+    public event Action OnAttackRequested;
+    public event Action OnDashCancelRequested;
+    public event Action OnJumpCancelRequested;
     private void OnEnable()
     {
         _ctx = GetComponent<PlayerController>();
@@ -86,7 +89,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         {
             _comboEngine.UpdateWindows();
 
-            if (_comboEngine.GetNormalizedTime() >= 0.98f)
+            if (_comboEngine.GetNormalizedTime() >= 1f)
             {
                 FinishComboAttack(_activeState);
             }
@@ -114,33 +117,52 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (playerInputs == null) return;
 
-        if (_activeState == null)
+        // Trường hợp 1: Chưa vào trạng thái Tấn công nào -> Lắng nghe để mở đòn đánh mới
+        if (_activeState == null || !_activeState.isAttacking)
         {
-            if (_ctx.TryNormalAttack || playerInputs.HasCommand(BufferedAction.NormalAttack)) StartComboChain(stateNormal);
-            else if (_ctx.TryElementalSkill || playerInputs.HasCommand(BufferedAction.ElementalSkill)) StartComboChain(stateE);
-            else if (_ctx.TryElementalBurst || playerInputs.HasCommand(BufferedAction.ElementalBurst)) StartComboChain(stateQ);
+            if (playerInputs.HasCommand(BufferedAction.NormalAttack))
+            {
+                StartComboChain(stateNormal);
+                OnAttackRequested?.Invoke(); // Báo tín hiệu yêu cầu FSM chuyển sang AttackState
+            }
+            else if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
+            {
+                StartComboChain(stateE);
+                OnAttackRequested?.Invoke();
+            }
+            else if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
+            {
+                StartComboChain(stateQ);
+                OnAttackRequested?.Invoke();
+            }
         }
-        else if (_activeState.isAttacking)
+        // Trường hợp 2: Đang Tấn công -> Lắng nghe Cửa sổ Cancel và Cửa sổ Combo
+        else
         {
-            // Hủy đòn bằng Dash
-            if (_comboEngine.CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
+            // 2.1 Hủy đòn bằng Dash (Dash Cancel)
+            if (_comboEngine != null && _comboEngine.CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
             {
                 playerInputs.ConsumeCommand(BufferedAction.Dash);
-                ForceCancelCombo(false); // 🔥 SỬA: Đổi thành false để đồng bộ chặn Idle frame
-                _ctx.CurrentState?.SwitchState(_ctx.States.Dash());
+                ForceCancelCombo(false);
+
+                // Phát sự kiện để PlayerController tự đổi State
+                OnDashCancelRequested?.Invoke();
                 return;
             }
 
-            // Hủy đòn bằng Jump
-            if (_comboEngine.CanJumpCancelNow && playerInputs.HasCommand(BufferedAction.Jump))
+            // 2.2 Hủy đòn bằng Jump (Jump Cancel)
+            if (_comboEngine != null && _comboEngine.CanJumpCancelNow && playerInputs.HasCommand(BufferedAction.Jump))
             {
                 playerInputs.ConsumeCommand(BufferedAction.Jump);
-                ForceCancelCombo(false); // 🔥 SỬA: Đổi thành false để đồng bộ chặn Idle frame
-                _ctx.CurrentState?.SwitchState(_ctx.States.Jump());
+                ForceCancelCombo(false);
+
+                // Phát sự kiện để PlayerController tự đổi State
+                OnJumpCancelRequested?.Invoke();
                 return;
             }
 
-            if (_comboEngine.IsComboWindowActive)
+            // 2.3 Đánh nối tiếp Combo (Combo Window)
+            if (_comboEngine != null && _comboEngine.IsComboWindowActive)
             {
                 if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
                 {
@@ -206,7 +228,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
         if (state.currentIndex >= state.sequence.attacks.Count) state.currentIndex = 0;
 
-        _comboEngine.ChangeAttackData(state.sequence.attacks[state.currentIndex]);
+        _comboEngine.ChangeAttackData(state.sequence.attacks[state.currentIndex],CurrentRuntimeAttackType);
       
     }
 
@@ -255,7 +277,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);
         }
 
-        _comboEngine.ChangeAttackData(null);
+        _comboEngine.ChangeAttackData(null, AttackType.NormalAttack);
         if (playIdleAnimation)
         {
             _ctx.AnimationHandler?.PlayAnimation(_ctx.ID_Idle, 0.2f);
@@ -271,4 +293,6 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         direction.y = 0;
         if (direction != Vector3.zero) transform.rotation = Quaternion.LookRotation(direction);
     }
+
+  
 }

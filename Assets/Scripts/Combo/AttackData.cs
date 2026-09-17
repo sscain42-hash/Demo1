@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewAttackData", menuName = "Combat/Attack Data")]
@@ -13,5 +14,6 @@ public class AttackData : ScriptableObject
 
     [Header("Camera Effect Settings")]
     public bool enableCameraZoom = false; // Tích chọn nếu chiêu này cần Zoom
- 
+
+  
 }

@@ -5,13 +5,13 @@ public class CameraLook : MonoBehaviour
     [Header("Camera Control")]
     [SerializeField] private Transform _cameraTarget;
     [SerializeField] private float _sensitivity = 2f;
-
+    [SerializeField] private PlayerInputs _playerInputs;
     private float _xRotation;
     private float _yRotation;
 
     private void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+        
     }
 
     private void LateUpdate()
@@ -21,8 +21,8 @@ public class CameraLook : MonoBehaviour
 
     private void UpdateRotation()
     {
-        float mouseX = Input.GetAxis("Mouse X") * _sensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * _sensitivity;
+        float mouseX = _playerInputs.Look.x * _sensitivity;
+        float mouseY = _playerInputs.Look.y * _sensitivity;
 
         _yRotation += mouseX;
         _xRotation += mouseY;

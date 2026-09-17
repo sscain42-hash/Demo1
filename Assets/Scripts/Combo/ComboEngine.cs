@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic; // Cần thiết để sử dụng HashSet
+﻿using NodeCanvas.Tasks.Actions;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ComboEngine
 {
-    private readonly GameObject _owner;
+    private readonly PlayerController _ctx;
     private readonly Animator _animator;
 
     public AttackData CurrentAttackData { get; private set; }
@@ -17,28 +18,32 @@ public class ComboEngine
 
     private float _lastNormalizedTime;
     private string _lastActiveAnimation;
-
-    // 🔥 GIẢI PHÁP MỚI: Dùng HashSet runtime để lưu trữ các Window đã kích hoạt, 
-    // không ghi đè trực tiếp lên file Asset ScriptableObject để chống lỗi lặp x2 Event
+    private int _attackLayerIndex = 0;
+    private AttackType currentAttackType;
     private readonly HashSet<ActionWindow> _triggeredWindows = new HashSet<ActionWindow>();
+
+    // 🔥 Quản lý danh sách các Target đã trúng đòn trong 1 Window để tránh đòn đánh bị Multi-Hit không mong muốn
+    private readonly HashSet<Collider> _alreadyHitTargets = new HashSet<Collider>();
+    private readonly Collider[] _hitBuffer = new Collider[16]; // Cache cố định tránh GC Alloc
 
     public ComboEngine(GameObject owner, Animator animator, IComboCharacter character)
     {
-        _owner = owner;
+        _ctx = owner.GetComponent<PlayerController>();
         _animator = animator;
         _lastNormalizedTime = -1f;
         _lastActiveAnimation = string.Empty;
     }
 
-    public void ChangeAttackData(AttackData newData)
+    public void ChangeAttackData(AttackData newData,AttackType attackType)
     {
+        
         CurrentAttackData = newData;
+        currentAttackType = attackType;
         ResetFlags();
 
         _lastNormalizedTime = -1f;
-
-        // 🔥 SỬA: Xóa sạch bộ nhớ tạm các sự kiện đã chạy của đòn đánh trước
         _triggeredWindows.Clear();
+        _alreadyHitTargets.Clear();
 
         if (CurrentAttackData == null)
         {
@@ -47,10 +52,10 @@ public class ComboEngine
             return;
         }
 
-        // XÓA BỎ: Đoạn mã window.ResetRuntime() cũ vì nó can thiệp trực tiếp làm hỏng dữ liệu Asset cứng
-
         if (_animator != null && !string.IsNullOrEmpty(CurrentAttackData.animationName))
         {
+          
+
             _animator.CrossFadeInFixedTime(CurrentAttackData.animationName, 0.1f, 0, 0f);
         }
     }
@@ -64,9 +69,9 @@ public class ComboEngine
             return;
         }
 
-        bool isInTransition = _animator.IsInTransition(0);
-        AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
-        AnimatorStateInfo nextStateInfo = isInTransition ? _animator.GetNextAnimatorStateInfo(0) : default;
+        bool isInTransition = _animator.IsInTransition(_attackLayerIndex);
+        AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(_attackLayerIndex);
+        AnimatorStateInfo nextStateInfo = isInTransition ? _animator.GetNextAnimatorStateInfo(_attackLayerIndex) : default;
 
         bool isCurrentTarget = currentStateInfo.IsName(CurrentAttackData.animationName);
         bool isNextTarget = isInTransition && nextStateInfo.IsName(CurrentAttackData.animationName);
@@ -87,40 +92,50 @@ public class ComboEngine
         {
             _lastNormalizedTime = -1f;
             _lastActiveAnimation = CurrentAttackData.animationName;
-            _triggeredWindows.Clear(); // Đảm bảo dọn sạch sẽ khi đổi tên đòn
+            _triggeredWindows.Clear();
+            _alreadyHitTargets.Clear();
         }
 
-        if (_lastNormalizedTime < 0f)
-        {
-            _lastNormalizedTime = currentNTime;
-        }
-
-        if (currentNTime < _lastNormalizedTime)
-        {
-            _lastNormalizedTime = currentNTime;
-        }
+        if (_lastNormalizedTime < 0f) _lastNormalizedTime = currentNTime;
+        if (currentNTime < _lastNormalizedTime) _lastNormalizedTime = currentNTime;
 
         ResetFlags();
         Vector3 accumulatedDisplacement = Vector3.zero;
 
         foreach (var window in CurrentAttackData.windows)
         {
-            if (isCurrentTarget && window.IsInside(currentNTime))
+            bool isInsideWindow = isCurrentTarget && window.IsInside(currentNTime);
+
+            if (isInsideWindow)
             {
                 if (window.actionName == "ComboInputBuffer") IsComboWindowActive = true;
                 if (window.actionName == "DashCancel") CanDashCancelNow = true;
                 if (window.actionName == "JumpCancel") CanJumpCancelNow = true;
 
-                // 🔥 SỬA: Chốt chặn bảo vệ tối cao dựa trên HashSet. 
-                // Nếu Window này chưa nằm trong danh sách đã trigger của frame này -> Tiến hành Trigger
+                // 🔥 Xử lý Event Trigger
                 if (window.eventEffects != null && !_triggeredWindows.Contains(window))
                 {
-                    _triggeredWindows.Add(window); // Khóa ngay lập tức
+                    _triggeredWindows.Add(window);
                     foreach (var effect in window.eventEffects)
-                        effect?.Trigger(_owner, window);
+                        effect?.Trigger(_ctx.gameObject, window);
+                }
+
+                // 🔥 CASE MỚI: Xử lý HitBox BoxCast liên tục trong suốt Window
+                if (window.actionName == "HitBox")
+                {
+                    ProcessBoxCastHitbox(window);
+                }
+            }
+            else
+            {
+                // Khi thoát khỏi Window HitBox, clear danh sách kẻ địch trúng đòn để chuẩn bị cho đòn/window tiếp theo
+                if (window.actionName == "HitBox" && _alreadyHitTargets.Count > 0)
+                {
+                    _alreadyHitTargets.Clear();
                 }
             }
 
+            // Xử lý Step Movement
             if (window.actionName == "Step")
             {
                 float windowWidth = window.endTime - window.startTime;
@@ -128,16 +143,22 @@ public class ComboEngine
                 {
                     float clampLast = Mathf.Clamp(_lastNormalizedTime, window.startTime, window.endTime);
                     float clampCurr = Mathf.Clamp(currentNTime, window.startTime, window.endTime);
-
                     float deltaInWindow = clampCurr - clampLast;
 
                     if (deltaInWindow > 0f)
                     {
-                        Vector3 worldDirection = _owner.transform.TransformDirection(window.targetDistance.normalized);
-                        float distance = window.targetDistance.magnitude;
+                        Camera mainCam = Camera.main;
+                        Vector3 aimDirection = (mainCam != null) ? mainCam.transform.forward : _ctx.transform.forward;
 
+                        if (!window.cursorStep) aimDirection.y = 0f;
+                        aimDirection = aimDirection.sqrMagnitude > 0.0001f ? aimDirection.normalized : _ctx.transform.forward;
+
+                        if (aimDirection != Vector3.zero)
+                            _ctx.transform.rotation = Quaternion.LookRotation(aimDirection);
+
+                        float distance = window.targetDistance.magnitude;
                         float progressThisFrame = deltaInWindow / windowWidth;
-                        accumulatedDisplacement += worldDirection * (distance * progressThisFrame);
+                        accumulatedDisplacement += aimDirection * (distance * progressThisFrame);
                     }
                 }
             }
@@ -148,6 +169,37 @@ public class ComboEngine
         CurrentStepVelocity = dt > 0.0001f ? (accumulatedDisplacement / dt) : Vector3.zero;
 
         _lastNormalizedTime = currentNTime;
+    }
+
+    private void ProcessBoxCastHitbox(ActionWindow window)
+    {
+        // Tính toán vị trí World của Hitbox theo Offset
+        Vector3 center = _ctx.transform.TransformPoint(window.hitBoxOffset);
+        Vector3 halfExtents = window.hitBoxSize * 0.5f;
+        Quaternion orientation = _ctx.transform.rotation;
+
+        int hitCount = Physics.OverlapBoxNonAlloc(center, halfExtents, _hitBuffer, orientation, window.targetLayer);
+        Gizmos.DrawCube(center, window.hitBoxSize); // Vẽ Gizmo để debug HitBox
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider col = _hitBuffer[i];
+            if (col.gameObject == _ctx) continue;
+
+            // Kiểm tra xem Target đã bị trúng đòn trong đợt quét này chưa
+            if (!_alreadyHitTargets.Contains(col))
+            {
+                _alreadyHitTargets.Add(col);
+
+                // Gửi thông báo trúng đòn đến Target (ví dụ gọi Interface IDamageable)
+                if (col.TryGetComponent<Damageable>(out var damageable))
+                {
+                   
+                  _ctx.ExecuteDamage(col.gameObject,currentAttackType );
+                }
+
+                Debug.Log($"Trúng đòn: {col.name}");
+            }
+        }
     }
 
     private void ResetFlags()
@@ -161,15 +213,15 @@ public class ComboEngine
     {
         if (_animator == null || CurrentAttackData == null) return 0f;
 
-        if (_animator.IsInTransition(0))
+        if (_animator.IsInTransition(_attackLayerIndex))
         {
-            AnimatorStateInfo nextStateInfo = _animator.GetNextAnimatorStateInfo(0);
+            AnimatorStateInfo nextStateInfo = _animator.GetNextAnimatorStateInfo(_attackLayerIndex);
             if (nextStateInfo.IsName(CurrentAttackData.animationName))
                 return nextStateInfo.normalizedTime;
             return 0f;
         }
 
-        AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+        AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(_attackLayerIndex);
         if (!stateInfo.IsName(CurrentAttackData.animationName)) return 0f;
 
         return stateInfo.normalizedTime;

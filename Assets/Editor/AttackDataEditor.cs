@@ -8,7 +8,7 @@ using System.Reflection;
 [CustomEditor(typeof(AttackData))]
 public class AttackDataEditor : Editor
 {
-    private readonly string[] _actionPresets = { "ComboInputBuffer", "DashCancel", "JumpCancel", "Step" };
+    private readonly string[] _actionPresets = { "ComboInputBuffer", "DashCancel", "JumpCancel", "Step", "HitBox" };
     private bool _showWindows = true;
 
     private static RuntimeAnimatorController _previewAnimator;
@@ -18,7 +18,7 @@ public class AttackDataEditor : Editor
     {
         serializedObject.Update();
 
-        // 1. Vẽ các thuộc tính mặc định
+        // 1. Vẽ các thuộc tính mặc định ngoại trừ danh sách windows
         DrawPropertiesExcluding(serializedObject, "windows");
 
         EditorGUILayout.Space(10);
@@ -38,8 +38,11 @@ public class AttackDataEditor : Editor
             _selectedClipIndex = EditorGUILayout.Popup("Select Animation", _selectedClipIndex, clipNames);
             if (EditorGUI.EndChangeCheck())
             {
-                selectedClip = clips[_selectedClipIndex];
-                OpenAndFocusAnimationWindow(selectedClip);
+                if (_selectedClipIndex >= 0 && _selectedClipIndex < clips.Length)
+                {
+                    selectedClip = clips[_selectedClipIndex];
+                    OpenAndFocusAnimationWindow(selectedClip);
+                }
             }
 
             if (_selectedClipIndex >= 0 && _selectedClipIndex < clips.Length)
@@ -68,7 +71,6 @@ public class AttackDataEditor : Editor
                 if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0) windowsProp.MoveArrayElement(i, i - 1);
                 if (GUILayout.Button("▼", GUILayout.Width(20)) && i < windowsProp.arraySize - 1) windowsProp.MoveArrayElement(i, i + 1);
 
-                // 🌟 ĐOẠN ĐÃ SỬA: Xử lý logic hiển thị Dropdown và ô TextBox Custom
                 SerializedProperty nameProp = windowRef.FindPropertyRelative("actionName");
                 int selectedIndex = System.Array.IndexOf(_actionPresets, nameProp.stringValue);
                 int displayIndex = (selectedIndex == -1) ? _actionPresets.Length : selectedIndex;
@@ -79,25 +81,38 @@ public class AttackDataEditor : Editor
                 {
                     nameProp.stringValue = _actionPresets[newIndex];
                 }
-                else
+                else if (selectedIndex != -1)
                 {
-                    if (selectedIndex != -1)
-                    {
-                        nameProp.stringValue = ""; // Giải phóng chuỗi cũ để mở ô nhập text
-                    }
+                    nameProp.stringValue = "";
                 }
 
                 if (System.Array.IndexOf(_actionPresets, nameProp.stringValue) == -1)
                 {
                     nameProp.stringValue = EditorGUILayout.TextField(nameProp.stringValue);
                 }
-                // ---------------------------------------------------------------------
 
-                if (GUILayout.Button(EditorGUIUtility.IconContent("TreeEditor.Duplicate"), GUILayout.Width(30))) windowsProp.InsertArrayElementAtIndex(i);
-                if (GUILayout.Button("✕", GUILayout.Width(25))) windowsProp.DeleteArrayElementAtIndex(i);
+                if (GUILayout.Button(EditorGUIUtility.IconContent("TreeEditor.Duplicate"), GUILayout.Width(30)))
+                {
+                    windowsProp.InsertArrayElementAtIndex(i);
+                }
+
+                if (GUILayout.Button("✕", GUILayout.Width(25)))
+                {
+                    int oldSize = windowsProp.arraySize;
+                    windowsProp.DeleteArrayElementAtIndex(i);
+
+                    if (windowsProp.arraySize == oldSize)
+                    {
+                        windowsProp.DeleteArrayElementAtIndex(i);
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.EndVertical();
+                    break;
+                }
                 EditorGUILayout.EndHorizontal();
 
-                // --- Time Range (Slider hiển thị Frame) ---
+                // --- Time Range (Slider Frame) ---
                 SerializedProperty startProp = windowRef.FindPropertyRelative("startTime");
                 SerializedProperty endProp = windowRef.FindPropertyRelative("endTime");
 
@@ -113,9 +128,36 @@ public class AttackDataEditor : Editor
                 startProp.floatValue = start / totalFrames;
                 endProp.floatValue = end / totalFrames;
 
-                // --- Movement & VFX ---
-                EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("targetDistance"));
+                // --- BẢNG CẤU HÌNH THEO TÊN ACTION WINDOW ---
+                string currentAction = nameProp.stringValue;
 
+                // 1. Cấu hình Movement Step
+                if (currentAction == "Step")
+                {
+                    EditorGUILayout.Space(2);
+                    EditorGUILayout.LabelField("Step Movement Settings", EditorStyles.boldLabel);
+                    SerializedProperty cursorStepProp = windowRef.FindPropertyRelative("cursorStep");
+                    SerializedProperty targetDistProp = windowRef.FindPropertyRelative("targetDistance");
+
+                    EditorGUILayout.PropertyField(cursorStepProp, new GUIContent("Cursor Step (Aim Dir)"));
+                    EditorGUILayout.PropertyField(targetDistProp, new GUIContent("Target Distance"));
+                }
+                // 2. Cấu hình BoxCast HitBox
+                else if (currentAction == "HitBox")
+                {
+                    EditorGUILayout.Space(2);
+                    EditorGUILayout.LabelField("HitBox BoxCast Settings", EditorStyles.boldLabel);
+                    SerializedProperty hitBoxSizeProp = windowRef.FindPropertyRelative("hitBoxSize");
+                    SerializedProperty hitBoxOffsetProp = windowRef.FindPropertyRelative("hitBoxOffset");
+                    SerializedProperty targetLayerProp = windowRef.FindPropertyRelative("targetLayer");
+
+                    EditorGUILayout.PropertyField(hitBoxSizeProp, new GUIContent("HitBox Size"));
+                    EditorGUILayout.PropertyField(hitBoxOffsetProp, new GUIContent("HitBox Offset"));
+                    EditorGUILayout.PropertyField(targetLayerProp, new GUIContent("Target Layer"));
+                }
+
+                // --- VFX Settings ---
+                EditorGUILayout.Space(2);
                 SerializedProperty enableVFXProp = windowRef.FindPropertyRelative("enableVFX");
                 EditorGUILayout.PropertyField(enableVFXProp);
 
@@ -132,16 +174,58 @@ public class AttackDataEditor : Editor
                     EditorGUILayout.PropertyField(vfxData, true);
                 }
 
+                // --- Event Effects ---
                 EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("eventEffects"), true);
+
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space(5);
             }
 
-            if (GUILayout.Button("+ Add New Action Window")) windowsProp.arraySize++;
+            if (GUILayout.Button("+ Add New Action Window"))
+            {
+                windowsProp.arraySize++;
+            }
             EditorGUI.indentLevel--;
         }
 
         serializedObject.ApplyModifiedProperties();
+    }
+
+    // --- HIỂN THỊ HITBOX TRONG SCENE VIEW ---
+    // --- HIỂN THỊ HITBOX TRONG SCENE VIEW ---
+    private void OnSceneGUI()
+    {
+        AttackData attackData = (AttackData)target;
+        if (attackData == null || attackData.windows == null) return;
+
+        // Ưu tiên chọn Transform của nhân vật đang được Active trong Hierarchy
+        Transform originTransform = Selection.activeTransform;
+        if (originTransform == null) return;
+
+        foreach (var window in attackData.windows)
+        {
+            if (window.actionName == "HitBox")
+            {
+                Vector3 worldCenter = originTransform.TransformPoint(window.hitBoxOffset);
+                Vector3 size = window.hitBoxSize;
+                Quaternion rotation = originTransform.rotation;
+
+                Matrix4x4 originalMatrix = Handles.matrix;
+                // Thiết lập ma trận biến đổi không gian (TRS) theo Transform nhân vật
+                Handles.matrix = Matrix4x4.TRS(worldCenter, rotation, size);
+
+                // 1. Vẽ khối hộp đặc màu đỏ trong suốt
+                Handles.color = new Color(1f, 0f, 0f, 0.2f);
+                Handles.CubeHandleCap(0, Vector3.zero, Quaternion.identity, 1f, EventType.Repaint);
+
+                // 2. Vẽ viền khung dây màu đỏ đậm
+                Handles.color = Color.red;
+                Handles.DrawWireCube(Vector3.zero, Vector3.one);
+
+                // Khôi phục lại ma trận cũ của Handles
+                Handles.matrix = originalMatrix;
+            }
+        }
     }
 
     private void OpenAndFocusAnimationWindow(AnimationClip clip)

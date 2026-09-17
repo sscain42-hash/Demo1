@@ -6,18 +6,21 @@ using UnityEngine;
 public class CameraRelativeInputHandler : IInputHandler
 {
     private readonly Transform _camera;
+    private readonly PlayerInputs playerInputs;
     private Vector2 _lastInput;
 
 
-    public CameraRelativeInputHandler(Transform camera)
+    public CameraRelativeInputHandler(Transform camera, PlayerInputs playerInputs)
     {
         _camera = camera;
+        this.playerInputs = playerInputs;
     }
 
     public Vector2 ReadMovementInput()
     {
-        _lastInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-      
+        _lastInput = playerInputs.Move;
+
+
         return _lastInput;
     }
 

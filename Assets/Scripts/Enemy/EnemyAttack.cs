@@ -51,7 +51,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         _comboExecutedInThisWindow = false;
         if (CurrentComboSeq != null && CurrentComboIndex < CurrentComboSeq.attacks.Count)
         {
-            _comboEngine.ChangeAttackData(CurrentComboSeq.attacks[CurrentComboIndex]);
+            _comboEngine.ChangeAttackData(CurrentComboSeq.attacks[CurrentComboIndex],CurrentRuntimeAttackType);
         }
     }
 
@@ -149,7 +149,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         CurrentComboIndex = 0;
         _comboExecutedInThisWindow = false;
         CurrentComboSeq = null;
-        _comboEngine.ChangeAttackData(null);
+      
 
         if (_agent != null && _agent.gameObject.activeInHierarchy)
         {

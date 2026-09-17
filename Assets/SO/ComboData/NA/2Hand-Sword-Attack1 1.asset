@@ -22,6 +22,7 @@ MonoBehaviour:
       positionOffset: {x: 0, y: 0.8, z: 0}
       rotationOffset: {x: 57.1, y: 90, z: 90}
       scale: {x: 0.5, y: 0.5, z: 0.5}
+    cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
     eventTriggered: 1
@@ -33,6 +34,7 @@ MonoBehaviour:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
     eventTriggered: 1
@@ -44,6 +46,7 @@ MonoBehaviour:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
     eventTriggered: 1
@@ -55,31 +58,10 @@ MonoBehaviour:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
     eventEffects: []
     eventTriggered: 1
-  - actionName: Step
-    startTime: 0
-    endTime: 0.303
-    enableVFX: 0
-    vfxTransform:
-      positionOffset: {x: 0, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0.05}
-    eventEffects: []
-    eventTriggered: 1
-  - actionName: Lunge
-    startTime: 0
-    endTime: 0.162
-    enableVFX: 0
-    vfxTransform:
-      positionOffset: {x: 0, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-    targetDistance: {x: 0, y: 0, z: 0}
-    eventEffects: []
-    eventTriggered: 1
-  useScreenShake: 1
+  useScreenShake: 0
   shakeForce: 0.2
   enableCameraZoom: 0

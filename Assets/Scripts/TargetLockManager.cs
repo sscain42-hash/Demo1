@@ -24,11 +24,7 @@ public class TargetLockManager : MonoBehaviour
 
     private void Update()
     {
-        // 1. Phím TAB để Bật/Tắt hệ thống
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            ToggleSystem();
-        }
+  
 
         // 2. Logic cập nhật
         if (IsLockingEnabled)

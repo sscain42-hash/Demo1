@@ -10,24 +10,24 @@ public class ActionWindow
 
     [Header("VFX Transform Settings")]
     [SerializeField] public bool enableVFX;
-    [SerializeField] public VFXTransformData vfxTransform = VFXTransformData.Default;
+    [SerializeField] public TransformData vfxTransform = TransformData.Default;
 
     [Header("Movement Step (Mặc định)")]
-    [Tooltip("Quãng đường muốn di chuyển tịnh tiến tuyến tính theo thời gian")]
+    public bool cursorStep;
     public Vector3 targetDistance;
 
+    [Header("HitBox Settings (OverlapBox)")]
+    public Vector3 hitBoxSize = new Vector3(1.5f, 1.5f, 2f);
+    public Vector3 hitBoxOffset = new Vector3(0f, 1f, 1.5f);
+    public LayerMask targetLayer;
 
     [SerializeField] public List<AnimationEventEffect> eventEffects = new List<AnimationEventEffect>();
 
-    // Các cờ hiệu Runtime
     [HideInInspector] public bool eventTriggered;
-
-
 
     public void ResetRuntime()
     {
         eventTriggered = false;
-      
     }
 
     public bool IsInside(float normalizedTime)
