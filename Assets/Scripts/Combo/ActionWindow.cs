@@ -21,7 +21,7 @@ public class ActionWindow
     public Vector3 hitBoxOffset = new Vector3(0f, 1f, 1.5f);
     public LayerMask targetLayer;
 
-    [SerializeField] public List<AnimationEventEffect> eventEffects = new List<AnimationEventEffect>();
+    [SerializeField] public List<AnimationEvent> eventEffects = new List<AnimationEvent>();
 
     [HideInInspector] public bool eventTriggered;
 

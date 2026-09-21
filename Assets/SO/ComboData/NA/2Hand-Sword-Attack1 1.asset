@@ -24,6 +24,11 @@ MonoBehaviour:
       scale: {x: 0.5, y: 0.5, z: 0.5}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
     eventEffects: []
     eventTriggered: 1
   - actionName: ComboInputBuffer
@@ -36,6 +41,11 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
     eventEffects: []
     eventTriggered: 1
   - actionName: JumpCancel
@@ -48,6 +58,11 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
     eventEffects: []
     eventTriggered: 1
   - actionName: DashCancel
@@ -59,9 +74,48 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0}
+    targetDistance: {x: 0, y: 0, z: 0.01}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 192
     eventEffects: []
     eventTriggered: 1
-  useScreenShake: 0
-  shakeForce: 0.2
+  - actionName: Step
+    startTime: 0.2707488
+    endTime: 0.4317488
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 0.01}
+    hitBoxSize: {x: 2.1476188, y: 2.179584, z: 2.7475498}
+    hitBoxOffset: {x: 0.02055952, y: 0.589792, z: 0.8737753}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 192
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: HitBox
+    startTime: 0.44444445
+    endTime: 0.74444443
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 0.01}
+    hitBoxSize: {x: 2.3297515, y: 1.4522963, z: 2.0119386}
+    hitBoxOffset: {x: -0.20151722, y: 0.73675233, z: 0.50926006}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  useScreenShake: 1
+  shakeForce: 0.02
   enableCameraZoom: 0

@@ -7,6 +7,7 @@ public class HitStopSystem : MonoBehaviour
 
     private Coroutine _hitStopCoroutine;
     private float _defaultTimeScale = 1f;
+    public float multipler = 1f;
 
     private void Awake()
     {
@@ -28,7 +29,7 @@ public class HitStopSystem : MonoBehaviour
         }
 
         // 2. Chạy Coroutine mới
-        _hitStopCoroutine = StartCoroutine(HitStopRoutine(duration, timeScale));
+        _hitStopCoroutine = StartCoroutine(HitStopRoutine(duration*multipler, timeScale));
     }
 
     private IEnumerator HitStopRoutine(float duration, float timeScale)

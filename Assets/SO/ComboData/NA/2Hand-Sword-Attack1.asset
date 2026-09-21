@@ -15,7 +15,7 @@ MonoBehaviour:
   animationName: 2Hand-Sword-Attack1
   windows:
   - actionName: Slash
-    startTime: 0.312
+    startTime: 0.44850674
     endTime: 1
     enableVFX: 1
     vfxTransform:
@@ -24,10 +24,15 @@ MonoBehaviour:
       scale: {x: 0.5, y: 0.5, z: 0.5}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
     eventEffects: []
     eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.627
+    startTime: 0.6146585
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -36,10 +41,15 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
     eventEffects: []
     eventTriggered: 1
   - actionName: JumpCancel
-    startTime: 0.0054126885
+    startTime: 0
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -48,6 +58,11 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 0
     eventEffects: []
     eventTriggered: 1
   - actionName: DashCancel
@@ -59,9 +74,48 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0}
+    targetDistance: {x: 0, y: 0, z: 0.01}
+    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
+    hitBoxOffset: {x: 0, y: 1, z: 1.5}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 192
     eventEffects: []
     eventTriggered: 1
-  useScreenShake: 0
-  shakeForce: 0.2
+  - actionName: Step
+    startTime: 0.36172155
+    endTime: 0.52272147
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 0.01}
+    hitBoxSize: {x: 2.7789338, y: 2.1256094, z: 2.458077}
+    hitBoxOffset: {x: -0.07304233, y: 0.724577, z: 0.7290383}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 192
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: HitBox
+    startTime: 0.44444445
+    endTime: 0.7444445
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 0.01}
+    hitBoxSize: {x: 2.7845764, y: 1.385202, z: 2.5782228}
+    hitBoxOffset: {x: -0.26157284, y: 0.70128256, z: 0.6872768}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  useScreenShake: 1
+  shakeForce: 0.02
   enableCameraZoom: 0

@@ -294,5 +294,5 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         if (direction != Vector3.zero) transform.rotation = Quaternion.LookRotation(direction);
     }
 
-  
+
 }

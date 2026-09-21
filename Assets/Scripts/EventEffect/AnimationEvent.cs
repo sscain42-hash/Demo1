@@ -2,8 +2,9 @@
 using UnityEngine;
 
 
-public abstract class AnimationEventEffect : ScriptableObject
+public abstract class AnimationEvent : ScriptableObject
 {
     // Interface cực kỳ linh hoạt, chỉ cần nhận Context
     public abstract void Trigger(GameObject caster, ActionWindow sourceWindow = null);
 }
+

@@ -13,6 +13,10 @@ public class CharacterEffect : MonoBehaviour
     private static Dictionary<Reference, DetectionBase> _componentCache = new Dictionary<Reference, DetectionBase>();
     // 🔥 MỚI: Cache lại Transform của các Anchor để không bao giờ phải gánh GameObject.Find() nữa
     private static Dictionary<GameObject, Transform> _anchorCache = new Dictionary<GameObject, Transform>();
+    public Reference MajorHitPrefab;
+    public Reference MinorHitPrefab;
+
+    public AudioClip HitSFX;
 
     private void Awake()
     {

@@ -2,6 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.Animations;
+using UnityEditor.IMGUI.Controls;
 using System.Linq;
 using System.Reflection;
 
@@ -10,23 +11,68 @@ public class AttackDataEditor : Editor
 {
     private readonly string[] _actionPresets = { "ComboInputBuffer", "DashCancel", "JumpCancel", "Step", "HitBox" };
     private bool _showWindows = true;
+    private bool _showTimeline = true;
 
     private static RuntimeAnimatorController _previewAnimator;
     private static int _selectedClipIndex = 0;
+
+    private static float _currentScrubberFrame = 0f;
+    private bool _isDraggingScrubber = false;
+
+    private readonly BoxBoundsHandle _boxHandle = new BoxBoundsHandle();
+
+    private void OnEnable()
+    {
+        SceneView.duringSceneGui += OnSceneGUI;
+        FetchAnimatorFromSelection();
+    }
+
+    private void OnDisable()
+    {
+        SceneView.duringSceneGui -= OnSceneGUI;
+        SceneView.RepaintAll();
+    }
+
+    private void OnSelectionChange()
+    {
+        FetchAnimatorFromSelection();
+        Repaint();
+    }
+
+    private void FetchAnimatorFromSelection()
+    {
+        GameObject selectedGO = Selection.activeGameObject;
+        if (selectedGO != null)
+        {
+            Animator anim = selectedGO.GetComponentInParent<Animator>();
+            if (anim != null && anim.runtimeAnimatorController != null)
+            {
+                _previewAnimator = anim.runtimeAnimatorController;
+            }
+        }
+    }
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
 
-        // 1. Vẽ các thuộc tính mặc định ngoại trừ danh sách windows
+        // 1. Vẽ thuộc tính mặc định ngoại trừ danh sách windows
         DrawPropertiesExcluding(serializedObject, "windows");
 
         EditorGUILayout.Space(10);
 
-        // 2. Editor Helper (Animator Controller & Animation Window Integration)
+        // 2. Editor Animator Helper
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         EditorGUILayout.LabelField("Editor Animator Helper", EditorStyles.boldLabel);
+
+        EditorGUILayout.BeginHorizontal();
         _previewAnimator = (RuntimeAnimatorController)EditorGUILayout.ObjectField("Animator Controller", _previewAnimator, typeof(RuntimeAnimatorController), false);
+
+        if (GUILayout.Button("Get From Selected", EditorStyles.miniButton, GUILayout.Width(120)))
+        {
+            FetchAnimatorFromSelection();
+        }
+        EditorGUILayout.EndHorizontal();
 
         AnimationClip selectedClip = null;
         if (_previewAnimator is AnimatorController controller)
@@ -48,25 +94,38 @@ public class AttackDataEditor : Editor
             if (_selectedClipIndex >= 0 && _selectedClipIndex < clips.Length)
                 selectedClip = clips[_selectedClipIndex];
         }
+        else
+        {
+            EditorGUILayout.HelpBox("Chọn GameObject có Animator trong Hierarchy để tự động liên kết Clip.", MessageType.Info);
+        }
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.Space(10);
 
-        // 3. Action Windows
         SerializedProperty windowsProp = serializedObject.FindProperty("windows");
-        _showWindows = EditorGUILayout.Foldout(_showWindows, $"⏱ Action Windows ({windowsProp.arraySize})", true, EditorStyles.foldoutHeader);
+        float totalFrames = (selectedClip != null) ? selectedClip.length * selectedClip.frameRate : 60f;
+
+        // 3. TIMELINE SCRUBBER (Thanh tua thời gian chuẩn Unity)
+        _showTimeline = EditorGUILayout.Foldout(_showTimeline, "🎬 Animation Timeline Scrubber", true, EditorStyles.foldoutHeader);
+        if (_showTimeline)
+        {
+            DrawTimelineScrubber(windowsProp, totalFrames, selectedClip);
+        }
+
+        EditorGUILayout.Space(10);
+
+        // 4. ACTION WINDOWS DETAIL
+        _showWindows = EditorGUILayout.Foldout(_showWindows, $"⏱ Action Windows Detail ({windowsProp.arraySize})", true, EditorStyles.foldoutHeader);
 
         if (_showWindows)
         {
-            float totalFrames = (selectedClip != null) ? selectedClip.length * selectedClip.frameRate : 60f;
-
             EditorGUI.indentLevel++;
             for (int i = 0; i < windowsProp.arraySize; i++)
             {
                 SerializedProperty windowRef = windowsProp.GetArrayElementAtIndex(i);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                // --- Header: Controls ---
+                // --- Header Controls ---
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("▲", GUILayout.Width(20)) && i > 0) windowsProp.MoveArrayElement(i, i - 1);
                 if (GUILayout.Button("▼", GUILayout.Width(20)) && i < windowsProp.arraySize - 1) windowsProp.MoveArrayElement(i, i + 1);
@@ -100,11 +159,7 @@ public class AttackDataEditor : Editor
                 {
                     int oldSize = windowsProp.arraySize;
                     windowsProp.DeleteArrayElementAtIndex(i);
-
-                    if (windowsProp.arraySize == oldSize)
-                    {
-                        windowsProp.DeleteArrayElementAtIndex(i);
-                    }
+                    if (windowsProp.arraySize == oldSize) windowsProp.DeleteArrayElementAtIndex(i);
 
                     EditorGUILayout.EndHorizontal();
                     EditorGUILayout.EndVertical();
@@ -112,48 +167,47 @@ public class AttackDataEditor : Editor
                 }
                 EditorGUILayout.EndHorizontal();
 
-                // --- Time Range (Slider Frame) ---
+                // --- Time Range ---
                 SerializedProperty startProp = windowRef.FindPropertyRelative("startTime");
                 SerializedProperty endProp = windowRef.FindPropertyRelative("endTime");
 
                 float startFrame = startProp.floatValue * totalFrames;
                 float endFrame = endProp.floatValue * totalFrames;
 
-                EditorGUILayout.LabelField($"Frame Range: {Mathf.RoundToInt(startFrame)} - {Mathf.RoundToInt(endFrame)}");
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField($"Frame Range: {Mathf.RoundToInt(startFrame)} - {Mathf.RoundToInt(endFrame)}", EditorStyles.boldLabel);
+
+                if (GUILayout.Button("Sync Frame to Scrubber", EditorStyles.miniButton, GUILayout.Width(150)))
+                {
+                    _currentScrubberFrame = startFrame;
+                    if (selectedClip != null) SampleAnimationAtFrame(selectedClip, _currentScrubberFrame);
+                }
+                EditorGUILayout.EndHorizontal();
 
                 float start = startFrame;
                 float end = endFrame;
                 EditorGUILayout.MinMaxSlider(ref start, ref end, 0f, totalFrames);
 
-                startProp.floatValue = start / totalFrames;
-                endProp.floatValue = end / totalFrames;
+                startProp.floatValue = Mathf.Clamp(start / totalFrames, 0f, 1f);
+                endProp.floatValue = Mathf.Clamp(end / totalFrames, 0f, 1f);
 
-                // --- BẢNG CẤU HÌNH THEO TÊN ACTION WINDOW ---
+                // --- Action Specific Settings ---
                 string currentAction = nameProp.stringValue;
 
-                // 1. Cấu hình Movement Step
                 if (currentAction == "Step")
                 {
                     EditorGUILayout.Space(2);
                     EditorGUILayout.LabelField("Step Movement Settings", EditorStyles.boldLabel);
-                    SerializedProperty cursorStepProp = windowRef.FindPropertyRelative("cursorStep");
-                    SerializedProperty targetDistProp = windowRef.FindPropertyRelative("targetDistance");
-
-                    EditorGUILayout.PropertyField(cursorStepProp, new GUIContent("Cursor Step (Aim Dir)"));
-                    EditorGUILayout.PropertyField(targetDistProp, new GUIContent("Target Distance"));
+                    EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("cursorStep"), new GUIContent("Cursor Step"));
+                    EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("targetDistance"), new GUIContent("Target Distance"));
                 }
-                // 2. Cấu hình BoxCast HitBox
                 else if (currentAction == "HitBox")
                 {
                     EditorGUILayout.Space(2);
-                    EditorGUILayout.LabelField("HitBox BoxCast Settings", EditorStyles.boldLabel);
-                    SerializedProperty hitBoxSizeProp = windowRef.FindPropertyRelative("hitBoxSize");
-                    SerializedProperty hitBoxOffsetProp = windowRef.FindPropertyRelative("hitBoxOffset");
-                    SerializedProperty targetLayerProp = windowRef.FindPropertyRelative("targetLayer");
-
-                    EditorGUILayout.PropertyField(hitBoxSizeProp, new GUIContent("HitBox Size"));
-                    EditorGUILayout.PropertyField(hitBoxOffsetProp, new GUIContent("HitBox Offset"));
-                    EditorGUILayout.PropertyField(targetLayerProp, new GUIContent("Target Layer"));
+                    EditorGUILayout.LabelField("HitBox Settings", EditorStyles.boldLabel);
+                    EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("hitBoxSize"), new GUIContent("HitBox Size"));
+                    EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("hitBoxOffset"), new GUIContent("HitBox Offset"));
+                    EditorGUILayout.PropertyField(windowRef.FindPropertyRelative("targetLayer"), new GUIContent("Target Layer"));
                 }
 
                 // --- VFX Settings ---
@@ -181,9 +235,17 @@ public class AttackDataEditor : Editor
                 EditorGUILayout.Space(5);
             }
 
-            if (GUILayout.Button("+ Add New Action Window"))
+            // Thêm mới Window và khởi tạo giá trị mặc định để lưu dữ liệu
+            if (GUILayout.Button("+ Add New Action Window", GUILayout.Height(25)))
             {
                 windowsProp.arraySize++;
+                SerializedProperty newElem = windowsProp.GetArrayElementAtIndex(windowsProp.arraySize - 1);
+
+                newElem.FindPropertyRelative("actionName").stringValue = "HitBox";
+                newElem.FindPropertyRelative("startTime").floatValue = 0f;
+                newElem.FindPropertyRelative("endTime").floatValue = 0.5f;
+                newElem.FindPropertyRelative("hitBoxSize").vector3Value = Vector3.one;
+                newElem.FindPropertyRelative("hitBoxOffset").vector3Value = Vector3.zero;
             }
             EditorGUI.indentLevel--;
         }
@@ -191,41 +253,203 @@ public class AttackDataEditor : Editor
         serializedObject.ApplyModifiedProperties();
     }
 
-    // --- HIỂN THỊ HITBOX TRONG SCENE VIEW ---
-    // --- HIỂN THỊ HITBOX TRONG SCENE VIEW ---
-    private void OnSceneGUI()
+    // --- TIMELINE & SCRUBBER GUI ---
+    private void DrawTimelineScrubber(SerializedProperty windowsProp, float totalFrames, AnimationClip clip)
     {
-        AttackData attackData = (AttackData)target;
-        if (attackData == null || attackData.windows == null) return;
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-        // Ưu tiên chọn Transform của nhân vật đang được Active trong Hierarchy
-        Transform originTransform = Selection.activeTransform;
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField($"Current Frame: {Mathf.RoundToInt(_currentScrubberFrame)} / {Mathf.RoundToInt(totalFrames)}", EditorStyles.boldLabel);
+        if (GUILayout.Button("🔄 Sync Selected Frame", EditorStyles.miniButton, GUILayout.Width(150)) && clip != null)
+        {
+            SampleAnimationAtFrame(clip, _currentScrubberFrame);
+        }
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.Space(5);
+
+        // Khung hình Timeline
+        Rect timelineRect = GUILayoutUtility.GetRect(GUIContent.none, GUIStyle.none, GUILayout.Height(32), GUILayout.ExpandWidth(true));
+        EditorGUI.DrawRect(timelineRect, new Color(0.18f, 0.18f, 0.18f, 1f));
+
+        // Vẽ vạch chia Frame
+        Handles.color = new Color(0.5f, 0.5f, 0.5f, 0.4f);
+        int step = Mathf.Max(1, Mathf.RoundToInt(totalFrames / 10f));
+        for (int f = 0; f <= totalFrames; f += step)
+        {
+            float x = timelineRect.x + (f / totalFrames) * timelineRect.width;
+            Handles.DrawLine(new Vector3(x, timelineRect.yMax - 8), new Vector3(x, timelineRect.yMax));
+            GUI.Label(new Rect(x - 10, timelineRect.y + 2, 25, 14), f.ToString(), EditorStyles.miniLabel);
+        }
+
+        // Vẽ các thanh Action Windows (Dải màu Cyan)
+        for (int i = 0; i < windowsProp.arraySize; i++)
+        {
+            SerializedProperty windowRef = windowsProp.GetArrayElementAtIndex(i);
+            SerializedProperty startProp = windowRef.FindPropertyRelative("startTime");
+            SerializedProperty endProp = windowRef.FindPropertyRelative("endTime");
+
+            float barX = timelineRect.x + startProp.floatValue * timelineRect.width;
+            float barWidth = Mathf.Max(2f, (endProp.floatValue - startProp.floatValue) * timelineRect.width);
+            Rect miniBar = new Rect(barX, timelineRect.yMax - 6, barWidth, 4);
+            EditorGUI.DrawRect(miniBar, Color.cyan);
+        }
+
+        // Vẽ kim tua Timeline màu đỏ
+        _currentScrubberFrame = Mathf.Clamp(_currentScrubberFrame, 0f, totalFrames);
+        float scrubberX = timelineRect.x + (_currentScrubberFrame / totalFrames) * timelineRect.width;
+
+        Rect handleHead = new Rect(scrubberX - 6, timelineRect.y, 12, 12);
+        EditorGUI.DrawRect(new Rect(scrubberX - 1, timelineRect.y, 2, timelineRect.height), Color.red);
+        EditorGUI.DrawRect(handleHead, Color.red);
+
+        EditorGUIUtility.AddCursorRect(timelineRect, MouseCursor.ResizeHorizontal);
+
+        // Xử lý kéo/thả kim tua Timeline
+        UnityEngine.Event currentEvent = UnityEngine.Event.current;
+        if (currentEvent.type == EventType.MouseDown && timelineRect.Contains(currentEvent.mousePosition))
+        {
+            _isDraggingScrubber = true;
+            UpdateScrubberFromMouse(currentEvent.mousePosition, timelineRect, totalFrames, clip);
+            currentEvent.Use();
+        }
+        else if (currentEvent.type == EventType.MouseDrag && _isDraggingScrubber)
+        {
+            UpdateScrubberFromMouse(currentEvent.mousePosition, timelineRect, totalFrames, clip);
+            currentEvent.Use();
+        }
+        else if (currentEvent.type == EventType.MouseUp)
+        {
+            _isDraggingScrubber = false;
+        }
+
+        EditorGUILayout.EndVertical();
+    }
+
+    private void UpdateScrubberFromMouse(Vector2 mousePos, Rect timelineRect, float totalFrames, AnimationClip clip)
+    {
+        float normalizedX = Mathf.Clamp01((mousePos.x - timelineRect.x) / timelineRect.width);
+        _currentScrubberFrame = normalizedX * totalFrames;
+
+        if (clip != null)
+        {
+            SampleAnimationAtFrame(clip, _currentScrubberFrame);
+        }
+
+        Repaint(); // Vẽ lại Inspector ngay lập tức để chuyển động mượt mà
+        GUI.changed = true;
+    }
+
+    // --- VẼ VÀ ĐIỀU CHỈNH HITBOX BẰNG SCENEGUI ---
+    private void OnSceneGUI(SceneView sceneView)
+    {
+        serializedObject.Update();
+
+        SerializedProperty windowsProp = serializedObject.FindProperty("windows");
+        if (windowsProp == null || !windowsProp.isArray) return;
+
+        Transform originTransform = GetTargetTransform();
         if (originTransform == null) return;
 
-        foreach (var window in attackData.windows)
+        AnimationClip currentClip = GetCurrentClip();
+        float totalFrames = (currentClip != null) ? currentClip.length * currentClip.frameRate : 60f;
+        float normalizedCurrentFrame = _currentScrubberFrame / totalFrames;
+
+        for (int i = 0; i < windowsProp.arraySize; i++)
         {
-            if (window.actionName == "HitBox")
+            SerializedProperty windowProp = windowsProp.GetArrayElementAtIndex(i);
+            SerializedProperty actionNameProp = windowProp.FindPropertyRelative("actionName");
+
+            if (actionNameProp.stringValue == "HitBox")
             {
-                Vector3 worldCenter = originTransform.TransformPoint(window.hitBoxOffset);
-                Vector3 size = window.hitBoxSize;
-                Quaternion rotation = originTransform.rotation;
+                SerializedProperty startProp = windowProp.FindPropertyRelative("startTime");
+                SerializedProperty endProp = windowProp.FindPropertyRelative("endTime");
 
-                Matrix4x4 originalMatrix = Handles.matrix;
-                // Thiết lập ma trận biến đổi không gian (TRS) theo Transform nhân vật
-                Handles.matrix = Matrix4x4.TRS(worldCenter, rotation, size);
+                bool isActiveFrame = (normalizedCurrentFrame >= startProp.floatValue && normalizedCurrentFrame <= endProp.floatValue);
+                if (!isActiveFrame) continue;
 
-                // 1. Vẽ khối hộp đặc màu đỏ trong suốt
-                Handles.color = new Color(1f, 0f, 0f, 0.2f);
-                Handles.CubeHandleCap(0, Vector3.zero, Quaternion.identity, 1f, EventType.Repaint);
+                SerializedProperty sizeProp = windowProp.FindPropertyRelative("hitBoxSize");
+                SerializedProperty offsetProp = windowProp.FindPropertyRelative("hitBoxOffset");
 
-                // 2. Vẽ viền khung dây màu đỏ đậm
-                Handles.color = Color.red;
-                Handles.DrawWireCube(Vector3.zero, Vector3.one);
+                Vector3 currentSize = (sizeProp.vector3Value == Vector3.zero) ? Vector3.one : sizeProp.vector3Value;
+                Vector3 worldCenter = originTransform.TransformPoint(offsetProp.vector3Value);
 
-                // Khôi phục lại ma trận cũ của Handles
-                Handles.matrix = originalMatrix;
+                // Box Bounds Handle
+                Handles.matrix = Matrix4x4.TRS(worldCenter, originTransform.rotation, Vector3.one);
+                _boxHandle.center = Vector3.zero;
+                _boxHandle.size = currentSize;
+                _boxHandle.handleColor = Color.yellow;
+                _boxHandle.wireframeColor = Color.cyan;
+
+                EditorGUI.BeginChangeCheck();
+                _boxHandle.DrawHandle();
+                if (EditorGUI.EndChangeCheck())
+                {
+                    sizeProp.vector3Value = _boxHandle.size;
+
+                    if (_boxHandle.center != Vector3.zero)
+                    {
+                        Vector3 worldShift = originTransform.rotation * _boxHandle.center;
+                        offsetProp.vector3Value += originTransform.InverseTransformVector(worldShift);
+                    }
+                }
+
+                // Position Handle
+                Handles.matrix = Matrix4x4.identity;
+                EditorGUI.BeginChangeCheck();
+                Vector3 newWorldCenter = Handles.PositionHandle(worldCenter, originTransform.rotation);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    offsetProp.vector3Value = originTransform.InverseTransformPoint(newWorldCenter);
+                }
+
+                Handles.Label(worldCenter + Vector3.up * (_boxHandle.size.y * 0.5f + 0.2f),
+                    "HitBox (ACTIVE)",
+                    new GUIStyle()
+                    {
+                        normal = new GUIStyleState() { textColor = Color.red },
+                        alignment = TextAnchor.MiddleCenter,
+                        fontStyle = FontStyle.Bold
+                    });
             }
         }
+
+        serializedObject.ApplyModifiedProperties();
+    }
+
+    private Transform GetTargetTransform()
+    {
+        if (Selection.activeTransform != null) return Selection.activeTransform;
+
+        var animator = FindFirstObjectByType<Animator>();
+        return animator != null ? animator.transform : null;
+    }
+
+    private AnimationClip GetCurrentClip()
+    {
+        if (_previewAnimator is AnimatorController controller)
+        {
+            var clips = controller.animationClips;
+            if (_selectedClipIndex >= 0 && _selectedClipIndex < clips.Length)
+                return clips[_selectedClipIndex];
+        }
+        return null;
+    }
+
+    private void SampleAnimationAtFrame(AnimationClip clip, float frame)
+    {
+        GameObject targetGo = Selection.activeGameObject;
+        if (targetGo == null)
+        {
+            var animator = FindFirstObjectByType<Animator>();
+            if (animator != null) targetGo = animator.gameObject;
+        }
+
+        if (targetGo == null || clip == null) return;
+
+        float time = frame / clip.frameRate;
+        clip.SampleAnimation(targetGo, time);
+        SceneView.RepaintAll();
     }
 
     private void OpenAndFocusAnimationWindow(AnimationClip clip)

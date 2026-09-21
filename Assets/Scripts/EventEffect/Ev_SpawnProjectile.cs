@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 [CreateAssetMenu(fileName = "Ev_SpawnProjectile", menuName = "Combo System/Events/Spawn Projectile")]
-public class Ev_SpawnProjectile : AnimationEventEffect
+public class Ev_SpawnProjectile : AnimationEvent
 {
     [Header("📦 PROJECTILE CONFIG (CẤU HÌNH ĐẠN)")]
     [Tooltip("Kéo thoải mái GameObject Prefab viên đạn thông thường vào đây")]

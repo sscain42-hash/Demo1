@@ -488,7 +488,7 @@ public class Math3d:MonoBehaviour
 		else { currentCamera = Camera.main; }
 
 		// Convert format because y is flipped.
-		mousePosition = new Vector3(Event.current.mousePosition.x, currentCamera.pixelHeight - Event.current.mousePosition.y, 0f);
+		mousePosition = new Vector3(UnityEngine.Event.current.mousePosition.x, currentCamera.pixelHeight - UnityEngine.Event.current.mousePosition.y, 0f);
 
 		#else
 		currentCamera = Camera.main;
@@ -521,7 +521,7 @@ public class Math3d:MonoBehaviour
 		else { currentCamera = Camera.main; }
 
 		// Convert format because y is flipped.
-		mousePosition = new Vector3(Event.current.mousePosition.x, currentCamera.pixelHeight - Event.current.mousePosition.y, 0f);
+		mousePosition = new Vector3(UnityEngine.Event.current.mousePosition.x, currentCamera.pixelHeight - UnityEngine.Event.current.mousePosition.y, 0f);
 
 		#else
 		currentCamera = Camera.main;

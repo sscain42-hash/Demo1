@@ -334,7 +334,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             Anim_Run_BL,
             Anim_Run_BR);
 
-        _inputHandler = new CameraRelativeInputHandler(MainCamera,_playerInputs);
+        _inputHandler = new CameraRelativeInputHandler(MainCamera, _playerInputs);
 
         _groundMovementHandler = new ResponsiveMovementHandler(
             RunMaxSpeed,
@@ -520,12 +520,12 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             return;
 
         Vector3 moveDirection = GetLookDirection();
-
-        if (IsAttacking)
-        {
-            _rotationHandler?.RotateTowardCamera(Model, MainCamera, RotationSpeed);
-            return;
-        }
+        /*
+                if (IsAttacking)
+                {
+                    _rotationHandler?.RotateTowardCamera(Model, MainCamera, RotationSpeed);
+                    return;
+                }*/
 
         if (_inputVector.sqrMagnitude <= 0.01f)
             return;
@@ -573,7 +573,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
         _playerInputs.HasCommand(BufferedAction.Jump) &&
         IsGrounded;
 
- 
+
 
     public bool IsGrounded => _charController.isGrounded;
     public PlayerStateFactory States { get => _states; set => _states = value; }
@@ -612,7 +612,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     public void SetAttackLock(bool value)
     {
-       
+
         _isAttacking = value;
     }
 
@@ -632,17 +632,19 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
         if (!DamageableData.Contains(target, out var receiver))
             return;
-
+       
         ApplyHit(attackType);
 
         receiver.TakeDMG(100, true);
         var knockbackTarget = target.GetComponent<IKnockbackable>();
         if (knockbackTarget != null)
         {
-            Vector3 dir = (target.transform.position - transform.position).normalized;
+            Vector3 dir = GetLookDirection();
             dir.y = 0;
             knockbackTarget.OnKnockback(dir, knockBackForce, knockBackcurve);
+
             Debug.Log($"Knockback applied to {target.name} with direction {dir} and force {knockBackForce}f");
+
         }
 
         if (DMGPopUpGenerator.Instance != null)
@@ -655,24 +657,18 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     {
         float hitValue = type switch
         {
-            AttackType.NormalAttack => 0.02f,
-            AttackType.ChargedAttack => 0.04f,
-            AttackType.E => 0.07f,
-            AttackType.Q => 0.09f,
+            AttackType.NormalAttack => 0.04f,
+            AttackType.ChargedAttack => 0.08f,
+            AttackType.E => 0.09f,
+            AttackType.Q => 0.1f,
             _ => 0.05f
         };
 
-        if (ScreenShakeManager.Instance != null)
-        {
-            ScreenShakeManager.Instance.TriggerShake(hitValue);
-        }
 
-        Debug.Log($"Applying hit stop of {hitValue} seconds for {type}");
 
-        if (HitStopSystem.Instance != null)
-        {
-            HitStopSystem.Instance.Trigger(hitValue);
-        }
+
+
+
     }
 
     #endregion
@@ -681,9 +677,12 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     public Vector3 GetLookDirection()
     {
-        return _inputHandler != null
-            ? _inputHandler.GetMovementDirection(_inputVector)
-            : Vector3.forward;
+        if (_inputHandler.GetMovementDirection(_inputVector) == Vector3.zero)
+        {
+            return Model.forward;
+        }
+        return
+             _inputHandler.GetMovementDirection(_inputVector);
     }
 
     public Vector3 GetHorizontalDashDirection()
@@ -742,4 +741,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     [Header("== Detection Components ==")]
     [SerializeField] private PhysicsDetection lungePhysicsComponent;
+    
+    public Transform SwordTransform;
 }

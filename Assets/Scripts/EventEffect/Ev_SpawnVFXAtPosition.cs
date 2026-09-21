@@ -3,13 +3,14 @@ using NodeCanvas.Tasks.Actions;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Ev_SpawnVFXAtPosition", menuName = "Combo System/Events/Spawn VFX At Position")]
-public class Ev_SpawnVFXAtPosition : AnimationEventEffect
+public class Ev_SpawnVFXAtPosition : AnimationEvent
 {
     [Header("📦 SPAWN CONFIGS")]
     [SerializeField] private Reference vfxPrefab; // Object gây dame (Đạn/Kiếm khí/Hitbox...)
+
     [Header("💥 HIT EFFECT CONFIGS")]
-    // 🔥 THÊM BIẾN NÀY: Để bạn gán tay loại VFX Hit tương ứng của đòn này qua Inspector
-    [SerializeField] private Reference hitVFXPrefab;
+    [SerializeField] private Reference hitVFXPrefab; // Major Hit VFX (Lớn, sáng)
+    [SerializeField] private Reference minorHitVFXPrefab; // Minor Hit VFX (Phụ, nhỏ - Tùy chọn)
 
     public override void Trigger(GameObject caster, ActionWindow sourceWindow)
     {
@@ -19,48 +20,63 @@ public class Ev_SpawnVFXAtPosition : AnimationEventEffect
         if (effectManager == null || comboManager == null || comboManager.CurrentAttackData == null) return;
         AttackType currentType = comboManager.CurrentRuntimeAttackType;
 
-
         var data = sourceWindow.vfxTransform;
 
         Vector3 spawnPosition = caster.transform.position + (caster.transform.rotation * data.positionOffset);
         Quaternion spawnRotation = caster.transform.rotation * Quaternion.Euler(data.rotationOffset);
 
-        // Gọi pooler
+        // Gọi pooler sinh vfx chính (Projectile/Slash Wave...)
         var vfxInstance = effectManager.SpawnVFXFromData(vfxPrefab, spawnPosition, spawnRotation, currentType);
 
         if (vfxInstance != null)
         {
             vfxInstance.transform.localScale = data.scale;
 
-            // 2. 🔥 TIẾN HÀNH GẮN ĐOẠN CODE CỦA BẠN VÀO ĐÂY:
-            // Lấy Component nhận diện va chạm (vốn dùng để xử lý sát thương) từ vfxInstance ra
             DetectionBase detection = vfxInstance.GetComponent<DetectionBase>();
-            detection.layerToCheck = caster.layer.GetOpponentLayerMask();
 
-            // Điều kiện an toàn: Phải có component quét va chạm và bạn phải có gán hitVFXPrefab trong Inspector
-            if (detection != null && hitVFXPrefab != null)
+            if (detection != null)
             {
-                // Trước khi đăng ký Listener mới, hãy xóa sạch Listener của lần reuse trước trong Pool (nếu có)
-                // để tránh việc một Object tích tụ quá nhiều Lambda trùng lặp gây lag/lỗi.
-                detection.PositionEnterEvent.RemoveAllListeners();
+                detection.layerToCheck = caster.layer.GetOpponentLayerMask();
 
-                // Đăng ký đoạn logic kiểm tra ĐIỀU KIỆN TRÚNG ĐÒN
-                detection.PositionEnterEvent.AddListener((victimPos) =>
+                if (hitVFXPrefab != null)
                 {
-                    if (victimPos == null) return;
+                    // Cờ đánh dấu xem vfxInstance này đã va chạm mục tiêu nào chưa
+                    bool hasHitPrimaryTarget = false;
 
-                    // Lấy vị trí của nạn nhân tại frame trúng đòn
-                    Vector3 hitPosition = victimPos;
+                    // KHÔNG dùng RemoveAllListeners() để tránh xóa logic gốc của DetectionBase.
+                    // Chỉ loại bỏ lambda cũ nếu bạn có delegate cụ thể, hoặc dùng UnityEvent thông thường.
+                    detection.PositionEnterEvent.RemoveAllListeners();
 
+                    detection.PositionEnterEvent.AddListener((victimPos) =>
+                    {
+                        if (victimPos == null) return;
 
-                    // Tính góc nổ: Quay ngược lại hướng nhìn của người chém (caster) để tạo lực phản hồi trực quan
-                    Quaternion hitRotation = vfxInstance.transform.rotation;
+                        Vector3 hitPosition = victimPos;
 
-                    // 🔥 Gọi thẳng Service tĩnh toàn cục bạn vừa viết để bắn VFX Hit ra màn hình
-                    GlobalVFXManager.SpawnGlobalVFX(hitVFXPrefab, hitPosition,hitRotation);
-                });
+                        // Tính góc nổ: Quay ngược lại hướng mặt của Caster để tia lửa/vệt máu bắn về phía người chơi
+                        Vector3 dirToCaster = (caster.transform.position - hitPosition).normalized;
+                        dirToCaster.y = 0; // Giữ phẳng theo trục ngang nếu cần
+
+                        Quaternion hitRotation = dirToCaster != Vector3.zero
+                            ? Quaternion.LookRotation(dirToCaster)
+                            : caster.transform.rotation;
+
+                        // PHÂN LOẠI MAJOR VÀ MINOR VFX
+                        if (!hasHitPrimaryTarget)
+                        {
+                            // Va chạm ĐẦU TIÊN ➔ Spawn Major Hit VFX
+                            hasHitPrimaryTarget = true;
+                            GlobalVFXManager.SpawnGlobalVFX(hitVFXPrefab, hitPosition, hitRotation);
+                        }
+                        else if (minorHitVFXPrefab != null)
+                        {
+                            // Các va chạm TIẾP THEO trong cùng 1 đòn ➔ Spawn Minor Hit VFX (nhẹ hơn)
+                            Vector3 offsetPos = hitPosition + Random.insideUnitSphere * 0.1f;
+                            GlobalVFXManager.SpawnGlobalVFX(minorHitVFXPrefab, offsetPos, hitRotation);
+                        }
+                    });
+                }
             }
         }
     }
 }
-

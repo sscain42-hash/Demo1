@@ -20,11 +20,16 @@ public class ComboEngine
     private string _lastActiveAnimation;
     private int _attackLayerIndex = 0;
     private AttackType currentAttackType;
-    private readonly HashSet<ActionWindow> _triggeredWindows = new HashSet<ActionWindow>();
 
-    // 🔥 Quản lý danh sách các Target đã trúng đòn trong 1 Window để tránh đòn đánh bị Multi-Hit không mong muốn
+    private readonly HashSet<ActionWindow> _triggeredWindows = new HashSet<ActionWindow>();
     private readonly HashSet<Collider> _alreadyHitTargets = new HashSet<Collider>();
-    private readonly Collider[] _hitBuffer = new Collider[16]; // Cache cố định tránh GC Alloc
+    private readonly Collider[] _hitBuffer = new Collider[16];
+
+    // Đánh dấu Window đã kích hoạt hiệu ứng toàn cục (HitStop / ScreenShake / Major VFX)
+    private readonly HashSet<ActionWindow> _hitStopTriggeredWindows = new HashSet<ActionWindow>();
+    private readonly HashSet<ActionWindow> _majorVfxTriggeredWindows = new HashSet<ActionWindow>();
+
+    private const float STOP_OFFSET = 0.2f;
 
     public ComboEngine(GameObject owner, Animator animator, IComboCharacter character)
     {
@@ -32,11 +37,11 @@ public class ComboEngine
         _animator = animator;
         _lastNormalizedTime = -1f;
         _lastActiveAnimation = string.Empty;
+
     }
 
-    public void ChangeAttackData(AttackData newData,AttackType attackType)
+    public void ChangeAttackData(AttackData newData, AttackType attackType)
     {
-        
         CurrentAttackData = newData;
         currentAttackType = attackType;
         ResetFlags();
@@ -44,6 +49,8 @@ public class ComboEngine
         _lastNormalizedTime = -1f;
         _triggeredWindows.Clear();
         _alreadyHitTargets.Clear();
+        _hitStopTriggeredWindows.Clear();
+        _majorVfxTriggeredWindows.Clear();
 
         if (CurrentAttackData == null)
         {
@@ -54,8 +61,6 @@ public class ComboEngine
 
         if (_animator != null && !string.IsNullOrEmpty(CurrentAttackData.animationName))
         {
-          
-
             _animator.CrossFadeInFixedTime(CurrentAttackData.animationName, 0.1f, 0, 0f);
         }
     }
@@ -94,6 +99,8 @@ public class ComboEngine
             _lastActiveAnimation = CurrentAttackData.animationName;
             _triggeredWindows.Clear();
             _alreadyHitTargets.Clear();
+            _hitStopTriggeredWindows.Clear();
+            _majorVfxTriggeredWindows.Clear();
         }
 
         if (_lastNormalizedTime < 0f) _lastNormalizedTime = currentNTime;
@@ -112,7 +119,6 @@ public class ComboEngine
                 if (window.actionName == "DashCancel") CanDashCancelNow = true;
                 if (window.actionName == "JumpCancel") CanJumpCancelNow = true;
 
-                // 🔥 Xử lý Event Trigger
                 if (window.eventEffects != null && !_triggeredWindows.Contains(window))
                 {
                     _triggeredWindows.Add(window);
@@ -120,7 +126,6 @@ public class ComboEngine
                         effect?.Trigger(_ctx.gameObject, window);
                 }
 
-                // 🔥 CASE MỚI: Xử lý HitBox BoxCast liên tục trong suốt Window
                 if (window.actionName == "HitBox")
                 {
                     ProcessBoxCastHitbox(window);
@@ -128,14 +133,15 @@ public class ComboEngine
             }
             else
             {
-                // Khi thoát khỏi Window HitBox, clear danh sách kẻ địch trúng đòn để chuẩn bị cho đòn/window tiếp theo
-                if (window.actionName == "HitBox" && _alreadyHitTargets.Count > 0)
+                if (window.actionName == "HitBox")
                 {
-                    _alreadyHitTargets.Clear();
+                    if (_alreadyHitTargets.Count > 0) _alreadyHitTargets.Clear();
+                    if (_hitStopTriggeredWindows.Contains(window)) _hitStopTriggeredWindows.Remove(window);
+                    if (_majorVfxTriggeredWindows.Contains(window)) _majorVfxTriggeredWindows.Remove(window);
                 }
             }
 
-            // Xử lý Step Movement
+            // Step Movement Processing...
             if (window.actionName == "Step")
             {
                 float windowWidth = window.endTime - window.startTime;
@@ -148,17 +154,46 @@ public class ComboEngine
                     if (deltaInWindow > 0f)
                     {
                         Camera mainCam = Camera.main;
-                        Vector3 aimDirection = (mainCam != null) ? mainCam.transform.forward : _ctx.transform.forward;
+                        Vector3 aimDirection = Vector3.zero;
+                        if (window.cursorStep)
+                        {
+                            aimDirection = (mainCam != null) ? mainCam.transform.forward : _ctx.transform.forward;
+                        }
+                        else
+                        {
+                            aimDirection = _ctx.GetLookDirection();
+                        }
 
-                        if (!window.cursorStep) aimDirection.y = 0f;
+                        aimDirection.y = 0;
                         aimDirection = aimDirection.sqrMagnitude > 0.0001f ? aimDirection.normalized : _ctx.transform.forward;
 
                         if (aimDirection != Vector3.zero)
                             _ctx.transform.rotation = Quaternion.LookRotation(aimDirection);
 
-                        float distance = window.targetDistance.magnitude;
+                        float totalTargetDistance = window.targetDistance.magnitude;
                         float progressThisFrame = deltaInWindow / windowWidth;
-                        accumulatedDisplacement += aimDirection * (distance * progressThisFrame);
+                        float desiredDistanceThisFrame = totalTargetDistance * progressThisFrame;
+
+                        float pRadius = 0.5f;
+                        Vector3 rayOrigin = _ctx.transform.position + Vector3.up * 0.5f;
+
+                        if (_ctx.TryGetComponent<CharacterController>(out var controller))
+                        {
+                            pRadius = controller.radius;
+                            rayOrigin = _ctx.transform.position + controller.center;
+                        }
+
+                        LayerMask hitLayer = window.targetLayer != 0 ? window.targetLayer : Physics.DefaultRaycastLayers;
+
+                        if (Physics.SphereCast(rayOrigin, pRadius, aimDirection, out RaycastHit hit, desiredDistanceThisFrame + STOP_OFFSET, hitLayer))
+                        {
+                            float safeDistance = Mathf.Max(0f, hit.distance - pRadius - STOP_OFFSET);
+                            accumulatedDisplacement += aimDirection * safeDistance;
+                        }
+                        else
+                        {
+                            accumulatedDisplacement += aimDirection * desiredDistanceThisFrame;
+                        }
                     }
                 }
             }
@@ -173,35 +208,105 @@ public class ComboEngine
 
     private void ProcessBoxCastHitbox(ActionWindow window)
     {
-        // Tính toán vị trí World của Hitbox theo Offset
+        // 1. Quét Hitbox bằng BoxCast rộng để gây Damage
         Vector3 center = _ctx.transform.TransformPoint(window.hitBoxOffset);
         Vector3 halfExtents = window.hitBoxSize * 0.5f;
         Quaternion orientation = _ctx.transform.rotation;
 
         int hitCount = Physics.OverlapBoxNonAlloc(center, halfExtents, _hitBuffer, orientation, window.targetLayer);
-        Gizmos.DrawCube(center, window.hitBoxSize); // Vẽ Gizmo để debug HitBox
+        bool hasHitNewTarget = false;
+
         for (int i = 0; i < hitCount; i++)
         {
             Collider col = _hitBuffer[i];
-            if (col.gameObject == _ctx) continue;
+            if (col.gameObject == _ctx.gameObject) continue;
 
-            // Kiểm tra xem Target đã bị trúng đòn trong đợt quét này chưa
             if (!_alreadyHitTargets.Contains(col))
             {
                 _alreadyHitTargets.Add(col);
+                hasHitNewTarget = true;
 
-                // Gửi thông báo trúng đòn đến Target (ví dụ gọi Interface IDamageable)
+                // 1. Gây Damage
                 if (col.TryGetComponent<Damageable>(out var damageable))
                 {
-                   
-                  _ctx.ExecuteDamage(col.gameObject,currentAttackType );
+                    _ctx.ExecuteDamage(col.gameObject, currentAttackType);
                 }
 
-                Debug.Log($"Trúng đòn: {col.name}");
+                // 2. Tính toán điểm va chạm
+                Vector3 hitPosition;
+                if (_ctx.SwordTransform != null)
+                {
+                    hitPosition = col.ClosestPoint(_ctx.SwordTransform.position);
+                }
+                else
+                {
+                    hitPosition = col.ClosestPoint(center);
+                }
+
+                // 3. TÍNH TOÁN ROTATION VFX (Chỉ thay đổi trục Z)
+                // Lấy góc euler hiện tại từ SwordTransform (hoặc Player nếu không có SwordTransform)
+                Transform baseTransform = _ctx.SwordTransform != null ? _ctx.SwordTransform : _ctx.transform;
+                Vector3 currentEuler = baseTransform.rotation.eulerAngles;
+
+                // Tính góc Z hướng về phía Player
+                Vector3 dirToPlayer = (_ctx.transform.position - hitPosition).normalized;
+                float targetZAngle = currentEuler.z;
+
+                if (dirToPlayer != Vector3.zero)
+                {
+                    // Tính góc nghiêng (Z) dựa trên hướng từ vị trí trúng đòn về phía Player
+                    targetZAngle = Mathf.Atan2(dirToPlayer.y, dirToPlayer.x) * Mathf.Rad2Deg;
+                }
+
+                // Tạo Quaternion mới: Giữ nguyên X, Y từ thanh kiếm/Player, CHỈ THAY ĐỔI TRỤC Z
+                Quaternion vfxRotation = Quaternion.Euler(currentEuler.x, currentEuler.y, targetZAngle);
+
+                // 4. Phân loại Major VFX vs Minor VFX
+                bool isPrimaryTargetInWindow = !_majorVfxTriggeredWindows.Contains(window);
+
+                if (isPrimaryTargetInWindow)
+                {
+                    _majorVfxTriggeredWindows.Add(window);
+
+                    _ctx.CharacterEffect.SpawnVFXFromData(
+                        _ctx.CharacterEffect.MajorHitPrefab,
+                        hitPosition,
+                        vfxRotation,
+                        currentAttackType
+                    );
+                }
+                else
+                {
+                    Vector3 offsetPos = hitPosition + Random.insideUnitSphere * 0.08f;
+
+                    _ctx.CharacterEffect.SpawnVFXFromData(
+                        _ctx.CharacterEffect.MinorHitPrefab,
+                        offsetPos,
+                        vfxRotation,
+                        currentAttackType
+                    );
+                }
+                SoundManager.Instance?.PlaySFXAtPosition(_ctx.CharacterEffect.HitSFX, hitPosition);
+                Debug.Log($"Trúng đòn: {col.name} | Primary Target: {isPrimaryTargetInWindow}");
+            }
+        }
+
+        // 5. Kích hoạt HitStop & ScreenShake
+        if (hasHitNewTarget && !_hitStopTriggeredWindows.Contains(window))
+        {
+            _hitStopTriggeredWindows.Add(window);
+
+            if (ScreenShakeManager.Instance != null && CurrentAttackData.useScreenShake)
+            {
+                ScreenShakeManager.Instance.TriggerShake(CurrentAttackData.shakeForce);
+            }
+
+            if (HitStopSystem.Instance != null)
+            {
+                HitStopSystem.Instance.Trigger(0.08f, 0.05f);
             }
         }
     }
-
     private void ResetFlags()
     {
         IsComboWindowActive = false;

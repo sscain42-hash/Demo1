@@ -4,7 +4,7 @@ public class CameraLook : MonoBehaviour
 {
     [Header("Camera Control")]
     [SerializeField] private Transform _cameraTarget;
-    [SerializeField] private float _sensitivity = 2f;
+    [SerializeField] private float _sensitivity = 0.4f;
     [SerializeField] private PlayerInputs _playerInputs;
     private float _xRotation;
     private float _yRotation;
