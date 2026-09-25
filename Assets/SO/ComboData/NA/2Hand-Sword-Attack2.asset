@@ -14,6 +14,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   animationName: 2Hand-Sword-Attack3
   windows:
+  - actionName: Slash
+    startTime: 0.41666666
+    endTime: 0.71666664
+    enableVFX: 1
+    vfxTransform:
+      positionOffset: {x: 0.001, y: 0.936, z: 0}
+      rotationOffset: {x: 357.03516, y: 90.00001, z: 351.2221}
+      scale: {x: 0.4, y: 0.4, z: 0.4}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 0.03}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects:
+    - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
+    eventTriggered: 1
   - actionName: ComboInputBuffer
     startTime: 0.49821174
     endTime: 1
@@ -66,15 +84,15 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: Step
-    startTime: 0.1
-    endTime: 0.261
+    startTime: 0
+    endTime: 0.242
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0.01}
+    targetDistance: {x: 0, y: 0, z: 0.05}
     hitBoxSize: {x: 2.5934281, y: 1.6066406, z: 2.3312104}
     hitBoxOffset: {x: -0.23266011, y: 0.80885625, z: 1.1458637}
     targetLayer:
@@ -91,7 +109,7 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0.01}
+    targetDistance: {x: 0, y: 0, z: 0}
     hitBoxSize: {x: 1, y: 1, z: 3.7785969}
     hitBoxOffset: {x: 0.0000004172325, y: 0.8142799, z: 1.1115203}
     targetLayer:
@@ -99,6 +117,24 @@ MonoBehaviour:
       m_Bits: 64
     eventEffects: []
     eventTriggered: 1
+  - actionName: Sound
+    startTime: 0.33333334
+    endTime: 0.6333333
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 0.03}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects:
+    - {fileID: 11400000, guid: 6f042f776f0f7814592ac386bbf99e97, type: 2}
+    eventTriggered: 1
   useScreenShake: 1
-  shakeForce: 0.05
+  shakeForce: 0.07
   enableCameraZoom: 0

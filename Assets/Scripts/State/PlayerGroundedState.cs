@@ -44,12 +44,20 @@ public class PlayerGroundedState : PlayerBaseState
         }
 
 
-        // Thêm điều kiện chuyển sang Attack
         if (_ctx.TryNormalAttack)
         {
-            SwitchState(_factory.Attack());
+            if (_ctx.HasLungeTarget())
+            {
+                SwitchState(_factory.Lunge());
+            }
+            else
+            {
+                SwitchState(_factory.Attack());
+            }
             return;
         }
 
     }
+   
+    
 }

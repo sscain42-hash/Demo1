@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b8b96574a48d634caa562b5d08ca30e, type: 3}
   m_Name: PlaySoundAnimationEvent
   m_EditorClassIdentifier: Assembly-CSharp::PlaySoundAnimationEvent
-  _audioClips: []
+  _audioClips:
+  - {fileID: 8300000, guid: 15c3ed1b0181d914b9794638d7c0875d, type: 3}
   _volume: 1
-  _pitchMin: 0.9
-  _pitchMax: 1.1
+  _pitchMin: 0.73
+  _pitchMax: 1.53
   _playAtCasterPosition: 1

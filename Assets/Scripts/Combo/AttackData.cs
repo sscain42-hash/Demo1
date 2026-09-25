@@ -15,5 +15,6 @@ public class AttackData : ScriptableObject
     [Header("Camera Effect Settings")]
     public bool enableCameraZoom = false; // Tích chọn nếu chiêu này cần Zoom
 
-  
+
 }
+

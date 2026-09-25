@@ -10,19 +10,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4866590592333119618, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590592333119623, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4866590592725736488, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4866590592725736491, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: stopAction
@@ -30,14 +30,30 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: lengthInSec
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: moveWithTransform
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startSpeed.scalar
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590593229495784, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: InitialModule.startLifetime.scalar
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590593229495785, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590593229495785, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: m_RenderAlignment
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4866590593229495786, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
@@ -90,7 +106,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4866590594007536920, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
-      value: 3
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4866590594007536923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4866590594181247918, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: m_IsActive
@@ -98,7 +118,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4866590594181247923, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       propertyPath: simulationSpeed
-      value: 3
+      value: 4
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -106,20 +126,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -5808430431564993702}
-    - targetCorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6100985374475718469}
-    - targetCorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 310588640230246731}
+      addedObject: {fileID: 2081592769664157524}
   m_SourcePrefab: {fileID: 100100000, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
 --- !u!1 &6389406066330802589 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4866590593229495787, guid: 16f764875e67a59458a24e3c9d142302, type: 3}
   m_PrefabInstance: {fileID: 1955161106069324918}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-5808430431564993702
+--- !u!114 &2081592769664157524
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -131,63 +145,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95c436788db796d4bb8c21d1f40f5732, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticleReference
---- !u!114 &6100985374475718469
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6389406066330802589}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cc9b52fb92c5de41b8da139f9fde2cd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TriggerDetection
-  layerToCheck:
-    serializedVersion: 2
-    m_Bits: 192
-  CollisionEnterEvent:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: UnityEngine.ParticleSystem, UnityEngine
-        m_MethodName: Play
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  CollisionExitEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  PositionEnterEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  PositionExitEvent:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!135 &310588640230246731
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6389406066330802589}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 7
-  m_Center: {x: 0, y: 0, z: 0}

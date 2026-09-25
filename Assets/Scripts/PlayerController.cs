@@ -293,7 +293,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.black;
-        GizmoUtils.DrawCircle(transform.position, lungeRange);
+        GizmoUtils.DrawCircle(transform.position+Vector3.up, lungeRange);
     }
 
     #endregion
@@ -735,6 +735,37 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     {
         _velocity += delta;
     }
+    public bool HasLungeTarget()
+    {
+        Collider[] hits = new Collider[16];
+        int count = Physics.OverlapSphereNonAlloc(transform.position, lungeRange, hits);
+
+        Vector3 lookDir = GetLookDirection();
+        lookDir.y = 0;
+        if (lookDir.sqrMagnitude < 0.001f) lookDir = Model.forward;
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider col = hits[i];
+            if (col.gameObject == gameObject) continue;
+
+            // Tìm Damageable ở chính nó hoặc Object cha
+            var damageable = col.GetComponentInParent<Damageable>();
+            if (damageable != null && damageable.gameObject != gameObject)
+            {
+                Vector3 dirToTarget = (col.transform.position - transform.position);
+                dirToTarget.y = 0;
+
+                // Kiểm tra mục tiêu có nằm trong góc quạt 60 độ phía trước không
+                if (Vector3.Angle(lookDir, dirToTarget.normalized) <= 60f)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     public void ExecuteDamage(GameObject victim, AttackType attackType) => CauseDMG(victim, attackType);
     #endregion
@@ -743,4 +774,47 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     [SerializeField] private PhysicsDetection lungePhysicsComponent;
     
     public Transform SwordTransform;
+    public LayerMask lungeMask;
+    #region DEBUG / GUI
+
+    private void OnGUI()
+    {
+        if (CurrentState == null) return;
+
+        // 1. Cấu hình giao diện GUI (Chữ to, màu vàng nổi bật trên nền xám)
+        GUIStyle style = new GUIStyle(GUI.skin.box)
+        {
+            fontSize = 16,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleLeft
+        };
+        style.normal.textColor = Color.yellow;
+
+        // 2. Lấy tên của State hiện tại (Bao gồm cả Sub-State nếu có)
+        string stateText = GetFormattedStateName(CurrentState);
+
+        // 3. Vẽ hộp GUI lên góc trên bên trái màn hình (Góc (10, 10), rộng 320px, cao 50px)
+        GUI.Box(new Rect(10, 10, 320, 50), $"<b>FSM State:</b> {stateText}", style);
+    }
+
+    /// <summary>
+    /// Đệ quy truy xuất chuỗi tên trạng thái từ Root State tới Sub-State sâu nhất
+    /// Ví dụ output: "PlayerGroundedState -> PlayerRunState"
+    /// </summary>
+    private string GetFormattedStateName(PlayerBaseState state)
+    {
+        if (state == null) return "None";
+
+        string name = state.GetType().Name;
+
+        // Nếu có Child State, nối tiếp tên Child State vào sau
+        if (state.ChildState != null)
+        {
+            name += " ➔ " + GetFormattedStateName(state.ChildState);
+        }
+
+        return name;
+    }
+
+    #endregion
 }

@@ -12,6 +12,7 @@ public class PlayerStateFactory
     public PlayerBaseState Dash() => new PlayerDashState(_context, this);
     public PlayerBaseState Run() => new PlayerRunState(_context, this);
     public PlayerBaseState Attack() => new PlayerAttackState(_context, this);
- 
+    public PlayerLungeState Lunge() => new PlayerLungeState(_context, this);
+
 }
 

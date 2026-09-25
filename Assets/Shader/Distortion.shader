@@ -1,105 +1,93 @@
-Shader "Custom/SlashDistortionURP"
+Shader "Custom/URP_ArcSmearShader"
 {
     Properties
     {
-        [Header(Distortion Settings)]
-        _NoiseTex ("Noise Texture", 2D) = "gray" {}
-        _NoiseSpeed ("Noise Speed (X,Y)", Vector) = (0.2, 0.2, 0, 0)
-        _DistortionAmount ("Distortion Amount", Range(0, 0.1)) = 0.02
+        _MainTex ("Texture (Ramp/Noise)", 2D) = "white" {}
+        [HDR] _BaseColor ("Color & Intensity (HDR)", Color) = (1,1,1,1)
         
-        [Header(Masking Settings)]
-        _MaskTex ("Alpha Mask Texture (Slash Shape)", 2D) = "white" {}
-        _DistortionStrength ("Alpha/Strength Multiplier", Range(0, 1)) = 1.0
+        [Header(Wipe Effect)]
+        _Progress ("Wipe Progress", Range(0, 1)) = 0.0
+        _Softness ("Wipe Softness", Range(0.01, 0.5)) = 0.1
+
+        [Header(Edge Softening)]
+        _EdgeFeatherY ("Top/Bottom Edge Feather", Range(0.001, 0.5)) = 0.15
+        _SideFeatherX ("Start/End Edge Feather", Range(0.001, 0.5)) = 0.1
     }
     SubShader
     {
-        Tags 
-        { 
+        Tags { 
             "RenderType"="Transparent" 
             "Queue"="Transparent" 
             "RenderPipeline"="UniversalPipeline" 
         }
-        LOD 100
-
-        // Cho phép hiển thị nền đè lên background cũ
+        
+        // Dùng Additive Blend cho hiệu ứng kiếm sáng rực, hoặc Alpha Blend
+        Blend SrcAlpha One // Đổi thành "Blend SrcAlpha OneMinusSrcAlpha" nếu không muốn hiệu ứng phát sáng (Glow)
+        Cull Off
         ZWrite Off
-        Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
         {
-            Name "DistortionPass"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
+                float4 color : COLOR;
             };
 
             struct Varyings
             {
-                float4 positionCS : SV_POSITION;
+                float4 positionHCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float4 screenPos : TEXCOORD1;
+                float4 color : COLOR;
             };
 
-            // Khai báo Textures
-            TEXTURE2D(_MaskTex);   SAMPLER(sampler_MaskTex);
-            TEXTURE2D(_NoiseTex);  SAMPLER(sampler_NoiseTex);
-            
-            // Texture lấy hình ảnh của màn hình trong URP
-            TEXTURE2D(_CameraOpaqueTexture); SAMPLER(sampler_CameraOpaqueTexture);
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
 
             CBUFFER_START(UnityPerMaterial)
-                float4 _MaskTex_ST;
-                float4 _NoiseTex_ST;
-                float2 _NoiseSpeed;
-                float _DistortionAmount;
-                float _DistortionStrength;
+                float4 _MainTex_ST;
+                float4 _BaseColor;
+                float _Progress;
+                float _Softness;
+                float _EdgeFeatherY;
+                float _SideFeatherX;
             CBUFFER_END
 
-            Varyings vert (Attributes input)
+            Varyings vert(Attributes input)
             {
                 Varyings output;
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
-                output.uv = TRANSFORM_TEX(input.uv, _MaskTex);
-                
-                // Lấy tọa độ màn hình (Screen Position)
-                output.screenPos = ComputeScreenPos(output.positionCS);
+                output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
+                output.uv = TRANSFORM_TEX(input.uv, _MainTex);
+                output.color = input.color;
                 return output;
             }
 
-            half4 frag (Varyings input) : SV_Target
+            half4 frag(Varyings input) : SV_Target
             {
-                // 1 & 2. Panner & Noise Texture: Làm Noise trôi đi theo thời gian
-                float2 noiseUV = input.uv * _NoiseTex_ST.xy + _NoiseTex_ST.zw;
-                noiseUV += _Time.y * _NoiseSpeed;
-                half4 noiseColor = SAMPLE_TEXTURE2D(_NoiseTex, sampler_NoiseTex, noiseUV);
-                
-                // 3. Remap: Chuyển dải màu (0..1) của Noise sang biên độ vặn xoắn (-_DistortionAmount..+_DistortionAmount)
-                float2 distortion = (noiseColor.xy * 2.0 - 1.0) * _DistortionAmount;
-                
-                // Chuyển Screen Position sang UV hợp lệ (0..1)
-                float2 screenUV = input.screenPos.xy / input.screenPos.w;
-                
-                // 4. Add: Cộng thêm độ vặn xoắn vào tọa độ UV của màn hình
-                screenUV += distortion;
-                
-                // 5. Scene Color: Lấy hình ảnh phía sau với tọa độ đã bị vặn xoắn
-                half4 sceneColor = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, screenUV);
-                
-                // 6. Alpha Mask & Multiply: Xác định vùng hiển thị dựa trên Mask và Strength
-                // (Dùng giá trị đỏ .r hoặc alpha .a tùy theo tấm ảnh mask của bạn)
-                half maskAlpha = SAMPLE_TEXTURE2D(_MaskTex, sampler_MaskTex, input.uv).r; 
-                
-                // 7. Base Color + Alpha
-                sceneColor.a = maskAlpha * _DistortionStrength;
-                
-                return sceneColor;
+                half4 texColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
+
+                // 1. Làm mềm mép trên (Tip) và mép dưới (Base) để ẩn hoàn toàn cạnh Mesh cứng
+                float featherY = smoothstep(0.0, _EdgeFeatherY, input.uv.y) * 
+                                 smoothstep(1.0, 1.0 - _EdgeFeatherY, input.uv.y);
+
+                // 2. Làm mờ nhẹ ở 2 đầu vết chém (Start / End)
+                float featherX = smoothstep(0.0, _SideFeatherX, input.uv.x) * 
+                                 smoothstep(1.0, 1.0 - _SideFeatherX, input.uv.x);
+
+                // 3. Hiệu ứng Quét UV (Wipe) theo _Progress
+                float wipeAlpha = 1.0 - smoothstep(_Progress - _Softness, _Progress + _Softness, input.uv.x);
+
+                // 4. Tổng hợp màu và Alpha hòa trộn cùng Vertex Color
+                half4 finalColor = texColor * _BaseColor * input.color;
+                finalColor.a *= featherY * featherX * wipeAlpha;
+
+                return finalColor;
             }
             ENDHLSL
         }
