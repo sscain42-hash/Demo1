@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-public class PlayerStateFactory
+﻿public class PlayerStateFactory
 {
     PlayerController _context;
     public PlayerStateFactory(PlayerController currentContext) => _context = currentContext;
@@ -12,7 +10,6 @@ public class PlayerStateFactory
     public PlayerBaseState Dash() => new PlayerDashState(_context, this);
     public PlayerBaseState Run() => new PlayerRunState(_context, this);
     public PlayerBaseState Attack() => new PlayerAttackState(_context, this);
-    public PlayerLungeState Lunge() => new PlayerLungeState(_context, this);
+ 
 
 }
-

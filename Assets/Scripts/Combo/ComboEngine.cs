@@ -37,7 +37,6 @@ public class ComboEngine
         _animator = animator;
         _lastNormalizedTime = -1f;
         _lastActiveAnimation = string.Empty;
-
     }
 
     public void ChangeAttackData(AttackData newData, AttackType attackType)
@@ -141,7 +140,8 @@ public class ComboEngine
                 }
             }
 
-            // Step Movement Processing...
+            // Step & Lunge Movement Processing
+            // Step & Lunge Movement Processing
             if (window.actionName == "Step")
             {
                 float windowWidth = window.endTime - window.startTime;
@@ -154,14 +154,31 @@ public class ComboEngine
                     if (deltaInWindow > 0f)
                     {
                         Camera mainCam = Camera.main;
-                        Vector3 aimDirection = Vector3.zero;
+
+                        // 1. Lấy hướng di chuyển dựa theo Joystick / Phím bấm (GetLookDirection)
+                        Vector3 fallbackDirection;
                         if (window.cursorStep)
                         {
-                            aimDirection = (mainCam != null) ? mainCam.transform.forward : _ctx.transform.forward;
+                            fallbackDirection = (mainCam != null) ? mainCam.transform.forward : _ctx.transform.forward;
                         }
                         else
                         {
-                            aimDirection = _ctx.GetLookDirection();
+                            fallbackDirection = _ctx.GetLookDirection();
+                        }
+
+                        // 2. TÍCH HỢP LUNGE: Chỉ auto-aim kẻ địch khi KHÔNG CÓ Input di chuyển từ người chơi
+                        Vector3 aimDirection = fallbackDirection;
+
+                        bool hasMoveInput = _ctx != null && _ctx.InputVector.sqrMagnitude > 0.01f;
+
+                        if (!hasMoveInput && _ctx != null && _ctx.CombatDetection != null)
+                        {
+                            aimDirection = _ctx.CombatDetection.GetNearestTargetDirection(
+                                _ctx.transform.position,
+                                fallbackDirection,
+                                _ctx.gameObject,
+                                flattenY: true
+                            );
                         }
 
                         aimDirection.y = 0;
@@ -177,7 +194,7 @@ public class ComboEngine
                         float pRadius = 0.5f;
                         Vector3 rayOrigin = _ctx.transform.position + Vector3.up * 0.5f;
 
-                        if (_ctx.TryGetComponent<CharacterController>(out var controller))
+                        if (_ctx.TryGetComponent<CharacterController>(out  var controller))
                         {
                             pRadius = controller.radius;
                             rayOrigin = _ctx.transform.position + controller.center;
@@ -208,7 +225,6 @@ public class ComboEngine
 
     private void ProcessBoxCastHitbox(ActionWindow window)
     {
-        // 1. Quét Hitbox bằng BoxCast rộng để gây Damage
         Vector3 center = _ctx.transform.TransformPoint(window.hitBoxOffset);
         Vector3 halfExtents = window.hitBoxSize * 0.5f;
         Quaternion orientation = _ctx.transform.rotation;
@@ -226,13 +242,11 @@ public class ComboEngine
                 _alreadyHitTargets.Add(col);
                 hasHitNewTarget = true;
 
-                // 1. Gây Damage
                 if (col.TryGetComponent<Damageable>(out var damageable))
                 {
                     _ctx.ExecuteDamage(col.gameObject, currentAttackType);
                 }
 
-                // 2. Tính toán điểm va chạm
                 Vector3 hitPosition;
                 if (_ctx.SwordTransform != null)
                 {
@@ -243,25 +257,19 @@ public class ComboEngine
                     hitPosition = col.ClosestPoint(center);
                 }
 
-                // 3. TÍNH TOÁN ROTATION VFX (Chỉ thay đổi trục Z)
-                // Lấy góc euler hiện tại từ SwordTransform (hoặc Player nếu không có SwordTransform)
                 Transform baseTransform = _ctx.SwordTransform != null ? _ctx.SwordTransform : _ctx.transform;
                 Vector3 currentEuler = baseTransform.rotation.eulerAngles;
 
-                // Tính góc Z hướng về phía Player
                 Vector3 dirToPlayer = (_ctx.transform.position - hitPosition).normalized;
                 float targetZAngle = currentEuler.z;
 
                 if (dirToPlayer != Vector3.zero)
                 {
-                    // Tính góc nghiêng (Z) dựa trên hướng từ vị trí trúng đòn về phía Player
                     targetZAngle = Mathf.Atan2(dirToPlayer.y, dirToPlayer.x) * Mathf.Rad2Deg;
                 }
 
-                // Tạo Quaternion mới: Giữ nguyên X, Y từ thanh kiếm/Player, CHỈ THAY ĐỔI TRỤC Z
                 Quaternion vfxRotation = Quaternion.Euler(currentEuler.x, currentEuler.y, targetZAngle);
 
-                // 4. Phân loại Major VFX vs Minor VFX
                 bool isPrimaryTargetInWindow = !_majorVfxTriggeredWindows.Contains(window);
 
                 if (isPrimaryTargetInWindow)
@@ -287,11 +295,9 @@ public class ComboEngine
                     );
                 }
                 SoundManager.Instance?.PlaySFXAtPosition(_ctx.CharacterEffect.HitSFX, hitPosition);
-                Debug.Log($"Trúng đòn: {col.name} | Primary Target: {isPrimaryTargetInWindow}");
             }
         }
 
-        // 5. Kích hoạt HitStop & ScreenShake
         if (hasHitNewTarget && !_hitStopTriggeredWindows.Contains(window))
         {
             _hitStopTriggeredWindows.Add(window);
@@ -307,6 +313,7 @@ public class ComboEngine
             }
         }
     }
+
     private void ResetFlags()
     {
         IsComboWindowActive = false;

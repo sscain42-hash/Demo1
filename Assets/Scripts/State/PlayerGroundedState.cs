@@ -12,7 +12,7 @@ public class PlayerGroundedState : PlayerBaseState
         if (_ctx.Velocity.y < LANDING_VELOCITY_THRESHOLD)
             _ctx.PlayAnimation(_ctx.Anim_Land, 0.1f);
         InitializeSubState();
-     
+
     }
 
     protected override void UpdateState()
@@ -24,13 +24,13 @@ public class PlayerGroundedState : PlayerBaseState
 
     public override void InitializeSubState()
     {
-          SetChildState(_factory.Idle());
+        SetChildState(_factory.Idle());
     }
 
     public override void CheckSwitchState()
     {
         // Dash dưới đất
-        if ( _ctx.TryDash)
+        if (_ctx.TryDash)
         {
             SwitchState(_factory.Dash());
             return;
@@ -46,18 +46,13 @@ public class PlayerGroundedState : PlayerBaseState
 
         if (_ctx.TryNormalAttack)
         {
-            if (_ctx.HasLungeTarget())
-            {
-                SwitchState(_factory.Lunge());
-            }
-            else
-            {
-                SwitchState(_factory.Attack());
-            }
+
+            SwitchState(_factory.Attack());
+
             return;
         }
 
     }
-   
-    
+
+
 }

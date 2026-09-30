@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a75550f5fb851684e8985405900a15f3, type: 3}
+  m_Name: NewSlashData
+  m_EditorClassIdentifier: Assembly-CSharp::SlashDataSO
+  segmentsPerSection: 12
+  tangentMultiplier: 0
+  doubleSided: 1
+  slashMaterial: {fileID: 2100000, guid: 3896f40bfdfe21247989d3edda321cc7, type: 2}
+  controlPoints:
+  - localPosition: {x: 0.03482545, y: 0.96772677, z: 0.30373117}
+    localEulerAngles: {x: 90, y: -118.55005, z: 0}
+    fanHeight: 2.3895972
+  - localPosition: {x: 0.013600014, y: 0.8588771, z: -0.21942991}
+    localEulerAngles: {x: 90, y: 57.50572, z: 0}
+    fanHeight: 2.29864

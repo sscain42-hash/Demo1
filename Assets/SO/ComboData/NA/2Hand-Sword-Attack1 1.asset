@@ -92,7 +92,7 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0.05}
+    targetDistance: {x: 0, y: 0, z: 0.01}
     hitBoxSize: {x: 2.7789338, y: 2.1256094, z: 2.458077}
     hitBoxOffset: {x: -0.07304233, y: 0.724577, z: 0.7290383}
     targetLayer:

@@ -83,8 +83,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: Step
-    startTime: 0.3051085
-    endTime: 0.5173557
+    startTime: 0.22222222
+    endTime: 0.33806187
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -100,8 +100,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: HitBox
-    startTime: 0.30555555
-    endTime: 0.60555553
+    startTime: 0.33333334
+    endTime: 0.6333333
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -109,8 +109,8 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 1
     targetDistance: {x: 0, y: 0, z: 0.1}
-    hitBoxSize: {x: 1.4510345, y: 1, z: 1.818753}
-    hitBoxOffset: {x: 0.08698478, y: 0.7142943, z: 0.3392374}
+    hitBoxSize: {x: 3.3554554, y: 2.2197804, z: 3.337162}
+    hitBoxOffset: {x: 0.24914065, y: 1.0747492, z: 1.0984418}
     targetLayer:
       serializedVersion: 2
       m_Bits: 64

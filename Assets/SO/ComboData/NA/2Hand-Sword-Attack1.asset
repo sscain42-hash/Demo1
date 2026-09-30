@@ -15,13 +15,13 @@ MonoBehaviour:
   animationName: 2Hand-Sword-Attack1
   windows:
   - actionName: Slash
-    startTime: 0.3611111
-    endTime: 0.9126044
-    enableVFX: 1
+    startTime: 0.3888889
+    endTime: 0.44444445
+    enableVFX: 0
     vfxTransform:
-      positionOffset: {x: -0.257, y: 0.949, z: 0}
-      rotationOffset: {x: 289.38202, y: 90, z: 62.049606}
-      scale: {x: 0.4, y: 0.4, z: 0.4}
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0}
     hitBoxSize: {x: 1.5, y: 1.5, z: 2}
@@ -29,8 +29,7 @@ MonoBehaviour:
     targetLayer:
       serializedVersion: 2
       m_Bits: 64
-    eventEffects:
-    - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
+    eventEffects: []
     eventTriggered: 1
   - actionName: ComboInputBuffer
     startTime: 0.6146585
@@ -92,7 +91,7 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0.05}
+    targetDistance: {x: 0, y: 0, z: 0.01}
     hitBoxSize: {x: 2.7789338, y: 2.1256094, z: 2.458077}
     hitBoxOffset: {x: -0.07304233, y: 0.724577, z: 0.7290383}
     targetLayer:
@@ -118,8 +117,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: Sound
-    startTime: 0.3611111
-    endTime: 0.8611111
+    startTime: 0.3888889
+    endTime: 0.8888889
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}

@@ -138,7 +138,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: 2Hand-Sword-Attack4
-  m_Speed: 1.4
+  m_Speed: 3
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -150,7 +150,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: c9cdccfb9d6cfef4d9992105a94b5d86, type: 3}
+  m_Motion: {fileID: 7400000, guid: 83b0ec4d915605d458f3e34f876e54a0, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -362,10 +362,10 @@ AnimatorStateMachine:
     m_Position: {x: 690, y: -30, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -4568770946532270807}
-    m_Position: {x: 923.08746, y: -28.690887, z: 0}
+    m_Position: {x: 920, y: -30, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -8157796276369633495}
-    m_Position: {x: 923.08746, y: 41.309113, z: 0}
+    m_Position: {x: 920, y: 40, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []

@@ -33,7 +33,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
     eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.49821174
+    startTime: 0.6944444
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -92,7 +92,7 @@ MonoBehaviour:
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0.05}
+    targetDistance: {x: 0, y: 0, z: 0.01}
     hitBoxSize: {x: 2.5934281, y: 1.6066406, z: 2.3312104}
     hitBoxOffset: {x: -0.23266011, y: 0.80885625, z: 1.1458637}
     targetLayer:
