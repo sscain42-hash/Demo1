@@ -1,26 +1,22 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// Base class for hierarchical player states.
-/// Ensures full sub-state cleanup when switching states.
-/// </summary>
 public abstract class PlayerBaseState
 {
-    protected PlayerBaseState(PlayerController currentContext, PlayerStateFactory factory)
-    {
-        _ctx = currentContext;
-        _factory = factory;
-    }
-
     protected readonly PlayerController _ctx;
     protected readonly PlayerStateFactory _factory;
 
     protected bool _isRootState = false;
-
     protected PlayerBaseState _childState;
     protected PlayerBaseState _parentState;
 
     public PlayerBaseState ChildState => _childState;
+    public bool IsRootState => _isRootState;
+
+    protected PlayerBaseState(PlayerController ctx, PlayerStateFactory factory)
+    {
+        _ctx = ctx;
+        _factory = factory;
+    }
 
     public virtual void EnterState() { }
     protected virtual void UpdateState() { }
@@ -34,51 +30,52 @@ public abstract class PlayerBaseState
         _childState?.UpdateStates();
     }
 
-    /// <summary>
-    /// Switches state and guarantees full cleanup of child hierarchy.
-    /// </summary>
     public void SwitchState(PlayerBaseState newState)
     {
-        
-        // 🔥 Clear entire sub-state tree before exiting
-        ClearSubStateRecursive();
+        if (newState == null) return;
 
+        // Guard: không switch sang cùng state
+        if (GetType() == newState.GetType()) return;
+
+        ClearSubStateRecursive();
         ExitState();
 
-        if (_isRootState)
+        // Root state phải luôn thay CurrentState, bất kể state hiện tại là root hay child
+        if (newState.IsRootState)
         {
             _ctx.CurrentState = newState;
+            newState._parentState = null;
+            newState.EnterState();
         }
         else
         {
             _parentState?.SetChildState(newState);
         }
-
-        newState.EnterState();
     }
 
-    /// <summary>
-    /// Recursively clears child states to prevent lingering updates.
-    /// </summary>
     private void ClearSubStateRecursive()
     {
-        if (_childState == null)
-            return;
+        if (_childState == null) return;
 
         _childState.ClearSubStateRecursive();
         _childState.ExitState();
         _childState = null;
     }
 
-    protected void SetChildState(PlayerBaseState newChildState)
+    public void SetChildState(PlayerBaseState newChildState)
     {
+        if (newChildState == null) return;
+
         _childState = newChildState;
-        _childState.SetParentState(this);
+        _childState._parentState = this;
         _childState.EnterState();
     }
 
-    protected void SetParentState(PlayerBaseState newParentState)
+    protected void SwitchRootState(PlayerBaseState newRootState)
     {
-        _parentState = newParentState;
+        if (_isRootState)
+            SwitchState(newRootState);
+        else
+            _parentState?.SwitchRootState(newRootState);
     }
 }

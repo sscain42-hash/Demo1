@@ -25,7 +25,6 @@ public class ComboEngine
     private readonly HashSet<Collider> _alreadyHitTargets = new HashSet<Collider>();
     private readonly Collider[] _hitBuffer = new Collider[16];
 
-    // Đánh dấu Window đã kích hoạt hiệu ứng toàn cục (HitStop / ScreenShake / Major VFX)
     private readonly HashSet<ActionWindow> _hitStopTriggeredWindows = new HashSet<ActionWindow>();
     private readonly HashSet<ActionWindow> _majorVfxTriggeredWindows = new HashSet<ActionWindow>();
 
@@ -141,7 +140,6 @@ public class ComboEngine
             }
 
             // Step & Lunge Movement Processing
-            // Step & Lunge Movement Processing
             if (window.actionName == "Step")
             {
                 float windowWidth = window.endTime - window.startTime;
@@ -155,7 +153,6 @@ public class ComboEngine
                     {
                         Camera mainCam = Camera.main;
 
-                        // 1. Lấy hướng di chuyển dựa theo Joystick / Phím bấm (GetLookDirection)
                         Vector3 fallbackDirection;
                         if (window.cursorStep)
                         {
@@ -166,7 +163,6 @@ public class ComboEngine
                             fallbackDirection = _ctx.GetLookDirection();
                         }
 
-                        // 2. TÍCH HỢP LUNGE: Chỉ auto-aim kẻ địch khi KHÔNG CÓ Input di chuyển từ người chơi
                         Vector3 aimDirection = fallbackDirection;
 
                         bool hasMoveInput = _ctx != null && _ctx.InputVector.sqrMagnitude > 0.01f;
@@ -184,9 +180,23 @@ public class ComboEngine
                         aimDirection.y = 0;
                         aimDirection = aimDirection.sqrMagnitude > 0.0001f ? aimDirection.normalized : _ctx.transform.forward;
 
-                        if (aimDirection != Vector3.zero)
-                            _ctx.transform.rotation = Quaternion.LookRotation(aimDirection);
+                        // 🔥 FIX: Xoay Model thay vì transform gốc
+                        // Xoay transform gốc làm CharacterController xoay theo → penetration với đất → đẩy Y lên
+                        if (aimDirection != Vector3.zero && _ctx.Model != null)
+                        {
+                            float beforeY = _ctx.transform.position.y;
+                            _ctx.Model.rotation = Quaternion.LookRotation(aimDirection);
+                            float afterY = _ctx.transform.position.y;
 
+                            // Nếu CharacterController tự nâng Y, bắt buộc reset về Y cũ
+                            if (Mathf.Abs(afterY - beforeY) > 0.001f)
+                            {
+                                Vector3 posFixed = _ctx.transform.position;
+                                posFixed.y = beforeY;
+                                _ctx.transform.position = posFixed;
+                                Debug.LogWarning($"[ComboEngine] Forced Y reset: {beforeY:F4} (was nâng lên {afterY - beforeY:F4})");
+                            }
+                        }
                         float totalTargetDistance = window.targetDistance.magnitude;
                         float progressThisFrame = deltaInWindow / windowWidth;
                         float desiredDistanceThisFrame = totalTargetDistance * progressThisFrame;
@@ -194,7 +204,7 @@ public class ComboEngine
                         float pRadius = 0.5f;
                         Vector3 rayOrigin = _ctx.transform.position + Vector3.up * 0.5f;
 
-                        if (_ctx.TryGetComponent<CharacterController>(out  var controller))
+                        if (_ctx.TryGetComponent<CharacterController>(out var controller))
                         {
                             pRadius = controller.radius;
                             rayOrigin = _ctx.transform.position + controller.center;

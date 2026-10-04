@@ -2,72 +2,56 @@
 
 public class PlayerDashState : PlayerBaseState
 {
-    private const float MOMENTUM_RETENTION = 0.5f;
-
     private float _timer;
     private Vector3 _dashVelocity;
 
     public PlayerDashState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory) { _isRootState = true; }
+        : base(ctx, factory)
+    {
+        _isRootState = true;
+    }
 
     public override void EnterState()
     {
         _ctx._playerInputs.ConsumeCommand(BufferedAction.Dash);
         _ctx.SetRotationLock(true);
-        int targetAnim = _ctx.IDDashBack;
-        if (_ctx.InputVector.sqrMagnitude > 0.01f) targetAnim = _ctx.Anim_DashBack;
-            _ctx.PlayAnimation(targetAnim, 0.05f);
+        _ctx.PlayAnimation(_ctx.Anim_Dash, 0.05f);
         _ctx.ResetDashCooldown();
 
-        ComputeDashVelocity();
-        _timer = 0f;
-    }
-
-    private void ComputeDashVelocity()
-    {
         Vector3 dashDir = _ctx.GetHorizontalDashDirection();
         float speed = _ctx.DashLength / Mathf.Max(0.0001f, _ctx.DashDuration);
         _dashVelocity = dashDir * speed;
 
-        // Apply initial dash velocity
-        _ctx.SetVelocity(_dashVelocity.x, 0f, _dashVelocity.z);
+        _timer = 0f;
     }
 
     protected override void UpdateState()
     {
         _timer += Time.deltaTime;
 
-        // Maintain dash velocity and lock Y
-        _ctx.SetVelocity(_dashVelocity.x, 0f, _dashVelocity.z);
+        _ctx.AppliedMovement = new Vector3(_dashVelocity.x, 0f, _dashVelocity.z);
 
-        if (_timer >= _ctx.DashDuration)
-            CheckSwitchState();
         if (_ctx.Model != null)
         {
             Vector3 dashDir = _ctx.GetHorizontalDashDirection();
-       
+            if (dashDir.sqrMagnitude > 0.001f)
                 _ctx.Model.rotation = Quaternion.LookRotation(dashDir);
         }
 
+        if (_timer >= _ctx.DashDuration)
+            CheckSwitchState();
     }
 
     protected override void ExitState()
     {
-
         _ctx.SetRotationLock(false);
-        // Celeste-style momentum retention
-        _ctx.SetVelocity(
-            _ctx.Velocity.x * MOMENTUM_RETENTION,
-            _ctx.Velocity.y,
-            _ctx.Velocity.z * MOMENTUM_RETENTION
-        );
     }
 
     public override void CheckSwitchState()
     {
-        if (_ctx.CharController.isGrounded)
-            SwitchState(_factory.Grounded());
-        else
-            SwitchState(_factory.Falling());
+        // KHÔNG gọi ResolveGroundState() — cùng lý do như PlayerAttackState.
+        // Grounded sẽ tự quyết định Idle/Run/Fall dựa trên ground check
+        // đã được cập nhật đầy đủ ở frame hiện tại.
+        SwitchState(_factory.Grounded());
     }
 }

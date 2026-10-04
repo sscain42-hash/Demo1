@@ -2,57 +2,57 @@
 
 public class PlayerGroundedState : PlayerBaseState
 {
-    private const float LANDING_VELOCITY_THRESHOLD = -5.0f;
-
     public PlayerGroundedState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory) { _isRootState = true; }
+        : base(ctx, factory)
+    {
+        _isRootState = true;
+    }
 
     public override void EnterState()
     {
-        if (_ctx.Velocity.y < LANDING_VELOCITY_THRESHOLD)
-            _ctx.PlayAnimation(_ctx.Anim_Land, 0.1f);
-        InitializeSubState();
+        // 🔥 Always reset jump velocity when entering grounded state
+        // Ensures clean state for next jump or movement
+        _ctx.JumpVelocity = -2f;
 
+        InitializeSubState();
     }
 
     protected override void UpdateState()
     {
-
+        _ctx.HandleRotation();
         CheckSwitchState();
-    }
-    protected override void ExitState() { }
-
-    public override void InitializeSubState()
-    {
-        SetChildState(_factory.Idle());
     }
 
     public override void CheckSwitchState()
     {
-        // Dash dưới đất
+        if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f)
+        {
+            SwitchState(_factory.Jump());
+            return;
+        }
+
         if (_ctx.TryDash)
         {
             SwitchState(_factory.Dash());
             return;
         }
 
-        // Jump với coyote + jump buffer
-        if (_ctx.TryJump)
+        // 🔥 Chỉ rời Grounded nếu:
+        // 1) Player đã airborne đủ stable (>=3 frame)
+        // 2) AND velocity rơi xuống (< -0.1f)
+        // Điều này tránh chuyển sang Fall do temporary isGrounded=false
+        if (_ctx.IsAirborneStable && _ctx.JumpVelocity < -0.1f)
         {
-            SwitchState(_factory.Jump());
+            SwitchState(_factory.Fall());
             return;
         }
-
-
-        if (_ctx.TryNormalAttack)
-        {
-
-            SwitchState(_factory.Attack());
-
-            return;
-        }
-
     }
 
-
+    public override void InitializeSubState()
+    {
+        if (_ctx.InputVector.magnitude < 0.01f)
+            SetChildState(_factory.Idle());
+        else
+            SetChildState(_factory.Run());
+    }
 }

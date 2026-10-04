@@ -3,111 +3,105 @@ using UnityEngine;
 public class PlayerAttackState : PlayerBaseState
 {
     private readonly PlayerSkillManager _comboManager;
-    private readonly CharacterController _characterController;
     private bool _hasExited;
 
-    public PlayerAttackState(PlayerController currentContext, PlayerStateFactory factory)
-        : base(currentContext, factory)
+    private float _elapsedTime;
+    private const float MAX_ATTACK_DURATION = 3f;
+    private const int ATTACK_LAYER = 1;
+
+    public PlayerAttackState(PlayerController ctx, PlayerStateFactory factory)
+        : base(ctx, factory)
     {
         _isRootState = true;
-        _comboManager = _ctx.GetComponent<PlayerSkillManager>();
-        _characterController = _ctx.GetComponent<CharacterController>();
+        _comboManager = ctx.GetComponent<PlayerSkillManager>();
     }
 
     public override void EnterState()
     {
-        base.EnterState();
         _hasExited = false;
+        _elapsedTime = 0f;
         _ctx.SetAttackLock(true);
-       
-                _ctx.Animator.SetLayerWeight(0, 1f);
-         
+
     }
 
     protected override void UpdateState()
     {
-        base.UpdateState();
+        _elapsedTime += Time.deltaTime;
         CheckSwitchState();
     }
 
     public override void CheckSwitchState()
     {
-        if (_comboManager == null || _hasExited) return;
+        if (_hasExited) return;
 
-        Debug.Log(_comboManager.IsAttacking ? "IsAttacking" : "Not Attacking");
+        if (_elapsedTime >= MAX_ATTACK_DURATION)
+        {
+            ForceExit();
+            return;
+        }
 
-        // 1. Dash Cancel
+        if (_comboManager == null)
+        {
+            ForceExit();
+            return;
+        }
+
+        // Dash Cancel
         if (_comboManager.CanDashCancelNow && _ctx.TryDash)
         {
-            _hasExited = true;
             _comboManager.ForceCancelCombo(false);
             SwitchState(_factory.Dash());
             return;
         }
 
-        ApplyBaseGravity();
-
-        // 2. Jump Cancel
-        if (_comboManager.CanJumpCancelNow && _ctx.IsGrounded && _ctx.TryJump)
+        // Jump Cancel
+        if (_comboManager.CanJumpCancelNow && _ctx.IsGroundedRaw && _ctx.TryJump)
         {
-            _hasExited = true;
             _comboManager.ForceCancelCombo(false);
             SwitchState(_factory.Jump());
             return;
         }
 
-        // 3. Kết thúc đòn đánh tự nhiên
+        // 🔥 FIX: Kết thúc tự nhiên — CHỈ ForceExit, KHÔNG ForceCancelCombo
+        // PlayerSkillManager sẽ tự FinishComboAttack khi GetNormalizedTime >= 1
         if (_comboManager.CurrrentProgressAnimation >= 0.98f)
         {
-            _hasExited = true;
-            _comboManager.ForceCancelCombo(true);
-
-            // Chuyển sang trạng thái phù hợp theo môi trường thực tế
-            if (_characterController.isGrounded)
-            {
-                SwitchState(_factory.Grounded());
-            }
-            else
-            {
-                SwitchState(_factory.Falling());
-            }
+            ForceExit();
             return;
         }
     }
 
-    private void ApplyBaseGravity()
+    private void ForceExit()
     {
-        Vector3 gravityVelocity = Vector3.zero;
-        gravityVelocity.y = _characterController.isGrounded
-            ? -0.5f
-            : _ctx.Velocity.y + Physics.gravity.y * Time.deltaTime;
+        if (_hasExited) return;
 
-        // Giữ lại lực quán tính chém (XZ) do ComboEngine tạo ra và áp dụng thêm trọng lực Y
-        _ctx.Velocity = new Vector3(_ctx.Velocity.x, gravityVelocity.y, _ctx.Velocity.z);
+        _hasExited = true;
+        _ctx.SetAttackLock(false);
+
+        // 🔥 CRITICAL: Stop combo engine velocity BEFORE state transition
+        // This ensures new state gets clean grounded state without attack velocity
+        if (_comboManager != null && _comboManager.IsAttacking)
+        {
+            Debug.Log($"[AttackState Exit] Force stopping attack velocity");
+            _comboManager.ForceCancelCombo(false); // Don't play idle - state will handle animation
+        }
+
+        // Now state transition will happen with clean velocity
+        Debug.Log($"[AttackState Exit] CharController.isGrounded={_ctx.CharController.isGrounded}, " +
+                  $"JumpVelocity={_ctx.JumpVelocity}, " +
+                  $"GroundedFrameCount={_ctx.GetGroundedFrameCount()}, " +
+                  $"IsGroundedRaw={_ctx.IsGroundedRaw}, " +
+                  $"IsGroundedStable={_ctx.IsGroundedStable}");
+
+        PlayerBaseState nextState = _ctx.ResolveGroundState();
+        Debug.Log($"[AttackState Exit] ResolveGroundState returned: {nextState.GetType().Name}");
+
+        SwitchState(nextState);
     }
 
     protected override void ExitState()
     {
-        base.ExitState();
-
-        _ctx.SetAttackLock(false); // Mở khóa hệ thống điều khiển di chuyển gốc
-                                   // 🔥 TẮT WEIGHT: Trả Weight của Layer UpperBody về 0 khi thoát trạng thái đánh
-        if (_ctx.Animator != null)
-        {
-      
-         
-                _ctx.Animator.SetLayerWeight(0, 0f);
-           
-        }
-        if (_ctx.InputVector.sqrMagnitude > 0.01f)
-        {
-            Vector3 movementDirection = new Vector3(_ctx.InputVector.x, 0f, _ctx.InputVector.y).normalized;
-            _ctx.Velocity = movementDirection * _ctx.RunMaxSpeed;
-        }
-        else
-        {
-            _ctx.Velocity = new Vector3(0f, _characterController.isGrounded ? -0.5f : _ctx.Velocity.y, 0f);
-        }
+        _hasExited = true;
+        _ctx.SetAttackLock(false);
     }
-
 }

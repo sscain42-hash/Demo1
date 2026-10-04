@@ -1,15 +1,18 @@
 ﻿public class PlayerStateFactory
 {
-    PlayerController _context;
-    public PlayerStateFactory(PlayerController currentContext) => _context = currentContext;
+    private readonly PlayerController _ctx;
 
-    public PlayerBaseState Grounded() => new PlayerGroundedState(_context, this);
-    public PlayerBaseState Jump() => new PlayerJumpingState(_context, this);
-    public PlayerBaseState Falling() => new PlayerFallingState(_context, this);
-    public PlayerBaseState Idle() => new PlayerIdleState(_context, this);
-    public PlayerBaseState Dash() => new PlayerDashState(_context, this);
-    public PlayerBaseState Run() => new PlayerRunState(_context, this);
-    public PlayerBaseState Attack() => new PlayerAttackState(_context, this);
- 
+    public PlayerStateFactory(PlayerController ctx) => _ctx = ctx;
 
+    // Root states
+    public PlayerBaseState Grounded() => new PlayerGroundedState(_ctx, this);
+    public PlayerBaseState Jump() => new PlayerJumpState(_ctx, this);
+    public PlayerBaseState Fall() => new PlayerFallState(_ctx, this);
+    public PlayerBaseState Dash() => new PlayerDashState(_ctx, this);
+    public PlayerBaseState Attack() => new PlayerAttackState(_ctx, this);
+    public PlayerBaseState Dead() => new PlayerDeadState(_ctx, this);
+
+    // Child states (của Grounded)
+    public PlayerBaseState Idle() => new PlayerIdleState(_ctx, this);
+    public PlayerBaseState Run() => new PlayerRunState(_ctx, this);
 }

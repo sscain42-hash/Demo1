@@ -41,7 +41,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     public float CurrrentProgressAnimation => _comboEngine != null ? _comboEngine.GetNormalizedTime() : 0f;
     private bool _isForceCancelled = false;
     public bool CanDashCancelNow => _comboEngine != null && _comboEngine.CanDashCancelNow;
-    public bool CanJumpCancelNow => _comboEngine != null && _comboEngine.CanJumpCancelNow&& _ctx.IsGrounded;
+    public bool CanJumpCancelNow => _comboEngine != null && _comboEngine.CanJumpCancelNow&& _ctx.IsGroundedStable;
     public event Action OnAttackRequested;
     public event Action OnDashCancelRequested;
     public event Action OnJumpCancelRequested;

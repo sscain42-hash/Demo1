@@ -31,11 +31,11 @@ Material:
     m_Floats:
     - _DissolveDirection: 1
     - _DissolveInvert: 0
-    - _DissolveSoftness: 0.104
+    - _DissolveSoftness: 0.177
     - _EdgeWidth: 0
     - _FadePower: 0.24
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 0.06666667}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EdgeColor: {r: 1, g: 0.6, b: 0.09999997, a: 1}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 0}
   m_BuildTextureStacks: []

@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
 
-public class PlayerJumpingState : PlayerBaseState
+public class PlayerJumpState : PlayerBaseState
 {
     private const float JUMP_RELEASE_MULTIPLIER = 0.5f;
 
-    public PlayerJumpingState(PlayerController ctx, PlayerStateFactory factory)
+    public PlayerJumpState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
         _isRootState = true;
@@ -13,65 +13,47 @@ public class PlayerJumpingState : PlayerBaseState
     public override void EnterState()
     {
         _ctx.PlayAnimation(_ctx.Anim_Jump_Begin, 0.05f);
-        ApplyJumpVelocity();
-    }
 
-    private void ApplyJumpVelocity()
-    {
-        _ctx.SetVelocity(
-            _ctx.Velocity.x,
-            _ctx.InitialJumpVelocity,
-            _ctx.Velocity.z
-        );
-
+        _ctx.JumpVelocity = _ctx.InitialJumpVelocity;
         _ctx.JumpBufferCounter = 0f;
         _ctx.CoyoteCounter = 0f;
     }
 
     protected override void UpdateState()
     {
-        HandleVariableJump();
-        HandleAirMovement();
+        if (!_ctx._playerInputs.JumpHeld && _ctx.JumpVelocity > 0f)
+            _ctx.JumpVelocity *= JUMP_RELEASE_MULTIPLIER;
+
+        if (_ctx.InputVector.sqrMagnitude > 0.01f)
+        {
+            Vector3 moveDir = _ctx.GetLookDirection();
+            Vector3 velocity = _ctx.Velocity;
+            _ctx.AirMovementHandler.ApplyAirControl(moveDir, ref velocity);
+            _ctx.Velocity = velocity;
+        }
+
         CheckSwitchState();
     }
 
-    protected override void ExitState() { }
-
     public override void CheckSwitchState()
     {
-        // 🔥 Ưu tiên Attack trước
-        if (_ctx.TryNormalAttack || _ctx.TryElementalSkill || _ctx.TryElementalBurst)
-        {
-            SwitchState(_factory.Attack());
-            return;
-        }
-
-        if (_ctx.Velocity.y <= 0f && !_ctx.IsAttacking)
-        {
-            SwitchState(_factory.Falling());
-            return;
-        }
-
         if (_ctx.TryDash)
         {
             SwitchState(_factory.Dash());
+            return;
         }
-    }
-    public override void InitializeSubState() { }
 
-    private void HandleVariableJump()
-    {
-        if (!_ctx._playerInputs.JumpHeld && _ctx.Velocity.y > 0f)
+        // Hết bay lên → Fall
+        if (_ctx.JumpVelocity <= 0f)
         {
-            _ctx.SetVelocityY(_ctx.Velocity.y * JUMP_RELEASE_MULTIPLIER);
+            SwitchState(_factory.Fall());
+            return;
         }
-    }
 
-    private void HandleAirMovement()
-    {
-        Vector3 moveDirection = _ctx.GetLookDirection();
-        Vector3 currentVelocity = _ctx.Velocity;
-        _ctx.AirMovementHandler.ApplyAirControl(moveDirection, ref currentVelocity);
-        _ctx.Velocity = currentVelocity;
+        // Fallback nếu chạm đất bất ngờ
+        if (_ctx.IsGroundedStable)
+        {
+            SwitchState(_factory.Grounded());
+        }
     }
 }

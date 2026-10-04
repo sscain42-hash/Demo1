@@ -1,20 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
-/// <summary>
-/// Bộ điều khiển nhân vật người chơi.
-/// Quản lý: input, physics, movement, rotation, state machine, combat.
-/// Kế thừa Damageable và triển khai các interface combat.
-/// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 {
     #region CONFIGURATION
 
     [Header("GDC 2016 Constants")]
-    [field: SerializeField] public float JumpHeight { get; private set; } = 4f;
+    [field: SerializeField] public float JumpHeight { get; private set; } = 6f;
     [field: SerializeField] public float TimeToJumpApex { get; private set; } = 0.4f;
     [field: SerializeField] public float RunMaxSpeed { get; private set; } = 12f;
     [field: SerializeField] public float RunAcceleration { get; private set; } = 90f;
@@ -44,10 +38,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     [field: SerializeField] public Transform MainCamera { get; private set; }
     [field: SerializeField] public Animator Animator { get; private set; }
 
-    [Header("Slope Detection")]
-    [field: SerializeField] public float MaxSlopeAngle { get; private set; } = 45f;
-    [field: SerializeField] public float SlopeCheckDistance { get; private set; } = 0.5f;
-
     [Header("Responsive Movement")]
     [field: SerializeField] public float TAttack { get; private set; } = 0.1f;
     [field: SerializeField] public float TRelease { get; private set; } = 0.15f;
@@ -62,15 +52,8 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     [SerializeField] private CharacterEffect characterEffect;
     [SerializeField] private PlayerSkillManager skillManager;
-   
 
     public SO_PlayerConfiguration PlayerConfig;
-
-    #endregion
-
-    #region CONSTANTS
-
-    private const float MIN_DISTANCE_THRESHOLD = 0.01f;
 
     #endregion
 
@@ -90,8 +73,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private IMovementHandler _groundMovementHandler;
     private IMovementHandler _airMovementHandler;
 
-    private ResponsiveDecelerationHandler _decelerationHandler;
-
     #endregion
 
     #region STATE MACHINE
@@ -104,7 +85,9 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     #region RUNTIME STATE
 
     private Vector3 _velocity;
+    private float _jumpVelocity;
     private Vector2 _inputVector;
+    private Vector3 _appliedMovement;
 
     private float _gravity;
     private float _initialJumpVelocity;
@@ -113,18 +96,14 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private float _jumpBufferCounter;
     private float _dashCooldownTimer;
 
+    // 🔥 Frame counter cho grounded state
+    private int _groundedFrameCount;
+    private int _airborneFrameCount;
+    private const int GROUNDED_STABLE_FRAMES = 3;
+
     private bool _isDashing;
     private bool _isAttacking;
-    private bool _attackLocked;
     private bool _rotationLocked;
-    private bool _wasGroundedLastFrame;
-
-    private bool _isOnSlope;
-    private float _currentSlopeAngle;
-    private Vector3 _lastGroundNormal = Vector3.up;
-
-    private int _skillCooldown;
-    private int _burstCooldown;
 
     #endregion
 
@@ -149,18 +128,31 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     public Vector3 Velocity
     {
-        get => _velocity;
-        set => _velocity = value;
+        get => new Vector3(_velocity.x, _jumpVelocity, _velocity.z);
+        set
+        {
+            _velocity.x = value.x;
+            _velocity.z = value.z;
+            _jumpVelocity = value.y;
+        }
+    }
+
+    public float JumpVelocity
+    {
+        get => _jumpVelocity;
+        set => _jumpVelocity = value;
     }
 
     public Vector2 InputVector => _inputVector;
 
+    public Vector3 AppliedMovement
+    {
+        get => _appliedMovement;
+        set => _appliedMovement = value;
+    }
+
     public float Gravity => _gravity;
     public float InitialJumpVelocity => _initialJumpVelocity;
-
-    public Vector3 GroundNormal => _lastGroundNormal;
-    public bool IsOnSlope => _isOnSlope;
-    public float CurrentSlopeAngle => _currentSlopeAngle;
 
     public IPhysicsHandler PhysicsHandler => _physicsHandler;
     public IRotationHandler RotationHandler => _rotationHandler;
@@ -184,21 +176,19 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     public PlayerStateFactory States { get => _states; set => _states = value; }
     public PlayerBaseState CurrentState { get => _currentState; set => _currentState = value; }
     public bool IsAttacking => _isAttacking;
-    public bool IsGrounded => _charController.isGrounded;
+
+    // 🔥 Grounded — raw từ CharacterController
+    public bool IsGroundedRaw => _charController.isGrounded;
+
+    // 🔥 Grounded — stable (3 frame liên tiếp), dùng cho STATE LOGIC
+    public bool IsGroundedStable => _groundedFrameCount >= GROUNDED_STABLE_FRAMES;
+    public bool IsAirborneStable => _airborneFrameCount >= GROUNDED_STABLE_FRAMES;
 
     public CharacterEffect CharacterEffect { get => characterEffect; set => characterEffect = value; }
 
     #endregion
 
     #region ANIMATION HASHES
-
-    public readonly int IDVertical = Animator.StringToHash("Vertical");
-    public readonly int IDHorizontal = Animator.StringToHash("Horizontal");
-    public readonly int IDSpeed = Animator.StringToHash("Speed");
-    public readonly int IDJump = Animator.StringToHash("Jump");
-    public readonly int IDFall = Animator.StringToHash("Fall");
-    public readonly int IDDash = Animator.StringToHash("Dash");
-    public readonly int IDDashBack = Animator.StringToHash("DashBack");
 
     public readonly int ID_Idle = Animator.StringToHash("HumanM@Idle01");
     public readonly int Anim_Run_F = Animator.StringToHash("HumanM@Run01_Forward");
@@ -217,14 +207,20 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     public readonly int Anim_DashBack = Animator.StringToHash("DashBack");
 
     #endregion
-    #region Detection
+
+    #region DETECTION
+
     [SerializeField] private CombatDetection combatDetection;
+    public CombatDetection CombatDetection => combatDetection;
+
     #endregion
+
     #region EVENTS
 
     public event Action<AttackType> OnPlayerSkillCast;
     public void RaiseSkillCast(AttackType skillType) => OnPlayerSkillCast?.Invoke(skillType);
-
+    public int GetGroundedFrameCount() => _groundedFrameCount;
+    public int GetAirborneFrameCount() => _airborneFrameCount;
     protected override void OnEnable()
     {
         base.OnEnable();
@@ -270,22 +266,19 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
         CurrentState = States.Grounded();
         CurrentState.EnterState();
 
-        _wasGroundedLastFrame = _charController.isGrounded;
-
-        if (Animator != null)
-        {
-            Animator.applyRootMotion = true;
-        }
+  
     }
 
     private void Update()
     {
         ReadInput();
         UpdateTimers();
-        UpdateStateMachine();
-        HandleRotation();
+        UpdateFrameCounters();       // 🔥 Chạy TRƯỚC state machine
+
+        CurrentState?.UpdateStates();
+
+        ApplyGravity();
         ApplyMovement();
-        CacheFrameState();
     }
 
     #endregion
@@ -311,27 +304,18 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private void InitializeServices()
     {
         _physicsHandler = new GravityHandler(_gravity, GravityScaling, FallClamp);
-
         _rotationHandler = new ModelRotationHandler();
 
         _animationHandler = new MovementAnimationHandler(
             Animator,
             ID_Idle,
-            Anim_Run_F,
-            Anim_Run_B,
-            Anim_Run_L,
-            Anim_Run_R,
-            Anim_Run_FL,
-            Anim_Run_FR,
-            Anim_Run_BL,
-            Anim_Run_BR);
+            Anim_Run_F, Anim_Run_B, Anim_Run_L, Anim_Run_R,
+            Anim_Run_FL, Anim_Run_FR, Anim_Run_BL, Anim_Run_BR);
 
         _inputHandler = new CameraRelativeInputHandler(MainCamera, _playerInputs);
 
         _groundMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack);
         _airMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack * 1.5f);
-
-        _decelerationHandler = new ResponsiveDecelerationHandler(RunMaxSpeed, TRelease);
     }
 
     private void ComputePhysicsConstants()
@@ -347,101 +331,103 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private void ReadInput()
     {
         if (_inputHandler != null)
-        {
             _inputVector = _inputHandler.ReadMovementInput();
+    }
+
+    private void UpdateTimers()
+    {
+        // Jump buffer
+        if (_playerInputs != null && _playerInputs.JumpHeld)
+            _jumpBufferCounter = JumpBufferTime;
+        else
+            _jumpBufferCounter = Mathf.Max(0f, _jumpBufferCounter - Time.deltaTime);
+
+        // Coyote
+        if (_charController.isGrounded)
+            _coyoteCounter = CoyoteTime;
+        else
+            _coyoteCounter = Mathf.Max(0f, _coyoteCounter - Time.deltaTime);
+
+        // Dash cooldown
+        if (_dashCooldownTimer > 0f)
+            _dashCooldownTimer -= Time.deltaTime;
+    }
+
+    private void UpdateFrameCounters()
+    {
+        if (_charController.isGrounded)
+        {
+            _groundedFrameCount++;
+            _airborneFrameCount = 0;
         }
-    }
-
-    private void UpdateStateMachine()
-    {
-        CurrentState?.UpdateStates();
-    }
-
-    private void CacheFrameState()
-    {
-        _wasGroundedLastFrame = _charController.isGrounded;
+        else
+        {
+            _airborneFrameCount++;
+            _groundedFrameCount = 0;
+        }
     }
 
     #endregion
 
-    #region TIMERS
+    #region GROUND STATE RESOLUTION
 
-    private void UpdateTimers()
+    /// <summary>
+    /// 🔥 NGUỒN CHÂN LÝ DUY NHẤT.
+    /// Mọi state gọi hàm này khi cần thoát — không tự check isGrounded.
+    /// </summary>
+    public PlayerBaseState ResolveGroundState()
     {
-        UpdateJumpBuffer();
-        UpdateCoyoteTime();
-        UpdateDashCooldown();
-    }
-
-    private void UpdateJumpBuffer()
-    {
-        if (_playerInputs != null && _playerInputs.JumpHeld)
-        {
-            _jumpBufferCounter = JumpBufferTime;
-            return;
-        }
-
-        _jumpBufferCounter = Mathf.Max(0f, _jumpBufferCounter - Time.deltaTime);
-    }
-
-    private void UpdateCoyoteTime()
-    {
+        // 🔥 AGGRESSIVE CHECK: If CharController.isGrounded = true, player SHOULD be grounded
+        // Don't worry too much about velocity - if player is on ground, they're grounded
         if (_charController.isGrounded)
         {
-            _coyoteCounter = CoyoteTime;
+            // Allow small upward velocity from attack animations
+            if (_jumpVelocity < 3f)
+                return States.Grounded();
+
+            // Even with higher velocity, if grounded, still return Grounded
+            // (player will auto-correct via gravity next frame)
+            if (_jumpVelocity < 5f && IsGroundedStable)
+                return States.Grounded();
         }
-        else
-        {
-            _coyoteCounter = Mathf.Max(0f, _coyoteCounter - Time.deltaTime);
-        }
+
+        // 🔥 PRIORITY 2: IsGroundedStable (player was grounded for 3+ frames)
+        if (IsGroundedStable) 
+            return States.Grounded();
+
+        // 🔥 PRIORITY 3: Recently grounded (within 1 frame) + minimal velocity
+        if (_groundedFrameCount > 0 && _jumpVelocity < 1f)
+            return States.Grounded();
+
+        // Otherwise falling
+        return States.Fall();
     }
-
-    private void UpdateDashCooldown()
-    {
-        if (_dashCooldownTimer <= 0f)
-            return;
-
-        _dashCooldownTimer -= Time.deltaTime;
-    }
-
     #endregion
 
     #region MOVEMENT
 
-    private void ApplyMovement()
-    {
-        ApplyGravity();
-        ApplyGroundSnap();
-        MoveCharacter();
-        DetectGroundNormal();
-    }
-
+    /// <summary>
+    /// 🔥 Vật lý — DÙNG isGrounded RAW, KHÔNG dùng stable.
+    /// Stable chỉ dành cho state logic.
+    /// </summary>
     private void ApplyGravity()
     {
-        if (!_charController.isGrounded && _coyoteCounter > 0f && !_isDashing)
+        if (_charController.isGrounded && _jumpVelocity < 0f && !_isDashing)
         {
-            _velocity.y = -0.5f;
+            // Stick force — set một lần, không tích lũy
+            _jumpVelocity = -2f;
         }
         else
         {
-            _physicsHandler?.ApplyGravity(ref _velocity, _isDashing);
+            // Rơi tự do
+            _jumpVelocity += _gravity * GravityScaling * Time.deltaTime;
+            _jumpVelocity = Mathf.Max(_jumpVelocity, FallClamp);
         }
     }
 
-    private void ApplyGroundSnap()
+    private void ApplyMovement()
     {
-        if (!_charController.isGrounded)
-            return;
-
-        if (_velocity.y <= 0.01f)
-        {
-            _physicsHandler?.ApplyGroundSnap(ref _velocity);
-        }
-    }
-
-    private void MoveCharacter()
-    {
-        // 1. Tìm Provider có độ ưu tiên cao nhất
+        // Tìm provider có priority cao nhất
         IVelocityProvider bestProvider = null;
         int highestPriority = -1;
 
@@ -455,70 +441,53 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             }
         }
 
-        // 2. Nếu có Velocity Provider hoạt động (Dash / Combo Step / Jump)
         if (bestProvider != null)
         {
-            Vector3 moveStep = bestProvider.GetVelocityModifier();
-            _charController.Move(moveStep);
+            // 🔥 FIX: GetVelocityModifier() trả về VELOCITY (units/sec)
+            // Phải nhân Time.deltaTime để chuyển thành displacement cho Move()
+            Vector3 motion = bestProvider.GetVelocityModifier() * Time.deltaTime;
+            _charController.Move(motion);
             _velocity = Vector3.zero;
-        }
-        // 3. Di chuyển vật lý mặc định
-        else
-        {
-            _charController.Move(_velocity * Time.deltaTime);
-            _velocity.x = Mathf.MoveTowards(_velocity.x, 0, Friction * Time.deltaTime);
-            _velocity.z = Mathf.MoveTowards(_velocity.z, 0, Friction * Time.deltaTime);
-        }
-    }
-
-    private void DetectGroundNormal()
-    {
-        if (!_charController.isGrounded)
-        {
-            _isOnSlope = false;
+            _appliedMovement = Vector3.zero;
             return;
         }
 
-        RaycastHit hit;
-        Vector3 rayStart = transform.position + Vector3.up * 0.1f;
+        Vector3 normalMotion = _appliedMovement + new Vector3(0f, _jumpVelocity, 0f);
+        _charController.Move(normalMotion * Time.deltaTime);
 
-        if (!Physics.Raycast(rayStart, Vector3.down, out hit, SlopeCheckDistance))
-            return;
+        _appliedMovement = Vector3.zero;
 
-        _lastGroundNormal = hit.normal;
-        _currentSlopeAngle = Vector3.Angle(_lastGroundNormal, Vector3.up);
-
-        _isOnSlope = _currentSlopeAngle > 0.1f && _currentSlopeAngle < MaxSlopeAngle;
+        _velocity.x = Mathf.MoveTowards(_velocity.x, 0f, Friction * Time.deltaTime);
+        _velocity.z = Mathf.MoveTowards(_velocity.z, 0f, Friction * Time.deltaTime);
     }
 
     #endregion
 
     #region ROTATION
 
-    private void HandleRotation()
+    public void RotateModel(Vector3 direction)
     {
-        if (CurrentState is PlayerDashState)
-            return;
+        if (Model == null || _rotationLocked) return;
+        if (direction.sqrMagnitude < 0.001f) return;
 
-        if (_rotationLocked)
-            return;
+        Model.rotation = Quaternion.LookRotation(direction.normalized);
+    }
 
-        if (_inputVector.sqrMagnitude <= 0.01f)
-            return;
+    public void RotateTowardDirection(Vector3 direction, float speed)
+    {
+        if (Model == null || _rotationLocked) return;
+        if (direction.sqrMagnitude < 0.001f) return;
+
+        _rotationHandler?.RotateTowardDirection(Model, direction, speed);
+    }
+
+    public void HandleRotation()
+    {
+        if (_rotationLocked) return;
+        if (_inputVector.sqrMagnitude <= 0.01f) return;
 
         Vector3 moveDirection = GetLookDirection();
         _rotationHandler?.RotateTowardDirection(Model, moveDirection, RotationSpeed);
-    }
-
-    private void RotateModel(Vector3 direction)
-    {
-        if (Model == null || _rotationLocked)
-            return;
-
-        if (direction.sqrMagnitude < 0.001f)
-            return;
-
-        Model.rotation = Quaternion.LookRotation(direction.normalized);
     }
 
     #endregion
@@ -530,16 +499,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
         _playerInputs != null &&
         _playerInputs.HasCommand(BufferedAction.NormalAttack);
 
-    public bool TryElementalSkill =>
-        _skillCooldown <= 0 &&
-        _playerInputs != null &&
-        _playerInputs.HasCommand(BufferedAction.ElementalSkill);
-
-    public bool TryElementalBurst =>
-        _burstCooldown <= 0 &&
-        _playerInputs != null &&
-        _playerInputs.HasCommand(BufferedAction.ElementalBurst);
-
     public bool TryDash =>
         _dashCooldownTimer <= 0f &&
         _playerInputs != null &&
@@ -547,10 +506,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     public bool TryJump =>
         _playerInputs != null &&
-        _playerInputs.HasCommand(BufferedAction.Jump) &&
-        IsGrounded;
-
-    public CombatDetection CombatDetection { get => combatDetection;}
+        _playerInputs.HasCommand(BufferedAction.Jump);
 
     #endregion
 
@@ -564,14 +520,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     }
 
     public void PlayAnimation(int animHash, float transition = 0.1f)
-    {
-        _animationHandler?.PlayAnimation(animHash, transition);
-    }
-
-    public void PlayAnimation(string animName, float transition = 0.1f)
-    {
-        _animationHandler?.PlayAnimation(animName, transition);
-    }
+        => _animationHandler?.PlayAnimation(animHash, transition);
 
     #endregion
 
@@ -583,12 +532,8 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     public override void CauseDMG(GameObject target, AttackType attackType)
     {
-        Debug.Log($"{target.name} is being attacked with {attackType}");
-
         if (!DamageableData.Contains(target, out var receiver))
             return;
-
-        ApplyHit(attackType);
 
         receiver.TakeDMG(100, true);
 
@@ -598,28 +543,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             Vector3 dir = GetLookDirection();
             dir.y = 0;
             knockbackTarget.OnKnockback(dir, knockBackForce, knockBackcurve);
-
-            Debug.Log($"Knockback applied to {target.name} with direction {dir} and force {knockBackForce}f");
         }
 
         if (DMGPopUpGenerator.Instance != null)
-        {
             DMGPopUpGenerator.Instance.Create(target.transform.position, 100, false, true);
-        }
-    }
-
-    public void ApplyHit(AttackType type)
-    {
-        float hitValue = type switch
-        {
-            AttackType.NormalAttack => 0.04f,
-            AttackType.ChargedAttack => 0.08f,
-            AttackType.E => 0.09f,
-            AttackType.Q => 0.1f,
-            _ => 0.05f
-        };
-
-        // TODO: Sử dụng hitValue cho logic combat
     }
 
     public void ExecuteDamage(GameObject victim, AttackType attackType) => CauseDMG(victim, attackType);
@@ -645,7 +572,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
             cameraForward.y = 0f;
             cameraRight.y = 0f;
-
             cameraForward.Normalize();
             cameraRight.Normalize();
 
@@ -660,47 +586,44 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
         return forwardDir.normalized;
     }
 
-    public void SetVelocity(float x, float y, float z) => _velocity = new Vector3(x, y, z);
-    public void SetVelocityX(float x) => _velocity.x = x;
-    public void SetVelocityY(float y) => _velocity.y = y;
-    public void SetVelocityZ(float z) => _velocity.z = z;
-    public void AddVelocity(Vector3 delta) => _velocity += delta;
+    public void SetVelocity(float x, float y, float z)
+    {
+        _velocity.x = x;
+        _velocity.z = z;
+        _jumpVelocity = y;
+    }
 
     #endregion
-
-    #region DEBUG / GUI
-
     private void OnGUI()
     {
         if (CurrentState == null) return;
 
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {
-            fontSize = 16,
+            fontSize = 14,
             fontStyle = FontStyle.Bold,
             alignment = TextAnchor.MiddleLeft
         };
         style.normal.textColor = Color.yellow;
 
         string stateText = GetFormattedStateName(CurrentState);
+        string info = $"<b>State:</b> {stateText}\n" +
+                      $"<b>Raw:</b> {IsGroundedRaw} | " +
+                      $"<b>Stable:</b> {IsGroundedStable} | " +
+                      $"<b>G:</b> {_groundedFrameCount} | " +
+                      $"<b>A:</b> {_airborneFrameCount}\n" +
+                      $"<b>JumpVel:</b> {_jumpVelocity:F2} | " +
+                      $"<b>PosY:</b> {transform.position.y:F4}";
 
-        GUI.Box(new Rect(10, 10, 320, 50), $"<b>FSM State:</b> {stateText}", style);
+        GUI.Box(new Rect(10, 10, 500, 90), info, style);
     }
 
     private string GetFormattedStateName(PlayerBaseState state)
     {
         if (state == null) return "None";
-
         string name = state.GetType().Name;
-
         if (state.ChildState != null)
-        {
-            name += " ➔ " + GetFormattedStateName(state.ChildState);
-        }
-
+            name += " → " + GetFormattedStateName(state.ChildState);
         return name;
     }
-
-    #endregion
-    
 }
