@@ -23,7 +23,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
         _agent = GetComponent<NavMeshAgent>();
 
         Animator anim = GetComponentInChildren<Animator>();
-        _comboEngine = new ComboEngine(gameObject, anim, this);
+        _comboEngine = new ComboEngine(_controller, anim);
     }
 
     public void EnterAttackState(ComboSequence targetCombo)

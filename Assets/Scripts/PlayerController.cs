@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
+public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents,
+                                 ICombatActor, IDamageDealer, IParryCapable
 {
     #region CONFIGURATION
 
@@ -594,17 +595,45 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     }
 
     #endregion
+
+
+
+    #region ICombatActor / IDamageDealer / IParryCapable
+
+    public GameObject GameObject => gameObject;
+    public Transform Transform => transform;
+
+    public CharacterEffect Effect => characterEffect;
+    public bool IsPlayer => true;
+
+
+    public bool CanParry => true;
+
+    public void RegisterParryWindow(AttackData data, ActionWindow window)
+        => ParryRegistry.Register(gameObject, data, window);
+
+    public void UnregisterParry()
+        => ParryRegistry.Unregister(gameObject);
+
+    #endregion
+    #region GUI DEBUG
+    private GUIStyle _cachedStyle;
+
     private void OnGUI()
     {
         if (CurrentState == null) return;
 
-        GUIStyle style = new GUIStyle(GUI.skin.box)
+        // 🔥 Cache style — chỉ tạo 1 lần
+        if (_cachedStyle == null)
         {
-            fontSize = 14,
-            fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.MiddleLeft
-        };
-        style.normal.textColor = Color.yellow;
+            _cachedStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft
+            };
+            _cachedStyle.normal.textColor = Color.yellow;
+        }
 
         string stateText = GetFormattedStateName(CurrentState);
         string info = $"<b>State:</b> {stateText}\n" +
@@ -615,7 +644,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
                       $"<b>JumpVel:</b> {_jumpVelocity:F2} | " +
                       $"<b>PosY:</b> {transform.position.y:F4}";
 
-        GUI.Box(new Rect(10, 10, 500, 90), info, style);
+        GUI.Box(new Rect(10, 10, 500, 90), info, _cachedStyle);
     }
 
     private string GetFormattedStateName(PlayerBaseState state)
@@ -626,4 +655,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             name += " → " + GetFormattedStateName(state.ChildState);
         return name;
     }
+    #endregion
 }
+

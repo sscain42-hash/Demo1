@@ -1,13 +1,9 @@
-
-    // =========================================================
-    // BUFFERED INPUT
-    // =========================================================
-
-    public enum BufferedAction
-    {
-        Jump,
-        Dash,
-        NormalAttack,
-        ElementalSkill,
-        ElementalBurst
-    }
+public enum BufferedAction
+{
+    NormalAttack,
+    ElementalSkill,
+    ElementalBurst,
+    Dash,
+    Jump,
+    Parry,   // 🔥 THÊM
+}

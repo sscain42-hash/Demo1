@@ -8,7 +8,8 @@ using UnityEngine;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
-public class EnemyController : Damageable, IPooled<EnemyController>
+public class EnemyController : Damageable, IPooled<EnemyController>,
+                                ICombatActor, IDamageDealer
 {
     #region === Serialized ===
 
@@ -51,8 +52,8 @@ public class EnemyController : Damageable, IPooled<EnemyController>
         RuntimeConfig = Instantiate(baseConfig);
         _originalLocalPos = transform.localPosition;
         _animator = GetComponent<Animator>();
+        _enemyAttackRef = GetComponent<EnemyAttack>(); 
     }
-
     protected override void OnEnable()
     {
         base.OnEnable();
@@ -129,14 +130,22 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     {
         if (!DamageableData.Contains(target, out var receiver)) return;
 
+        // 🔥 PARRY CHECK — trước khi trừ máu
+        var parryReceiver = target.GetComponent<IParryReceiver>();
+        if (parryReceiver != null && parryReceiver.TryParry(gameObject))
+        {
+            Debug.Log($"[EnemyController] '{name}' bị PARRY bởi '{target.name}'!");
+            return; // Parry thành công → không gây damage
+        }
+
         int damage = CalculateDamage(RuntimeConfig.GetATK(), out bool isCrit);
 
         receiver.TakeDMG(damage, isCrit);
 
         DMGPopUpGenerator.Instance.Create(transform.position, damage, isCrit, true);
-        Debug.LogError($"[EnemyController] '{name}' caused {damage} damage to '{target.name}' with attack type '{type}' (CRIT: {isCrit}).");
+        Debug.Log($"[EnemyController] '{name}' caused {damage} damage to '{target.name}' (CRIT: {isCrit}).");
     }
-
+   
     private int CalculateDamage(float percent, out bool isCrit)
     {
         if (RuntimeConfig == null)
@@ -214,6 +223,34 @@ public class EnemyController : Damageable, IPooled<EnemyController>
     #endregion
 
     public Action<EnemyController> ReleaseCallback { get; set; }
+    #region ICombatActor / IDamageDealer
 
+    public GameObject GameObject => gameObject;
+    public Transform Transform => transform;
+
+    // Enemy dùng Animator.transform làm Model, hoặc transform gốc nếu chưa có Animator
+    public Transform Model => Animator != null ? Animator.transform : transform;
+
+    // Enemy chưa có CharacterEffect — trả null, ComboEngine sẽ bỏ qua VFX
+    [SerializeField] private CharacterEffect combatEffect;
+    public CharacterEffect Effect => combatEffect;
+
+    public bool IsPlayer => false;
+
+
+    [SerializeField] private EnemyAttack _enemyAttackRef;
+    public void ExecuteDamage(GameObject victim, AttackType type)
+    {
+        if (_enemyAttackRef != null)
+            _enemyAttackRef.ExecuteDamage(victim, type);
+        else
+            CauseDMG(victim, type); // fallback
+    }
+
+    // SwordTransform — nếu Enemy có kiếm, thêm field này
+    [SerializeField] private Transform swordTransform;
+    public Transform SwordTransform => swordTransform;
+
+    #endregion
 
 }

@@ -119,6 +119,7 @@ public partial class PlayerInputs : MonoBehaviour
         _input.Player.NormalAttack.performed += OnAttackPerformed;
         _input.Player.ElementalSkill.performed += OnSkillPerformed;
         _input.Player.ElementalBurst.performed += OnBurstPerformed;
+        _input.Player.Parry.performed += OnParry;
     }
 
     private void UnregisterGameplayInputs()
@@ -136,6 +137,7 @@ public partial class PlayerInputs : MonoBehaviour
         _input.Player.NormalAttack.performed -= OnAttackPerformed;
         _input.Player.ElementalSkill.performed -= OnSkillPerformed;
         _input.Player.ElementalBurst.performed -= OnBurstPerformed;
+        _input.Player.Parry.performed -= OnParry;
     }
 
     // --- Handlers ---
@@ -156,4 +158,5 @@ public partial class PlayerInputs : MonoBehaviour
     private void OnAttackPerformed(InputAction.CallbackContext ctx) => BufferAction(BufferedAction.NormalAttack);
     private void OnSkillPerformed(InputAction.CallbackContext ctx) => BufferAction(BufferedAction.ElementalSkill);
     private void OnBurstPerformed(InputAction.CallbackContext ctx) => BufferAction(BufferedAction.ElementalBurst);
+    private void OnParry(InputAction.CallbackContext ctx) => BufferAction(BufferedAction.Parry);
 }

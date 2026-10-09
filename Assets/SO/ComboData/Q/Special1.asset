@@ -83,15 +83,15 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: Step
-    startTime: 0.22222222
-    endTime: 0.33806187
+    startTime: 0
+    endTime: 0.22222222
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    cursorStep: 1
-    targetDistance: {x: 0, y: 0, z: 0.1}
+    cursorStep: 0
+    targetDistance: {x: 0, y: 0, z: 10}
     hitBoxSize: {x: 1.5, y: 1.5, z: 2}
     hitBoxOffset: {x: 0, y: 1, z: 1.5}
     targetLayer:
