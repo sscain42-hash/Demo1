@@ -16,13 +16,7 @@ MonoBehaviour:
   Level: 1
   CurrentEXP: 0
   Infor: 
-  NormalAttackMultiplier:
-  - MultiplierTypeName: 
-    Multiplier: []
-  ChargedAttackMultiplier: []
-  SkillMultiplier: []
-  SpecialMultiplier: []
-  MaxHP: 333
+  MaxHP: 2147483647
   ATK: 100
   CRITRate: 5
   CRITDMG: 50

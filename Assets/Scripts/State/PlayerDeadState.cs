@@ -7,7 +7,7 @@ public class PlayerDeadState : PlayerBaseState
     {
         _isRootState = true;
     }
-
+    public override StateCategory Category => StateCategory.Override;
     public override void EnterState()
     {
         // TODO: revival logic

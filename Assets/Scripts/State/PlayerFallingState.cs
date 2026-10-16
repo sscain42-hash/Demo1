@@ -4,7 +4,7 @@ public class PlayerFallState : PlayerBaseState
 {
     private float _fallDurationTimer;
     private const float MAX_FALL_DURATION = 10f;
-
+    public override StateCategory Category => StateCategory.Locomotion;
     public PlayerFallState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {

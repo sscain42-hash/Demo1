@@ -103,7 +103,10 @@ public abstract class ComboEngineBase
             ForcePlayAnimation(CurrentAttackData.animationName);
         }
     }
-
+    public void ChangeAttackData(AttackData newData)
+    {
+        ChangeAttackData(newData, AttackType.NormalAttack);
+    }
     /// <summary>
     /// 🔥 FORCE RESTART ANIMATION — đảm bảo animation chạy lại từ frame 0.
     /// 

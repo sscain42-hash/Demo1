@@ -9,7 +9,7 @@ public class PlayerParryMovementState : PlayerBaseState
     private ParryMovementType _movementType;
     private Vector3 _movementVelocity;
     private AnimationCurve _speedCurve;
-
+    public override StateCategory Category => StateCategory.Combat;
     private float _elapsedTime;
     private float _duration;
 

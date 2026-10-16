@@ -3,7 +3,7 @@ using UnityEngine;
 public class PlayerAttackState : PlayerBaseState
 {
     private readonly PlayerSkillManager _skillManager;
-
+    public override StateCategory Category => StateCategory.Combat;
     public PlayerAttackState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {

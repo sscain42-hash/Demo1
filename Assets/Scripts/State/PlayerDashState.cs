@@ -4,7 +4,7 @@ public class PlayerDashState : PlayerBaseState
 {
     private float _timer;
     private Vector3 _dashVelocity;
-
+    public override StateCategory Category => StateCategory.Locomotion;
     public PlayerDashState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {

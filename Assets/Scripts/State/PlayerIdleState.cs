@@ -2,6 +2,7 @@
 
 public class PlayerIdleState : PlayerBaseState
 {
+    public override StateCategory Category => StateCategory.Locomotion;
     public PlayerIdleState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory) { }
 

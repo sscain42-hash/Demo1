@@ -18,6 +18,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
     private const float EXIT_NORMALIZED_TIME = 0.95f;
 
     public AttackData CurrentAttackData => _comboEngine?.CurrentAttackData;
+
     public AttackType CurrentRuntimeAttackType => AttackType.NormalAttack;
 
     private void Awake()
@@ -83,7 +84,7 @@ public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider
 
         if (CurrentComboSeq != null && CurrentComboIndex < CurrentComboSeq.attacks.Count)
         {
-            _comboEngine.ChangeAttackData(CurrentComboSeq.attacks[CurrentComboIndex], CurrentRuntimeAttackType);
+            _comboEngine.ChangeAttackData(CurrentComboSeq.attacks[CurrentComboIndex]);
         }
     }
 

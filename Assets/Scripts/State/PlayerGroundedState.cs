@@ -2,6 +2,7 @@
 
 public class PlayerGroundedState : PlayerBaseState
 {
+    public override StateCategory Category => StateCategory.Locomotion;
     public PlayerGroundedState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {

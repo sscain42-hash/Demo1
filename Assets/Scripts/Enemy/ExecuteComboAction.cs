@@ -8,7 +8,7 @@ namespace AMG.BT_Nodes
     [Description("Chạy chuỗi combo liên tục. Luôn trả về Success khi combo xong để BT loop lại — trừ khi Player chết.")]
     public class ExecuteComboAction : ActionTask<EnemyController>
     {
-        public AttackType attackType = AttackType.NormalAttack;
+ 
 
         [RequiredField]
         public BBParameter<ComboSequence> targetComboSequence;
@@ -21,7 +21,7 @@ namespace AMG.BT_Nodes
         private bool _isComboActive;
         private int _totalAttacksInSequence;
 
-        protected override string info => $"Execute Combo Pure: {attackType}";
+
 
         protected override string OnInit()
         {
@@ -31,22 +31,12 @@ namespace AMG.BT_Nodes
 
         protected override void OnExecute()
         {
-            if (targetComboSequence.value == null)
-            {
-                EndAction(false);
-                return;
-            }
-
-            if (_targetTransform.value == null)
-            {
-                EndAction(false);
-                return;
-            }
+            if (targetComboSequence.value == null) { EndAction(false); return; }
+            if (_targetTransform.value == null) { EndAction(false); return; }
 
             _isComboActive = true;
-            _totalAttacksInSequence = targetComboSequence.value.attacks != null
-                ? targetComboSequence.value.attacks.Count
-                : 0;
+
+          
 
             _enemyAttack.EnterAttackState(targetComboSequence.value);
         }

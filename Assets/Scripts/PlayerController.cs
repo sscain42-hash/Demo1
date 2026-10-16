@@ -5,9 +5,10 @@ using Combat.Parry;
 
 [DefaultExecutionOrder(-100)]
 [RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(ParryController))]
-public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents,
-                                 ICombatActor, IDamageDealer, IParryCapable, IParryReceiver
+public class PlayerController : CharacterActor,
+                                IPlayerCombatEvents,
+                                IParryCapable,
+                                IParryReceiver
 {
     #region CONFIGURATION
 
@@ -38,38 +39,24 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     [Header("Movement & Rotation")]
     [field: SerializeField] public float RotationSpeed { get; private set; } = 15f;
     [field: SerializeField] public float AirControl { get; private set; } = 5f;
-    [field: SerializeField] public Transform Model { get; private set; }
     [field: SerializeField] public Transform MainCamera { get; private set; }
-    [field: SerializeField] public Animator Animator { get; private set; }
 
     [Header("Responsive Movement")]
     [field: SerializeField] public float TAttack { get; private set; } = 0.1f;
     [field: SerializeField] public float TRelease { get; private set; } = 0.15f;
 
-    [Header("Knockback")]
-    public float knockBackForce = 15f;
-    public AnimationCurve knockBackcurve;
-
     [Header("References")]
-    public GameObject _weaponHitbox;
-    public Transform SwordTransform;
-
-    [SerializeField] private CharacterEffect characterEffect;
     [SerializeField] private PlayerSkillManager skillManager;
-
     public SO_PlayerConfiguration PlayerConfig;
 
-    [Header("Hit Reaction Settings")]
-    [field: SerializeField] public float HitStunDuration { get; private set; } = 0.5f;
+    [Header("Hit Reaction")]
     [field: SerializeField] public float DashCancelStartTime { get; private set; } = 0.15f;
-    [field: SerializeField] public float HitReactionIFrameDuration { get; private set; } = 0.5f;
 
     #endregion
 
     #region COMPONENTS
 
     private CharacterController _charController;
-    private ParryController _parryController;
 
     #endregion
 
@@ -118,9 +105,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     private float _hitReactionIFrameTimer;
 
-    // 🔥 PARry MOVEMENT FLAG — Controller biết để tắt gravity, xử lý movement riêng
     private bool _isInParryMovement;
     private Vector3 _parryMovementVelocity;
+
+    private Combat.Parry.ParryMovementType _pendingParryMovement;
 
     #endregion
 
@@ -138,11 +126,11 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     public void UnregisterVelocityProvider(IVelocityProvider provider) => _velocityProviders.Remove(provider);
 
     #endregion
+  
 
     #region PROPERTIES
 
     public CharacterController CharController => _charController;
-    public ParryController ParryController => _parryController;
 
     public Vector3 Velocity
     {
@@ -199,10 +187,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     public bool IsGroundedStable => _groundedFrameCount >= GROUNDED_STABLE_FRAMES;
     public bool IsAirborneStable => _airborneFrameCount >= GROUNDED_STABLE_FRAMES;
 
-    public CharacterEffect CharacterEffect { get => characterEffect; set => characterEffect = value; }
     public float HitReactionIFrameTimer => _hitReactionIFrameTimer;
-
-    // 🔥 PUBLIC API cho ParryMovementState
     public bool IsInParryMovement => _isInParryMovement;
 
     #endregion
@@ -225,36 +210,31 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     public readonly int Anim_Dash = Animator.StringToHash("HumanM@Dash01");
     public readonly int Anim_DashBack = Animator.StringToHash("DashBack");
     public readonly int HitReactionAnimName = Animator.StringToHash("KnockBack");
-    public readonly int Anim_Parry = Animator.StringToHash("HumanM@Parry01"); // 🔥 THÊM
+    public readonly int Anim_Parry = Animator.StringToHash("HumanM@Parry01");
 
-    // 🔥 Map parry movement → hash
-    private readonly System.Collections.Generic.Dictionary<Combat.Parry.ParryMovementType, int> _parryMovementHashes
-        = new System.Collections.Generic.Dictionary<Combat.Parry.ParryMovementType, int>
+    private readonly Dictionary<Combat.Parry.ParryMovementType, int> _parryMovementHashes
+        = new Dictionary<Combat.Parry.ParryMovementType, int>
     {
-    { Combat.Parry.ParryMovementType.Forward,       Animator.StringToHash("HumanM@Parry_Jump_F") },
-    { Combat.Parry.ParryMovementType.Backward,      Animator.StringToHash("HumanM@Parry_Backflip") },
-    { Combat.Parry.ParryMovementType.Left,          Animator.StringToHash("HumanM@Parry_Jump_L") },
-    { Combat.Parry.ParryMovementType.Right,         Animator.StringToHash("HumanM@Parry_Jump_R") },
-    { Combat.Parry.ParryMovementType.ForwardLeft,   Animator.StringToHash("HumanM@Parry_Jump_FL") },
-    { Combat.Parry.ParryMovementType.ForwardRight,  Animator.StringToHash("HumanM@Parry_Jump_FR") },
-    { Combat.Parry.ParryMovementType.BackwardLeft,  Animator.StringToHash("HumanM@Parry_Jump_BL") },
-    { Combat.Parry.ParryMovementType.BackwardRight, Animator.StringToHash("HumanM@Parry_Jump_BR") },
+        { Combat.Parry.ParryMovementType.Forward,       Animator.StringToHash("HumanM@Parry_Jump_F") },
+        { Combat.Parry.ParryMovementType.Backward,      Animator.StringToHash("HumanM@Parry_Backflip") },
+        { Combat.Parry.ParryMovementType.Left,          Animator.StringToHash("HumanM@Parry_Jump_L") },
+        { Combat.Parry.ParryMovementType.Right,         Animator.StringToHash("HumanM@Parry_Jump_R") },
+        { Combat.Parry.ParryMovementType.ForwardLeft,   Animator.StringToHash("HumanM@Parry_Jump_FL") },
+        { Combat.Parry.ParryMovementType.ForwardRight,  Animator.StringToHash("HumanM@Parry_Jump_FR") },
+        { Combat.Parry.ParryMovementType.BackwardLeft,  Animator.StringToHash("HumanM@Parry_Jump_BL") },
+        { Combat.Parry.ParryMovementType.BackwardRight, Animator.StringToHash("HumanM@Parry_Jump_BR") },
     };
 
-    /// <summary>
-    /// 🔥 Trả về hash của parry movement.
-    /// Nếu không tìm thấy, trả về hash KHÔNG TỒN TẠI (không phải Dash).
-    /// </summary>
     public int GetParryMovementHash(Combat.Parry.ParryMovementType type)
     {
         if (_parryMovementHashes.TryGetValue(type, out int h))
             return h;
 
-        Debug.LogWarning($"[PlayerController] ParryMovement '{type}' không có hash — miss dictionary!");
+        Debug.LogWarning($"[PlayerController] ParryMovement '{type}' không có hash!");
         return -1;
     }
-    #endregion
 
+    #endregion
 
     #region DETECTION
 
@@ -300,8 +280,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     #region UNITY LIFECYCLE
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake(); // CharacterActor.Awake — init Health, Config, ParryController, ComboEngine
+
         InitializeComponents();
         InitializeReferences();
         ComputePhysicsConstants();
@@ -334,62 +316,88 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     #endregion
 
-    #region 🔥 PARRY MOVEMENT API — Dành cho PlayerParryMovementState
+    #region ABSTRACT IMPLEMENTATIONS (CharacterActor)
 
-    /// <summary>
-    /// 🔥 Bắt đầu parry movement — tắt gravity, dùng velocity riêng.
-    /// </summary>
+    public override bool IsPlayer => true;
+
+    public override Vector3 GetLookDirection()
+    {
+        if (_inputHandler == null)
+            return Model != null ? Model.forward : transform.forward;
+
+        Vector3 dir = _inputHandler.GetMovementDirection(_inputVector);
+        if (dir == Vector3.zero)
+            return Model != null ? Model.forward : transform.forward;
+        return dir;
+    }
+
+    public override Transform GetAttackTarget() => null;
+
+    protected override ComboEngineBase CreateComboEngine()
+        => new PlayerComboEngine(this, Animator);
+
+    protected override float GetDamageMultiplier(AttackType type) => 100f;
+
+    protected override bool CanTakeDamage()
+    {
+        if (CurrentState is PlayerDashState) return false;
+        if (CurrentState is PlayerParryMovementState) return false;
+        return true;
+    }
+
+    public override void TakeDMG(int damage, bool isCRIT)
+    {
+        if (!CanTakeDamage()) return;
+
+        base.TakeDMG(damage, isCRIT);
+        DMGPopUpGenerator.Instance?.Create(transform.position + Vector3.up * 1.5f, damage, isCRIT, false);
+
+        RequestState(StateRequestType.Hit);
+        _hitReactionIFrameTimer = HitReactionIFrameDuration;
+
+        ScreenShakeManager.Instance?.TriggerShake(isCRIT ? 0.5f : 0.3f);
+        HitStopSystem.Instance?.Trigger(0.05f, 0.1f);
+    }
+
+    #endregion
+
+    #region PARRY MOVEMENT API
+
     public void BeginParryMovement(Vector3 velocity)
     {
         _isInParryMovement = true;
         _parryMovementVelocity = velocity;
 
-        // Reset các nguồn lực khác
         _velocity = Vector3.zero;
         _jumpVelocity = 0f;
         _appliedMovement = Vector3.zero;
-
-        Debug.Log($"[PlayerController] BeginParryMovement — velocity: {velocity}");
     }
-    // 🔥 Field mới — lưu movement type đang chờ
-    private Combat.Parry.ParryMovementType _pendingParryMovement;
 
-    /// <summary>
-    /// Gọi từ PlayerParryState khi player chọn hướng — lưu data + request state.
-    /// </summary>
     public void RequestParryMovement(Combat.Parry.ParryMovementType type)
     {
         _pendingParryMovement = type;
-        RequestState(StateRequestType.ParryMovement);
-        Debug.Log($"[PlayerController] RequestParryMovement — {type}");
+
+        // FORCE — không qua priority check
+        _pendingRequest = StateRequestType.ParryMovement;
+        _pendingRequestSource = null;
     }
 
-    /// <summary>
-    /// Gọi từ PlayerParryMovementState.EnterState — đọc + clear.
-    /// </summary>
     public Combat.Parry.ParryMovementType ConsumePendingParryMovement()
     {
         var m = _pendingParryMovement;
         _pendingParryMovement = Combat.Parry.ParryMovementType.None;
         return m;
     }
-    /// <summary>
-    /// 🔥 Cập nhật velocity mỗi frame (nếu cần thiết, ví dụ khi có curve giảm dần).
-    /// </summary>
+
     public void UpdateParryMovementVelocity(Vector3 velocity)
     {
         _parryMovementVelocity = velocity;
     }
 
-    /// <summary>
-    /// 🔥 Kết thúc parry movement — bật lại gravity.
-    /// </summary>
     public void EndParryMovement()
     {
         _isInParryMovement = false;
         _parryMovementVelocity = Vector3.zero;
-
-        Debug.Log("[PlayerController] EndParryMovement");
     }
 
     #endregion
@@ -452,11 +460,8 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     private void HandleImplicitTransitions()
     {
-        // 🔥 Dùng skillManager.IsAttacking — đây là combo runtime state thật
-        // KHÔNG dùng Controller.IsAttacking (chỉ là attack lock, giữ true suốt state)
         if (CurrentState is PlayerAttackState && (skillManager == null || !skillManager.IsAttacking))
         {
-            Debug.Log("[PlayerController] Attack combo done → return to locomotion");
             SwitchState(ResolveGroundState());
             return;
         }
@@ -482,14 +487,17 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     private void HandleHitRequest(GameObject attacker)
     {
-        // Kiểm tra i-frame
-        if (CurrentState is PlayerDashState) return;
-        if (CurrentState is PlayerParryState) return;
-        if (CurrentState is PlayerParryMovementState) return; // 🔥 i-frame luôn
+        var category = CurrentState?.Category ?? StateCategory.Locomotion;
+
+        // Chỉ Override mới không bị hit interrupt
+        if (category == StateCategory.Override) return;
         if (CurrentState is PlayerDeadState) return;
 
-        // 🔥 KHÔNG gọi skillManager.ForceCancelCombo ở đây.
-        // SkillManager tự phát hiện state không phải Attack/Hit/Parry → tự cancel.
+        // Locomotion và Combat đều bị hit interrupt
+        // (trừ Dash — i-frame)
+        if (CurrentState is PlayerDashState) return;
+        if (CurrentState is PlayerParryState) return;      // parry window = i-frame
+        if (CurrentState is PlayerParryMovementState) return; // parry movement = i-frame
 
         ForceSwitchState(States.Hit());
     }
@@ -505,11 +513,13 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     private void HandleAttackStateRequest()
     {
-        if (CurrentState is PlayerAttackState) return;
-        if (CurrentState is PlayerHitState) return;
-        if (CurrentState is PlayerParryState) return;
-        if (CurrentState is PlayerParryMovementState) return;
-        if (CurrentState is PlayerDeadState) return;
+        var category = CurrentState?.Category ?? StateCategory.Locomotion;
+
+        // Combat không cho vào Attack (tránh override combo đang chạy)
+        if (category == StateCategory.Combat) return;
+
+        // Override không cho vào Attack
+        if (category == StateCategory.Override) return;
 
         SwitchState(States.Attack());
     }
@@ -517,7 +527,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private void HandleDashStateRequest()
     {
         if (!TryDash) return;
-        if (CurrentState is PlayerDeadState) return;
+
+        var category = CurrentState?.Category ?? StateCategory.Locomotion;
+
+        if (category == StateCategory.Override) return;
 
         SwitchState(States.Dash());
     }
@@ -525,7 +538,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private void HandleJumpStateRequest()
     {
         if (!TryJump) return;
-        if (CurrentState is PlayerDeadState) return;
+
+        var category = CurrentState?.Category ?? StateCategory.Locomotion;
+
+        if (category == StateCategory.Override) return;
 
         SwitchState(States.Jump());
     }
@@ -535,7 +551,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
         if (CurrentState is PlayerDeadState) return;
         if (CurrentState is PlayerHitState) return;
 
-        // 🔥 Dọn dẹp trước khi vào state
         skillManager?.ForceCancelCombo(false);
         _playerInputs?.ClearBuffer();
 
@@ -568,7 +583,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
     private void InitializeComponents()
     {
         _charController = GetComponent<CharacterController>();
-        _parryController = GetComponent<ParryController>();
 
         if (skillManager == null)
             skillManager = GetComponent<PlayerSkillManager>();
@@ -580,7 +594,7 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             MainCamera = Camera.main.transform;
 
         if (Animator == null)
-            Animator = GetComponentInChildren<Animator>();
+            animator = GetComponentInChildren<Animator>();
     }
 
     private void InitializeServices()
@@ -679,7 +693,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     private void ApplyGravity()
     {
-        // 🔥 Không áp dụng gravity trong lúc parry movement
         if (_isInParryMovement)
         {
             _jumpVelocity = 0f;
@@ -699,14 +712,12 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     private void ApplyMovement()
     {
-        // Priority 1: Parry movement (đã tắt gravity)
         if (_isInParryMovement)
         {
             _charController.Move(_parryMovementVelocity * Time.deltaTime);
             return;
         }
 
-        // Priority 2: Velocity providers (Lunge, ngoại lực)
         IVelocityProvider best = null;
         int bestPriority = int.MinValue;
         for (int i = 0; i < _velocityProviders.Count; i++)
@@ -723,12 +734,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
             return;
         }
 
-        // Priority 3: Movement từ state + gravity
         Vector3 motion = _appliedMovement + new Vector3(0f, _jumpVelocity, 0f);
         _charController.Move(motion * Time.deltaTime);
         _appliedMovement = Vector3.zero;
 
-        // Ma sát khi không có input
         _velocity.x = Mathf.MoveTowards(_velocity.x, 0f, Friction * Time.deltaTime);
         _velocity.z = Mathf.MoveTowards(_velocity.z, 0f, Friction * Time.deltaTime);
     }
@@ -796,66 +805,15 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     #endregion
 
-    #region COMBAT
+    #region COMBAT LOCKS
 
     public void SetAttackLock(bool value) => _isAttacking = value;
     public void SetRotationLock(bool value) => _rotationLocked = value;
     public void ResetDashCooldown() => _dashCooldownTimer = DashCooldown;
 
-    public override void CauseDMG(GameObject target, AttackType attackType)
-    {
-        if (!DamageableData.Contains(target, out var receiver))
-            return;
-
-        receiver.TakeDMG(100, true);
-
-        var knockbackTarget = target.GetComponent<IKnockbackable>();
-        if (knockbackTarget != null)
-        {
-            Vector3 dir = GetLookDirection();
-            dir.y = 0;
-            knockbackTarget.OnKnockback(dir, knockBackForce, knockBackcurve);
-        }
-    }
-
-    public override void TakeDMG(int damage, bool isCRIT)
-    {
-        if (CurrentState is PlayerDashState) return;
-        if (CurrentState is PlayerParryMovementState) return;  // 🔥 i-frame khi parry movement
-
-        if (CurrentState is PlayerParryState)
-        {
-            base.TakeDMG(damage, isCRIT);
-            DMGPopUpGenerator.Instance?.Create(transform.position + Vector3.up * 1.5f, damage, isCRIT, false);
-            return;
-        }
-
-        base.TakeDMG(damage, isCRIT);
-        DMGPopUpGenerator.Instance?.Create(transform.position + Vector3.up * 1.5f, damage, isCRIT, false);
-
-        RequestState(StateRequestType.Hit);
-        _hitReactionIFrameTimer = HitReactionIFrameDuration;
-
-        ScreenShakeManager.Instance?.TriggerShake(isCRIT ? 0.5f : 0.3f);
-        HitStopSystem.Instance?.Trigger(0.05f, 0.1f);
-    }
-
-    public void ExecuteDamage(GameObject victim, AttackType attackType) => CauseDMG(victim, attackType);
-
     #endregion
 
     #region UTILITIES
-
-    public Vector3 GetLookDirection()
-    {
-        if (_inputHandler == null)
-            return Model != null ? Model.forward : transform.forward;
-
-        Vector3 dir = _inputHandler.GetMovementDirection(_inputVector);
-        if (dir == Vector3.zero)
-            return Model != null ? Model.forward : transform.forward;
-        return dir;
-    }
 
     public Vector3 GetHorizontalDashDirection()
     {
@@ -887,40 +845,6 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
         _velocity.x = x;
         _velocity.z = z;
         _jumpVelocity = y;
-    }
-
-    #endregion
-
-    #region ICombatActor / IDamageDealer / IParryCapable
-
-    public GameObject GameObject => gameObject;
-    public Transform Transform => transform;
-
-    public CharacterEffect Effect => characterEffect;
-    public bool IsPlayer => true;
-
-    public bool CanParry => true;
-
-    public void RegisterParryWindow(AttackData data, ActionWindow window) { }
-    public void UnregisterParry() { }
-
-    #endregion
-
-    #region IParryReceiver
-
-    public bool TryParry(GameObject attacker)
-    {
-        if (_parryController == null) return false;
-        return _parryController.TryParry(attacker);
-    }
-
-    #endregion
-
-    #region PARRY INTERRUPT
-
-    public void TryEnterParryState()
-    {
-        RequestState(StateRequestType.Parry);
     }
 
     #endregion
@@ -963,12 +887,10 @@ public class PlayerController : Damageable, IDamageProvider, IPlayerCombatEvents
 
     #endregion
 
-    #region HIT REACTION (Legacy)
+    #region LEGACY
 
-    public void TryEnterHitState()
-    {
-        RequestState(StateRequestType.Hit);
-    }
+    public void TryEnterParryState() => RequestState(StateRequestType.Parry);
+    public void TryEnterHitState() => RequestState(StateRequestType.Hit);
 
     #endregion
 }

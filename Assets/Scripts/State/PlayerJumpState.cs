@@ -3,7 +3,7 @@
 public class PlayerJumpState : PlayerBaseState
 {
     private const float JUMP_RELEASE_MULTIPLIER = 0.5f;
-
+    public override StateCategory Category => StateCategory.Locomotion;
     public PlayerJumpState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {

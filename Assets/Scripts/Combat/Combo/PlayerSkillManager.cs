@@ -146,21 +146,69 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         UpdateParryAnimation();
         HandleCamera();
 
-        // 🔥 Chỉ update combo engine khi ĐANG trong PlayerAttackState
+        // Combo engine update khi đang attack
         if (IsAttacking && _ctx.CurrentState is PlayerAttackState)
         {
             _comboEngine.UpdateWindows();
 
             if (_comboEngine.IsAnimationFinished())
             {
-                Debug.Log("[PlayerSkillManager] Animation finished — combo done");
                 FinishComboAttack(_activeState);
             }
         }
-        // 🔥 BỎ HOÀN TOÀN đoạn else-if warning.
-        // Combo lifecycle giờ do PlayerAttackState quản lý.
 
-        ProcessInputAsRequests();
+        // 🔥 INPUT — chia 2 nhánh theo category
+        var category = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
+
+        if (category == StateCategory.Locomotion)
+        {
+            // Nhận input bình thường — start combo mới
+            ProcessLocomotionInput();
+        }
+        else if (category == StateCategory.Combat && _ctx.CurrentState is PlayerAttackState)
+        {
+            // Đang attack — xử lý combo window / cancel
+            HandleComboInput();
+        }
+        // Override → không nhận input
+    }
+
+    private void ProcessLocomotionInput()
+    {
+        if (playerInputs == null) return;
+
+        // PARRY
+        if (playerInputs.HasCommand(BufferedAction.Parry))
+        {
+            playerInputs.ConsumeCommand(BufferedAction.Parry);
+            _ctx.RequestState(StateRequestType.Parry);
+            _ctx.ParryController?.OnParryInput();
+            OnAttackRequested?.Invoke();
+            return;
+        }
+
+        // ATTACK
+        if (!IsAttacking)
+        {
+            if (playerInputs.HasCommand(BufferedAction.NormalAttack))
+            {
+                _pendingComboType = ComboType.Normal;
+                _ctx.RequestState(StateRequestType.Attack);
+                OnAttackRequested?.Invoke();
+            }
+            else if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
+            {
+                _pendingComboType = ComboType.SkillE;
+                _ctx.RequestState(StateRequestType.Attack);
+                OnAttackRequested?.Invoke();
+            }
+            else if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
+            {
+                _pendingComboType = ComboType.BurstQ;
+                _ctx.RequestState(StateRequestType.Attack);
+                OnAttackRequested?.Invoke();
+            }
+        }
     }
 
     private void FinishComboAttack(ComboState state)
@@ -257,11 +305,14 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (playerInputs == null) return;
 
-        // ParryMovement là state khoá — không nhận input
-        if (_ctx.CurrentState is PlayerParryMovementState) return;
-        if (_ctx.CurrentState is PlayerHitState) return;
-        if (_ctx.CurrentState is PlayerParryState) return;
+        // Lấy category của state hiện tại
+        var category = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
 
+        // Combat và Override không nhận input mới (trừ trong state riêng)
+        if (category == StateCategory.Combat) return;
+        if (category == StateCategory.Override) return;
+
+        // Locomotion → nhận mọi input
         // ═══ PARRY — ưu tiên cao nhất ═══
         if (playerInputs.HasCommand(BufferedAction.Parry))
         {
@@ -272,7 +323,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             return;
         }
 
-        // ═══ ATTACK — CHỈ request state, KHÔNG start combo ═══
+        // ═══ ATTACK ═══
         if (!IsAttacking)
         {
             if (playerInputs.HasCommand(BufferedAction.NormalAttack))
@@ -293,11 +344,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
             }
-            return;
         }
-
-        // ═══ Đang attack — xử lý cancel / combo window ═══
-        HandleComboInput();
     }
 
     /// <summary>

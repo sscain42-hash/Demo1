@@ -7175,33 +7175,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ea719ecb9464254297c48181da8bf4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  <Blackboard>k__BackingField: {fileID: 1421492200}
   baseConfig: {fileID: 11400000, guid: a6f9afc958f88d84b9a4571c59a1d91e, type: 2}
-  mainLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  ignoreLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  OnTakeDamageEvent:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1421492205}
-        m_TargetAssemblyTypeName: EffectManager, Assembly-CSharp
-        m_MethodName: PlayEffect
-        m_Mode: 2
-        m_Arguments:
-          m_ObjectArgument: {fileID: 11400000, guid: 817128a3576f2a144b48259b25e80779, type: 2}
-          m_ObjectArgumentAssemblyTypeName: MaterialEffectProfile, Assembly-CSharp
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  OnDieEvent:
-    m_PersistentCalls:
-      m_Calls: []
+  animator: {fileID: 1421492220}
+  model: {fileID: 1421492211}
   swordTransform: {fileID: 1598890717}
+  characterEffect: {fileID: 1421492197}
+  <HitStunDuration>k__BackingField: 0.5
+  <HitReactionIFrameDuration>k__BackingField: 0.5
   knockBackForce: 5
   knockBackcurve:
     serializedVersion: 2
@@ -7227,6 +7207,31 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  <Blackboard>k__BackingField: {fileID: 1421492200}
+  mainLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  ignoreLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  OnTakeDamageUnityEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1421492205}
+        m_TargetAssemblyTypeName: EffectManager, Assembly-CSharp
+        m_MethodName: PlayEffect
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 11400000, guid: 817128a3576f2a144b48259b25e80779, type: 2}
+          m_ObjectArgumentAssemblyTypeName: MaterialEffectProfile, Assembly-CSharp
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnDieUnityEvent:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &1421492205
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7266,7 +7271,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: NodeCanvas::NodeCanvas.StateMachines.FSMOwner
   _serializedExposedParameters: []
   _boundGraphSerialization: '{"type":"NodeCanvas.StateMachines.FSM","nodes":[{"_actionList":{"executionMode":1,"actions":[{"layerIndex":{},"stateName":{"_value":"HumanM@Idle01"},"$type":"NodeCanvas.Tasks.Actions.MecanimPlayAnimation"}]},"_color":{"r":1.0,"g":0.42,"b":0.32,"a":1.0},"_position":{"x":1357.313,"y":384.8633},"$type":"NodeCanvas.StateMachines.ActionState","$id":"0"},{"_actionList":{"executionMode":1,"actions":[{"waitTime":{"_value":1.0},"$type":"NodeCanvas.Tasks.Actions.Wait"}]},"_color":{"r":1.0,"g":0.42,"b":0.32,"a":1.0},"_position":{"x":1232.373,"y":485.1674},"$type":"NodeCanvas.StateMachines.ActionState","$id":"1"},{"_actionList":{"executionMode":1,"actions":[{"targetComboSequence":{"_value":1},"_targetTransform":{"_name":"Target","_targetVariableID":"c2ee90b9-6fcd-4b30-90da-451ffa131015"},"$type":"AMG.BT_Nodes.ExecuteComboAction"}]},"_transitionEvaluation":1,"_color":{"r":1.0,"g":0.42,"b":0.32,"a":1.0},"_name":"Normal
-    Attack","_position":{"x":1214.134,"y":599.1683},"$type":"NodeCanvas.StateMachines.ActionState","$id":"2"}],"connections":[{"_condition":{"trigger":{"_name":"Target","_targetVariableID":"c2ee90b9-6fcd-4b30-90da-451ffa131015"},"$type":"NodeCanvas.Tasks.Conditions.CheckBooleanTrigger"},"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"NodeCanvas.StateMachines.FSMConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"NodeCanvas.StateMachines.FSMConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"0"},"$type":"NodeCanvas.StateMachines.FSMConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
+    Attack","_position":{"x":1213.173,"y":599.1683},"$type":"NodeCanvas.StateMachines.ActionState","$id":"2"}],"connections":[{"_condition":{"trigger":{"_name":"Target","_targetVariableID":"c2ee90b9-6fcd-4b30-90da-451ffa131015"},"$type":"NodeCanvas.Tasks.Conditions.CheckBooleanTrigger"},"_sourceNode":{"$ref":"0"},"_targetNode":{"$ref":"1"},"$type":"NodeCanvas.StateMachines.FSMConnection"},{"_sourceNode":{"$ref":"1"},"_targetNode":{"$ref":"2"},"$type":"NodeCanvas.StateMachines.FSMConnection"},{"_sourceNode":{"$ref":"2"},"_targetNode":{"$ref":"0"},"$type":"NodeCanvas.StateMachines.FSMConnection"}],"canvasGroups":[],"localBlackboard":{"_variables":{}}}'
   _boundGraphObjectReferences:
   - {fileID: 0}
   - {fileID: 11400000, guid: 4ef38e47d00a81e4aa26bbe1838c0346, type: 2}
@@ -7473,6 +7478,11 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 0
+--- !u!95 &1421492220 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 81bb9eea30387e442899949a80011e55, type: 3}
+  m_PrefabInstance: {fileID: 1122266417}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1444173620 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4378028635161055881, guid: 81bb9eea30387e442899949a80011e55, type: 3}
@@ -8612,7 +8622,7 @@ GameObject:
   - component: {fileID: 6276950974011052901}
   - component: {fileID: 6276950974011052902}
   m_Layer: 7
-  m_Name: PicoChan
+  m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8762,6 +8772,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09f1c928497bacb44b9ba12d894b2ab4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStateMachine
+  baseConfig: {fileID: 11400000, guid: d2bdb89505407c545a946c4402ea0513, type: 2}
+  animator: {fileID: 5528942379046315764}
+  model: {fileID: 5507217555701614709}
+  swordTransform: {fileID: 1288728514}
+  characterEffect: {fileID: 5316743281923543083}
+  <HitStunDuration>k__BackingField: 0.5
+  <HitReactionIFrameDuration>k__BackingField: 0.5
+  knockBackForce: 1
+  knockBackcurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   <JumpHeight>k__BackingField: 6
   <TimeToJumpApex>k__BackingField: 0.4
   <RunMaxSpeed>k__BackingField: 15
@@ -8801,44 +8843,12 @@ MonoBehaviour:
     m_RotationOrder: 4
   <RotationSpeed>k__BackingField: 6
   <AirControl>k__BackingField: 5
-  <Model>k__BackingField: {fileID: 5507217555701614709}
   <MainCamera>k__BackingField: {fileID: 644571252}
-  <Animator>k__BackingField: {fileID: 5528942379046315764}
   <TAttack>k__BackingField: 0.1
   <TRelease>k__BackingField: 0.15
-  knockBackForce: 1
-  knockBackcurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 2
-      outSlope: 2
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  _weaponHitbox: {fileID: 0}
-  SwordTransform: {fileID: 1288728514}
-  characterEffect: {fileID: 5316743281923543083}
   skillManager: {fileID: 4390741508750372378}
   PlayerConfig: {fileID: 11400000, guid: d2bdb89505407c545a946c4402ea0513, type: 2}
-  <HitStunDuration>k__BackingField: 0.5
   <DashCancelStartTime>k__BackingField: 0.15
-  <HitReactionIFrameDuration>k__BackingField: 0.5
   _playerInputs: {fileID: 1298750256}
   combatDetection: {fileID: 982476484}
 --- !u!143 &6276950974011052897

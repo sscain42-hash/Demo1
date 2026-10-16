@@ -11,7 +11,9 @@ public abstract class PlayerBaseState
 
     public PlayerBaseState ChildState => _childState;
     public bool IsRootState => _isRootState;
-
+    // 🔥 THÊM
+    /// <summary>Category của state. Default = Locomotion.</summary>
+    public virtual StateCategory Category => StateCategory.Locomotion;
     protected PlayerBaseState(PlayerController ctx, PlayerStateFactory factory)
     {
         _ctx = ctx;

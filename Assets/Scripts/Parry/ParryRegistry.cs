@@ -73,7 +73,14 @@ public static class ParryRegistry
 
         return true;
     }
+  /*  private static void TriggerParryReward(ParryInfo info, GameObject attacker)
+    {
+        GameObject defender = info.defender;
+        if (defender == null) return;
 
+        var feedback = defender.GetComponent<IParryFeedback>();
+        feedback?.OnParrySuccess(attacker);
+    }*/
     private static void TriggerParryReward(ParryInfo info, GameObject attacker)
     {
         GameObject defender = info.defender;

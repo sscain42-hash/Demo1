@@ -7,6 +7,7 @@ using Combat.Parry;
 /// </summary>
 public class PlayerParryState : PlayerBaseState
 {
+    public override StateCategory Category => StateCategory.Combat;
     private const float MIN_DURATION = 0.1f;
     private const float MAX_DURATION = 2.0f;
     private const float CANCEL_START = 0.25f;

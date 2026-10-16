@@ -4,7 +4,7 @@ public class PlayerHitState : PlayerBaseState
 {
     private const float CANCEL_START = 0.1f;
     private const float HARD_TIMEOUT = 2.5f; // Chốt an toàn tuyệt đối
-
+    public override StateCategory Category => StateCategory.Override;
     private float _elapsedTime;
 
     public bool IsFinished => _elapsedTime >= _ctx.HitStunDuration || _elapsedTime >= HARD_TIMEOUT;
