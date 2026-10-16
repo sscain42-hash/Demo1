@@ -72,7 +72,8 @@ public class PlayerController : CharacterActor,
     #endregion
 
     #region STATE MACHINE
-
+   
+  
     private PlayerStateFactory _states;
     private PlayerBaseState _currentState;
 
@@ -596,7 +597,10 @@ public class PlayerController : CharacterActor,
         if (Animator == null)
             animator = GetComponentInChildren<Animator>();
     }
-
+    public void SwitchStateExternal(PlayerBaseState newState)
+    {
+        SwitchState(newState);
+    }
     private void InitializeServices()
     {
         _physicsHandler = new GravityHandler(_gravity, GravityScaling, FallClamp);

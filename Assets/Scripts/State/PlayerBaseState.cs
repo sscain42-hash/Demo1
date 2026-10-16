@@ -97,4 +97,36 @@ public abstract class PlayerBaseState
         else
             _parentState?.SwitchRootState(newRootState);
     }
+    /// <summary>
+    /// Child state gọi hàm này để pop về parent.
+    /// Parent sẽ tự InitializeSubState lại.
+    /// </summary>
+    protected void PopToParent()
+    {
+        if (_parentState == null)
+        {
+            Debug.LogWarning($"[{GetType().Name}] PopToParent nhưng không có parent!");
+            _ctx.SwitchStateExternal(_factory.Grounded());
+            return;
+        }
+
+        // Báo parent reset child
+        var parent = _parentState;
+
+        // Xoá child khỏi parent
+        parent.ClearChild();
+
+        // Parent tự initialize lại sub state
+        parent.InitializeSubState();
+    }
+
+    /// <summary>Dùng nội bộ cho PopToParent.</summary>
+    internal void ClearChild()
+    {
+        if (_childState == null) return;
+
+        _childState.ClearSubStateRecursive();
+        _childState.ExitState();
+        _childState = null;
+    }
 }
