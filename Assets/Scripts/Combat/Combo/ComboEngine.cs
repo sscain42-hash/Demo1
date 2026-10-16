@@ -260,6 +260,7 @@ public class ComboEngine
                 if (col.TryGetComponent<Damageable>(out var damageable))
                 {
                     _damageDealer?.ExecuteDamage(col.gameObject, currentAttackType);
+                    Debug.Log($"[ComboEngine] {_actor.GameObject.name} hit {col.gameObject.name} with {currentAttackType}");
                 }
 
                 // VFX — chỉ spawn nếu actor có Effect

@@ -49,9 +49,11 @@ public class PlayerDashState : PlayerBaseState
 
     public override void CheckSwitchState()
     {
-        // KHÔNG gọi ResolveGroundState() — cùng lý do như PlayerAttackState.
-        // Grounded sẽ tự quyết định Idle/Run/Fall dựa trên ground check
-        // đã được cập nhật đầy đủ ở frame hiện tại.
-        SwitchState(_factory.Grounded());
+        // 🔥 FIX: Dùng ResolveGroundState() thay vì Grounded()
+        // ResolveGroundState() sẽ check:
+        //   - Nếu grounded → Grounded
+        //   - Nếu airborne → Fall
+        // Tránh bị kẹt ở Grounded state khi đang trên không
+        SwitchState(_ctx.ResolveGroundState());
     }
 }

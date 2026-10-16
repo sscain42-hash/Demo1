@@ -18,9 +18,8 @@ public class CameraRelativeInputHandler : IInputHandler
 
     public Vector2 ReadMovementInput()
     {
+        if (playerInputs == null) return Vector2.zero;
         _lastInput = playerInputs.Move;
-
-
         return _lastInput;
     }
 

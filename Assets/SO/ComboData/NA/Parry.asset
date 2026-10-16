@@ -31,16 +31,16 @@ MonoBehaviour:
       m_Bits: 0
     eventEffects: []
     eventTriggered: 0
-  - actionName: Step
-    startTime: 0
-    endTime: 0.26525098
+  - actionName: ComboInputBuffer
+    startTime: 0.49999994
+    endTime: 1
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 0, y: 0, z: 0}
     cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 1}
+    targetDistance: {x: 0, y: 0, z: 0}
     hitBoxSize: {x: 1, y: 1, z: 1}
     hitBoxOffset: {x: 0, y: 0, z: 0}
     targetLayer:
@@ -48,6 +48,6 @@ MonoBehaviour:
       m_Bits: 0
     eventEffects: []
     eventTriggered: 0
-  useScreenShake: 1
+  useScreenShake: 0
   shakeForce: 0.2
   enableCameraZoom: 0

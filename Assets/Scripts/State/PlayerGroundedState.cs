@@ -10,10 +10,7 @@ public class PlayerGroundedState : PlayerBaseState
 
     public override void EnterState()
     {
-        // 🔥 Always reset jump velocity when entering grounded state
-        // Ensures clean state for next jump or movement
         _ctx.JumpVelocity = -2f;
-
         InitializeSubState();
     }
 
@@ -37,10 +34,6 @@ public class PlayerGroundedState : PlayerBaseState
             return;
         }
 
-        // 🔥 Chỉ rời Grounded nếu:
-        // 1) Player đã airborne đủ stable (>=3 frame)
-        // 2) AND velocity rơi xuống (< -0.1f)
-        // Điều này tránh chuyển sang Fall do temporary isGrounded=false
         if (_ctx.IsAirborneStable && _ctx.JumpVelocity < -0.1f)
         {
             SwitchState(_factory.Fall());

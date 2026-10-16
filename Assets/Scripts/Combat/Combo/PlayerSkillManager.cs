@@ -1,20 +1,30 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Combat.Parry;
 
+[DefaultExecutionOrder(-200)]
 public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharacter
 {
     [Header("Core Dependencies")]
     [SerializeField] private PlayerInputs playerInputs;
     [SerializeField] private TargetLockManager targetLock;
     private PlayerController _ctx;
-    private ComboEngine _comboEngine;
+    private PlayerComboEngine _comboEngine;
 
     [Header("Combo Sequences")]
     [SerializeField] private ComboSequence normalAttackCombo;
     [SerializeField] private ComboSequence skillECombo;
     [SerializeField] private ComboSequence skillQCombo;
-    [SerializeField] private ComboSequence parryCombo;   // 🔥 NEW — chứa AttackData_Parry
+
+    [Header("Parry Sequence (Animation)")]
+    [SerializeField] private ComboSequence parryCombo;
+
+    // =========================================================
+    // 🔥 COMBO TYPE — quyết định combo nào sẽ chạy khi vào AttackState
+    // =========================================================
+    public enum ComboType { Normal, SkillE, BurstQ }
+    private ComboType _pendingComboType = ComboType.Normal;
 
     public class ComboState
     {
@@ -28,7 +38,6 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     private readonly ComboState stateNormal = new ComboState();
     private readonly ComboState stateE = new ComboState();
     private readonly ComboState stateQ = new ComboState();
-    private readonly ComboState stateParry = new ComboState();   // 🔥 NEW
     private ComboState _activeState = null;
     private List<ComboState> _allStates;
 
@@ -44,16 +53,27 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     public bool CanDashCancelNow => _comboEngine != null && _comboEngine.CanDashCancelNow;
     public bool CanJumpCancelNow => _comboEngine != null && _comboEngine.CanJumpCancelNow && _ctx.IsGroundedStable;
 
-    // 🔥 NEW: Parry events
+    public bool IsParryActive { get; private set; }
+
+    private float _parryAnimationTimer = 0f;
+    private float _parryAnimationDuration = 0f;
+    private bool _isPlayingParryAnimation = false;
+
     public event Action OnAttackRequested;
     public event Action OnDashCancelRequested;
     public event Action OnJumpCancelRequested;
 
+    private bool _eventsHooked = false;
+
     private void OnEnable()
     {
-        _ctx = GetComponent<PlayerController>();
         if (_ctx != null) _ctx.RegisterVelocityProvider(this);
         if (targetLock != null) targetLock.OnTargetLocked += HandleTargetLocked;
+    }
+
+    private void Start()
+    {
+        HookParryEvents();
     }
 
     private void OnDisable()
@@ -61,56 +81,94 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         if (_ctx != null) _ctx.UnregisterVelocityProvider(this);
         if (targetLock != null) targetLock.OnTargetLocked -= HandleTargetLocked;
 
-        // 🔥 Cleanup parry registry khi disable
-        if (_ctx != null) _ctx.UnregisterParry();
+        UnhookParryEvents();
+    }
+
+    private void HookParryEvents()
+    {
+        if (_eventsHooked) return;
+        if (_ctx == null || _ctx.ParryController == null)
+        {
+            Invoke(nameof(HookParryEvents), 0.1f);
+            return;
+        }
+
+        _ctx.ParryController.OnParryWindowOpened += HandleParryWindowOpened;
+        _ctx.ParryController.OnParrySuccess += HandleParrySuccess;
+        _ctx.ParryController.OnParryFail += HandleParryFail;
+
+        _eventsHooked = true;
+    }
+
+    private void UnhookParryEvents()
+    {
+        if (!_eventsHooked) return;
+        if (_ctx == null || _ctx.ParryController == null) return;
+
+        _ctx.ParryController.OnParryWindowOpened -= HandleParryWindowOpened;
+        _ctx.ParryController.OnParrySuccess -= HandleParrySuccess;
+        _ctx.ParryController.OnParryFail -= HandleParryFail;
+
+        _eventsHooked = false;
     }
 
     public Vector3 GetVelocityModifier() => CurrentStepVelocity;
 
     private void Awake()
     {
+        _ctx = GetComponent<PlayerController>();
         if (playerInputs == null) playerInputs = FindAnyObjectByType<PlayerInputs>();
         if (targetLock == null) targetLock = GetComponent<TargetLockManager>();
 
         stateNormal.associatedAction = BufferedAction.NormalAttack;
         stateNormal.sequence = normalAttackCombo;
+
         stateE.associatedAction = BufferedAction.ElementalSkill;
         stateE.sequence = skillECombo;
+
         stateQ.associatedAction = BufferedAction.ElementalBurst;
         stateQ.sequence = skillQCombo;
-        stateParry.associatedAction = BufferedAction.Parry;
-        stateParry.sequence = parryCombo;
-        _allStates = new List<ComboState> { stateNormal, stateE, stateQ, stateParry };
+
+        _allStates = new List<ComboState> { stateNormal, stateE, stateQ };
 
         Animator anim = GetComponentInChildren<Animator>();
-
-        // 🔥 ComboEngine giờ nhận ICombatActor (PlayerController đã implement)
-        _comboEngine = new ComboEngine(_ctx, anim);
+        _comboEngine = new PlayerComboEngine(_ctx, anim);
     }
 
+    // =========================================================
+    // UPDATE — chỉ update combo engine khi ĐANG trong PlayerAttackState
+    // =========================================================
     private void Update()
     {
         UpdateComboTimers(stateNormal);
         UpdateComboTimers(stateE);
         UpdateComboTimers(stateQ);
-        UpdateComboTimers(stateParry);   // 🔥 NEW
+        UpdateParryAnimation();
         HandleCamera();
-        CheckAndProcessInputs();
 
-        if (IsAttacking)
+        // 🔥 Chỉ update combo engine khi ĐANG trong PlayerAttackState
+        if (IsAttacking && _ctx.CurrentState is PlayerAttackState)
         {
             _comboEngine.UpdateWindows();
 
-            if (_comboEngine.GetNormalizedTime() >= 1f)
+            if (_comboEngine.IsAnimationFinished())
             {
+                Debug.Log("[PlayerSkillManager] Animation finished — combo done");
                 FinishComboAttack(_activeState);
             }
         }
+        // 🔥 BỎ HOÀN TOÀN đoạn else-if warning.
+        // Combo lifecycle giờ do PlayerAttackState quản lý.
+
+        ProcessInputAsRequests();
     }
 
     private void FinishComboAttack(ComboState state)
     {
         if (state == null) return;
+
+        Debug.Log($"[PlayerSkillManager] FinishComboAttack — {state.associatedAction}");
+
         state.isAttacking = false;
         state.comboResetTimer = 1.0f;
         _activeState = null;
@@ -126,118 +184,180 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         }
     }
 
+    private void UpdateParryAnimation()
+    {
+        if (!_isPlayingParryAnimation) return;
+
+        _parryAnimationTimer += Time.deltaTime;
+
+        if (_parryAnimationTimer >= _parryAnimationDuration)
+        {
+            _isPlayingParryAnimation = false;
+            IsParryActive = false;
+        }
+    }
+
     // =========================================================
-    // INPUT PROCESSING
+    // PARRY EVENT HANDLERS
     // =========================================================
-    private void CheckAndProcessInputs()
+    private void HandleParryWindowOpened(int frames)
+    {
+        IsParryActive = true;
+    }
+
+    public string GetParryAnimationName()
+    {
+        if (parryCombo == null || parryCombo.attacks == null || parryCombo.attacks.Count == 0)
+            return null;
+        return parryCombo.attacks[0]?.animationName;
+    }
+
+    private void HandleParrySuccess(GameObject attacker) { }
+
+    private void HandleParryFail()
+    {
+        IsParryActive = false;
+        _isPlayingParryAnimation = false;
+        _parryAnimationTimer = 0f;
+    }
+
+    // =========================================================
+    // 🔥 PUBLIC API — GỌI TỪ PlayerAttackState
+    // =========================================================
+
+    /// <summary>
+    /// Gọi từ PlayerAttackState.EnterState() — start combo thật sự.
+    /// </summary>
+    public void StartPendingCombo()
+    {
+        ComboState target = _pendingComboType switch
+        {
+            ComboType.Normal => stateNormal,
+            ComboType.SkillE => stateE,
+            ComboType.BurstQ => stateQ,
+            _ => stateNormal
+        };
+
+        StartComboChain(target);
+    }
+
+    /// <summary>
+    /// Gọi từ PlayerAttackState.ExitState() — dọn combo.
+    /// </summary>
+    public void OnAttackStateExit()
+    {
+        ForceCancelCombo(false);
+        _pendingComboType = ComboType.Normal;
+    }
+
+    // =========================================================
+    // INPUT → REQUEST
+    // =========================================================
+    private void ProcessInputAsRequests()
     {
         if (playerInputs == null) return;
 
-        // ===== Trường hợp 1: Chưa vào trạng thái Tấn công nào =====
-        if (_activeState == null || !_activeState.isAttacking)
+        // ParryMovement là state khoá — không nhận input
+        if (_ctx.CurrentState is PlayerParryMovementState) return;
+        if (_ctx.CurrentState is PlayerHitState) return;
+        if (_ctx.CurrentState is PlayerParryState) return;
+
+        // ═══ PARRY — ưu tiên cao nhất ═══
+        if (playerInputs.HasCommand(BufferedAction.Parry))
         {
-            // 🔥 PARRY — ưu tiên cao nhất, chỉ khi grounded
-            if (playerInputs.HasCommand(BufferedAction.Parry) && _ctx.IsGroundedStable)
+            playerInputs.ConsumeCommand(BufferedAction.Parry);
+            _ctx.RequestState(StateRequestType.Parry);
+            _ctx.ParryController?.OnParryInput();
+            OnAttackRequested?.Invoke();
+            return;
+        }
+
+        // ═══ ATTACK — CHỈ request state, KHÔNG start combo ═══
+        if (!IsAttacking)
+        {
+            if (playerInputs.HasCommand(BufferedAction.NormalAttack))
             {
-                StartComboChain(stateParry);
+                _pendingComboType = ComboType.Normal;
+                _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
+            }
+            else if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
+            {
+                _pendingComboType = ComboType.SkillE;
+                _ctx.RequestState(StateRequestType.Attack);
+                OnAttackRequested?.Invoke();
+            }
+            else if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
+            {
+                _pendingComboType = ComboType.BurstQ;
+                _ctx.RequestState(StateRequestType.Attack);
+                OnAttackRequested?.Invoke();
+            }
+            return;
+        }
+
+        // ═══ Đang attack — xử lý cancel / combo window ═══
+        HandleComboInput();
+    }
+
+    /// <summary>
+    /// Xử lý input khi đã trong Attack state (combo window, cancel).
+    /// </summary>
+    private void HandleComboInput()
+    {
+        if (_comboEngine == null) return;
+        if (!(_ctx.CurrentState is PlayerAttackState)) return;
+
+        // Dash cancel
+        if (_comboEngine.CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
+        {
+            playerInputs.ConsumeCommand(BufferedAction.Dash);
+            ForceCancelCombo(false);
+            _ctx.RequestState(StateRequestType.Dash);
+            OnDashCancelRequested?.Invoke();
+            return;
+        }
+
+        // Jump cancel
+        if (_comboEngine.CanJumpCancelNow && playerInputs.HasCommand(BufferedAction.Jump))
+        {
+            playerInputs.ConsumeCommand(BufferedAction.Jump);
+            ForceCancelCombo(false);
+            _ctx.RequestState(StateRequestType.Jump);
+            OnJumpCancelRequested?.Invoke();
+            return;
+        }
+
+        // Combo window — chuyển bước hoặc đổi combo
+        if (_comboEngine.IsComboWindowActive)
+        {
+            if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
+            {
+                _pendingComboType = ComboType.BurstQ;
+                StartComboChain(stateQ);
+                return;
+            }
+
+            if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
+            {
+                _pendingComboType = ComboType.SkillE;
+                StartComboChain(stateE);
                 return;
             }
 
             if (playerInputs.HasCommand(BufferedAction.NormalAttack))
             {
-                StartComboChain(stateNormal);
-                OnAttackRequested?.Invoke();
-            }
-            else if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
-            {
-                StartComboChain(stateE);
-                OnAttackRequested?.Invoke();
-            }
-            else if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
-            {
-                StartComboChain(stateQ);
-                OnAttackRequested?.Invoke();
-            }
-        }
-        // ===== Trường hợp 2: Đang Tấn công =====
-        else
-        {
-            // 🔥 2.0 Parry Interrupt — chỉ khi đang ở ComboWindow
-            // (Không cần phải interrupt lại vì PlayerAttackState đã check, nhưng giữ ở đây cho chắc)
-            if (_activeState != stateParry
-                && playerInputs.HasCommand(BufferedAction.Parry)
-                && _ctx.IsGroundedStable
-                && _comboEngine != null
-                && _comboEngine.IsComboWindowActive)
-            {
-                ForceCancelCombo(false);
-                playerInputs.ConsumeCommand(BufferedAction.Parry);
-                StartParryChain();
+                if (_activeState == stateNormal)
+                {
+                    playerInputs.ConsumeCommand(BufferedAction.NormalAttack);
+                    MoveToNextComboStep(stateNormal);
+                }
+                else
+                {
+                    _pendingComboType = ComboType.Normal;
+                    StartComboChain(stateNormal);
+                }
                 return;
-            }
-
-            // 2.1 Hủy đòn bằng Dash (Dash Cancel)
-            if (_comboEngine != null && _comboEngine.CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
-            {
-                playerInputs.ConsumeCommand(BufferedAction.Dash);
-                ForceCancelCombo(false);
-                OnDashCancelRequested?.Invoke();
-                return;
-            }
-
-            // 2.2 Hủy đòn bằng Jump (Jump Cancel)
-            if (_comboEngine != null && _comboEngine.CanJumpCancelNow && playerInputs.HasCommand(BufferedAction.Jump))
-            {
-                playerInputs.ConsumeCommand(BufferedAction.Jump);
-                ForceCancelCombo(false);
-                OnJumpCancelRequested?.Invoke();
-                return;
-            }
-
-            // 2.3 Đánh nối tiếp Combo (Combo Window)
-            if (_comboEngine != null && _comboEngine.IsComboWindowActive)
-            {
-                // 🔥 Parry chain — đang parry, bấm parry tiếp để chain
-                if (playerInputs.HasCommand(BufferedAction.Parry) && _ctx.IsGroundedStable)
-                {
-                    if (_activeState == stateParry)
-                    {
-                        playerInputs.ConsumeCommand(BufferedAction.Parry);
-                        MoveToNextComboStep(stateParry);
-                    }
-                    else
-                    {
-                        StartComboChain(stateParry);
-                    }
-                    return;
-                }
-
-                if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
-                {
-                    StartComboChain(stateQ);
-                    return;
-                }
-
-                if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
-                {
-                    StartComboChain(stateE);
-                    return;
-                }
-
-                if (playerInputs.HasCommand(BufferedAction.NormalAttack))
-                {
-                    if (_activeState == stateNormal)
-                    {
-                        playerInputs.ConsumeCommand(BufferedAction.NormalAttack);
-                        MoveToNextComboStep(stateNormal);
-                    }
-                    else
-                    {
-                        StartComboChain(stateNormal);
-                    }
-                    return;
-                }
             }
         }
     }
@@ -258,41 +378,8 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
         playerInputs.ConsumeCommand(state.associatedAction);
         _activeState = state;
-        _ctx.CurrentState?.SwitchState(_ctx.States.Attack());
 
         ExecuteComboStep(_activeState);
-    }
-
-    /// <summary>
-    /// 🔥 NEW: Parry chain — dùng khi interrupt từ AttackState.
-    /// Khác StartComboChain ở chỗ: KHÔNG gọi SwitchState (vì đã ở AttackState rồi).
-    /// Chỉ đổi AttackData bên trong ComboEngine.
-    /// </summary>
-    public void StartParryChain()
-    {
-        _isForceCancelled = false;
-
-        if (stateParry.sequence == null || stateParry.sequence.attacks.Count == 0)
-        {
-            Debug.LogWarning("[PlayerSkillManager] stateParry.sequence chưa được gán!");
-            return;
-        }
-
-        // Đảm bảo ở AttackState
-        if (_ctx.CurrentState is not PlayerAttackState)
-        {
-            _ctx.CurrentState?.SwitchState(_ctx.States.Attack());
-        }
-
-        _activeState = stateParry;
-        stateParry.isAttacking = true;
-        stateParry.currentIndex = 0;
-
-        // Đổi AttackData
-        CurrentRuntimeAttackType = AttackType.NormalAttack;
-        _comboEngine.ChangeAttackData(stateParry.sequence.attacks[0], CurrentRuntimeAttackType);
-
-        Debug.Log("[PlayerSkillManager] Parry Chain started!");
     }
 
     private void ExecuteComboStep(ComboState state)
@@ -305,7 +392,6 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             BufferedAction.NormalAttack => AttackType.NormalAttack,
             BufferedAction.ElementalSkill => AttackType.E,
             BufferedAction.ElementalBurst => AttackType.Q,
-            BufferedAction.Parry => AttackType.NormalAttack,   // 🔥 Parry không có AttackType riêng
             _ => AttackType.NormalAttack
         };
 
@@ -335,26 +421,15 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     }
 
     // =========================================================
-    // UTILITIES
+    // FORCE CANCEL — chỉ dọn dẹp dữ liệu, KHÔNG đụng state
     // =========================================================
-
-    /// <summary>
-    /// 🔥 NEW: Check xem có đang ở ComboWindow không (dùng cho PlayerAttackState check Parry Interrupt).
-    /// </summary>
-    public bool IsInComboWindowForParry()
-    {
-        return _comboEngine != null && _comboEngine.IsComboWindowActive;
-    }
-
-    /// <summary>
-    /// Hàm hủy chiêu chủ động (Khi dính Dash/Jump Cancel hoặc bị quái đánh ngắt).
-    /// </summary>
     public void ForceCancelCombo(bool playIdleAnimation = true)
     {
+        if (_activeState == null && !IsAttacking) return;
+
         _isForceCancelled = true;
         _activeState = null;
 
-        // 🔥 CHỐT CHẶN 1: Reset toàn bộ chỉ số Combo index về đòn đầu tiên (0) và xóa sạch bộ đếm thời gian
         foreach (var state in _allStates)
         {
             state.isAttacking = false;
@@ -362,24 +437,14 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             state.comboResetTimer = 0f;
         }
 
-        // 🔥 CHỐT CHẶN 2: Nuốt toàn bộ lệnh tấn công cũ còn kẹt trong Input Buffer
         if (playerInputs != null)
         {
             playerInputs.ConsumeCommand(BufferedAction.NormalAttack);
             playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);
             playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);
-            playerInputs.ConsumeCommand(BufferedAction.Parry);   // 🔥 NEW
         }
 
-        // 🔥 Cleanup Parry Registry
-        if (_ctx != null) _ctx.UnregisterParry();
-
-        _comboEngine.ChangeAttackData(null, AttackType.NormalAttack);
-
-        if (playIdleAnimation)
-        {
-            _ctx.AnimationHandler?.PlayAnimation(_ctx.ID_Idle, 0.2f);
-        }
+        _comboEngine?.ChangeAttackData(null, AttackType.NormalAttack);
     }
 
     private void HandleTargetLocked(GameObject target)

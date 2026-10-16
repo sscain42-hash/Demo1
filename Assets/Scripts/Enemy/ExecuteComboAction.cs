@@ -5,12 +5,15 @@ using UnityEngine;
 namespace AMG.BT_Nodes
 {
     [Category("Combat")]
-    [Description("Kích hoạt chuỗi Combo thuần túy (Không Input Buffer). Chỉ trả về Thất bại (Fail) khi ComboSequence đã thực hiện đến đòn cuối cùng.")]
+    [Description("Chạy chuỗi combo liên tục. Luôn trả về Success khi combo xong để BT loop lại — trừ khi Player chết.")]
     public class ExecuteComboAction : ActionTask<EnemyController>
     {
-        public AttackType attackType; // NormalAttack, E, Q
+        public AttackType attackType = AttackType.NormalAttack;
+
+        [RequiredField]
         public BBParameter<ComboSequence> targetComboSequence;
 
+        [RequiredField]
         public BBParameter<Transform> _targetTransform;
 
         private EnemyAttack _enemyAttack;
@@ -34,48 +37,45 @@ namespace AMG.BT_Nodes
                 return;
             }
 
-            // 🔥 SỬA TẠI ĐÂY: Khởi tạo dữ liệu khi bắt đầu thực hiện Action
-            _isComboActive = true;
+            if (_targetTransform.value == null)
+            {
+                EndAction(false);
+                return;
+            }
 
-            // Giả sử ComboSequence của bạn có danh sách các đòn đánh (ví dụ: .attacks hoặc .Count)
-            // Bạn hãy thay thế bằng thuộc tính đếm số đòn chính xác trong class ComboSequence của bạn nhé:
-            _totalAttacksInSequence = targetComboSequence.value.attacks != null ? targetComboSequence.value.attacks.Count : 0;
+            _isComboActive = true;
+            _totalAttacksInSequence = targetComboSequence.value.attacks != null
+                ? targetComboSequence.value.attacks.Count
+                : 0;
 
             _enemyAttack.EnterAttackState(targetComboSequence.value);
         }
 
         protected override void OnUpdate()
         {
-            // Nếu không active thì không làm gì cả
             if (!_isComboActive || _enemyAttack == null) return;
 
-            Transform target = _targetTransform != null ? _targetTransform.value : null;
+            Transform target = _targetTransform.value;
 
-            // 🔥 Luôn cập nhật trạng thái đòn đánh để EnemyAttack xử lý chuyển đòn (Combo)
+            // 🔥 Player chết hoặc mất target → fail để BT thoát khỏi nhánh này
+            if (target == null || !target.gameObject.activeInHierarchy)
+            {
+                _isComboActive = false;
+                if (_enemyAttack.IsAttacking) _enemyAttack.ExitAttackState();
+                EndAction(false);
+                return;
+            }
+
+            // Cập nhật trạng thái tấn công (bao gồm xoay về target + update windows)
             _enemyAttack.UpdateAttackState(target);
 
-            // 🔥 ĐIỀU KIỆN KẾT THÚC VÀ ĐÁNH GIÁ THẤT BẠI
             if (!_enemyAttack.IsAttacking)
             {
-                // Kiểm tra Animator để chắc chắn đã kết thúc hẳn chuỗi và về trạng thái chờ
-                if (agent.Animator != null && !agent.Animator.IsInTransition(0) && agent.Animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                // 🔥 FIX: Bỏ check IsName("Idle"), chỉ cần không transition
+                if (agent.Animator != null && !agent.Animator.IsInTransition(0))
                 {
                     _isComboActive = false;
-
-                    // Kiểm tra xem hệ thống đã thực hiện đến đòn cuối cùng chưa
-                    bool reachedLastAttack = (_enemyAttack.CurrentComboIndex >= _totalAttacksInSequence - 1);
-
-                    if (reachedLastAttack)
-                    {
-                        // 🔥 Trả về FAIL (false) khi combo đã thực hiện đến đòn cuối cùng theo yêu cầu của bạn
-                        EndAction(false);
-                    }
-                    else
-                    {
-                        // Nếu chưa đến đòn cuối nhưng IsAttacking đã bằng false (có thể do lỗi hoặc hết thời gian)
-                        // Bạn có thể cho EndAction(true) hoặc EndAction(false) tùy logic cây BT
-                        EndAction(true);
-                    }
+                    EndAction(true);
                 }
             }
         }

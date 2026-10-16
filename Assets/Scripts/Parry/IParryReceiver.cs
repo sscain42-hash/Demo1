@@ -13,4 +13,3 @@ public interface IParryReceiver
     /// <returns>True = đã parry, False = không parry được</returns>
     bool TryParry(GameObject attacker);
 }
-

@@ -3,7 +3,7 @@
 public class PlayerFallState : PlayerBaseState
 {
     private float _fallDurationTimer;
-    private const float MAX_FALL_DURATION = 10f; // Safety timeout to prevent infinite fall
+    private const float MAX_FALL_DURATION = 10f;
 
     public PlayerFallState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
@@ -34,45 +34,45 @@ public class PlayerFallState : PlayerBaseState
 
     public override void CheckSwitchState()
     {
-        // 🔥 PRIORITY 1: Direct CharacterController.isGrounded + small velocity
-        // This is the most reliable check for actual ground contact
+        // 🔥 PRIORITY 1: CharacterController.isGrounded + small velocity
         if (_ctx.CharController.isGrounded && Mathf.Abs(_ctx.JumpVelocity) < 2f)
         {
             SwitchState(_factory.Grounded());
             return;
         }
 
-        // 🔥 PRIORITY 2: IsGroundedStable (player was grounded for 3+ frames)
+        // 🔥 PRIORITY 2: IsGroundedStable (3+ frames grounded)
         if (_ctx.IsGroundedStable)
         {
             SwitchState(_factory.Grounded());
             return;
         }
 
-        // 🔥 PRIORITY 3: IsGroundedRaw + velocity check (secondary grounded detection)
+        // 🔥 PRIORITY 3: IsGroundedRaw + small velocity
         if (_ctx.IsGroundedRaw && Mathf.Abs(_ctx.JumpVelocity) < 1f)
         {
             SwitchState(_factory.Grounded());
             return;
         }
 
+        // Dash cancel
         if (_ctx.TryDash)
         {
             SwitchState(_factory.Dash());
             return;
         }
 
+        // Jump cancel (coyote time)
         if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f && _ctx.CoyoteCounter > 0f)
         {
             SwitchState(_factory.Jump());
             return;
         }
 
-        // 🔥 SAFETY: Force transition after max fall duration to prevent infinite stuck
-        // This should never trigger in normal gameplay, but catches edge cases
+        // Safety timeout
         if (_fallDurationTimer >= MAX_FALL_DURATION)
         {
-            Debug.LogWarning("[PlayerFallState] Timeout! Player stuck in Fall state for 10+ seconds. Force transitioning to Grounded.");
+            Debug.LogWarning("[PlayerFallState] Timeout — force transition to Grounded");
             SwitchState(_factory.Grounded());
             return;
         }

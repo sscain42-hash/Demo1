@@ -146,8 +146,7 @@ public class BezierSwordSmear : MonoBehaviour
 
     private Vector3 GetStableReferenceForward()
     {
-        if (useCameraReference && Camera.main != null)
-            return Camera.main.transform.forward;
+        
         if (transform.parent != null)
             return transform.parent.forward;
         return Vector3.forward;

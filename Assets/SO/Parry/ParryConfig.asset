@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1774c8336c11ec439f8b8079e736cfb, type: 3}
+  m_Name: ParryConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.Parry.ParryConfig
+  defaultWindowFrames: 25
+  minWindowFrames: 6
+  spamPenaltyPerPress: 0
+  parryInputCooldown: 0
+  windowRecoveryTime: 1
+  windowRecoveryRate: 10
+  chainParryGraceTime: 0.3
+  maxChainParryCount: 3
+  requireTelegraph: 0
+  telegraphDuration: 0.5
+  enableDirectionalJump: 1
+  forwardJumpSpeed: 22.5
+  backwardJumpSpeed: 23
+  sideJumpSpeed: 24.6
+  jumpDuration: 0.4
+  applyGravityDuringMovement: 0
+  enableDebugLog: 1
+  drawDebugGizmos: 1

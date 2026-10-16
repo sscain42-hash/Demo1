@@ -38,7 +38,12 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
 
     private PlayerController _player;
     private int _attackCount;
-    private EnemyAttack enemyAttack;
+    private EnemyAttack _enemyAttackRef;
+
+    private CharacterEffect _combatEffect;
+
+    [Header("Combat")]
+    [SerializeField] private Transform swordTransform;
 
     #endregion
 
@@ -46,14 +51,21 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
 
     #region === Unity Lifecycle ===
 
+    private CharacterController _characterController;
+
     private void Awake()
     {
         Health = new StatusHandle();
         RuntimeConfig = Instantiate(baseConfig);
         _originalLocalPos = transform.localPosition;
         _animator = GetComponent<Animator>();
-        _enemyAttackRef = GetComponent<EnemyAttack>(); 
+        _enemyAttackRef = GetComponent<EnemyAttack>();
+        _combatEffect = GetComponent<CharacterEffect>();
+        _characterController = GetComponent<CharacterController>();
+        if (_characterController != null)
+            _characterController.enabled = false;
     }
+
     protected override void OnEnable()
     {
         base.OnEnable();
@@ -89,7 +101,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
             return;
         }
 
-        enemyAttack = GetComponent<EnemyAttack>();
+        _enemyAttackRef = GetComponent<EnemyAttack>();
     }
 
     private void RegisterEvents()
@@ -130,22 +142,30 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
     {
         if (!DamageableData.Contains(target, out var receiver)) return;
 
-        // 🔥 PARRY CHECK — trước khi trừ máu
-        var parryReceiver = target.GetComponent<IParryReceiver>();
-        if (parryReceiver != null && parryReceiver.TryParry(gameObject))
+        // 🔥 PARRY CHECK ĐÃ ĐƯỢC XỬ LÝ TRONG ComboEngine.ProcessBoxCastHitbox()
+        // Không check lại ở đây — tránh double check và tránh parry bị trigger 2 lần
+
+        // Knockback (chỉ khi không bị parry)
+        var knockbackTarget = target.GetComponent<IKnockbackable>();
+        if (knockbackTarget != null)
         {
-            Debug.Log($"[EnemyController] '{name}' bị PARRY bởi '{target.name}'!");
-            return; // Parry thành công → không gây damage
+            Vector3 dir = GetLookDirection();
+            dir.y = 0;
+            knockbackTarget.OnKnockback(dir, knockBackForce, knockBackcurve);
         }
 
         int damage = CalculateDamage(RuntimeConfig.GetATK(), out bool isCrit);
-
         receiver.TakeDMG(damage, isCrit);
-
-        DMGPopUpGenerator.Instance.Create(transform.position, damage, isCrit, true);
-        Debug.Log($"[EnemyController] '{name}' caused {damage} damage to '{target.name}' (CRIT: {isCrit}).");
     }
-   
+
+    public Vector3 GetLookDirection()
+    {
+       
+
+  
+            return Model != null ? Model.forward : transform.forward;
+       
+    }
     private int CalculateDamage(float percent, out bool isCrit)
     {
         if (RuntimeConfig == null)
@@ -173,7 +193,6 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
     {
         int finalDamage = Mathf.Max(0, damage);
         Health.Decreases(finalDamage);
-        
 
         SetTakeDMG(true);
         OnTakeDamageEvent?.Invoke(this);
@@ -188,7 +207,7 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
         gameObject.SetObjectLayer(ignoreLayer.value);
         SetDie(true);
         SetTakeDMG(false);
-        
+
         OnDieEvent?.Invoke(this);
         gameObject.SetActive(false);
     }
@@ -217,40 +236,43 @@ public class EnemyController : Damageable, IPooled<EnemyController>,
     private Coroutine _flinchRoutine;
     private Vector3 _originalLocalPos;
     private Animator _animator;
-
-  
+    private Transform _currentTarget;
+    internal CharacterController CharacterController;
+    public float knockBackForce;
+    public AnimationCurve knockBackcurve;
 
     #endregion
 
     public Action<EnemyController> ReleaseCallback { get; set; }
+
     #region ICombatActor / IDamageDealer
 
     public GameObject GameObject => gameObject;
     public Transform Transform => transform;
 
-    // Enemy dùng Animator.transform làm Model, hoặc transform gốc nếu chưa có Animator
-    public Transform Model => Animator != null ? Animator.transform : transform;
+    public Transform Model
+    {
+        get
+        {
+            if (_animator != null) return _animator.transform;
+            return transform;
+        }
+    }
 
-    // Enemy chưa có CharacterEffect — trả null, ComboEngine sẽ bỏ qua VFX
-    [SerializeField] private CharacterEffect combatEffect;
-    public CharacterEffect Effect => combatEffect;
-
+    public CharacterEffect Effect => _combatEffect;
     public bool IsPlayer => false;
 
+    public Transform SwordTransform => swordTransform;
 
-    [SerializeField] private EnemyAttack _enemyAttackRef;
     public void ExecuteDamage(GameObject victim, AttackType type)
     {
         if (_enemyAttackRef != null)
             _enemyAttackRef.ExecuteDamage(victim, type);
-        else
-            CauseDMG(victim, type); // fallback
+  
     }
 
-    // SwordTransform — nếu Enemy có kiếm, thêm field này
-    [SerializeField] private Transform swordTransform;
-    public Transform SwordTransform => swordTransform;
+    public Transform CurrentTarget { get; private set; }
+    public void SetCurrentTarget(Transform target) => CurrentTarget = target;
 
     #endregion
-
 }

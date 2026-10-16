@@ -20,7 +20,7 @@ public abstract class PlayerBaseState
 
     public virtual void EnterState() { }
     protected virtual void UpdateState() { }
-    protected virtual void ExitState() { }
+    protected virtual void ExitState() { }   // ← GIỮ protected
     public virtual void CheckSwitchState() { }
     public virtual void InitializeSubState() { }
 
@@ -30,26 +30,43 @@ public abstract class PlayerBaseState
         _childState?.UpdateStates();
     }
 
+    /// <summary>
+    /// 🔥 PUBLIC API — DÀNH RIÊNG CHO PlayerController.
+    /// Controller gọi hàm này để force state hiện tại thoát,
+    /// trước khi gán state mới (Hit/Parry/Dead...).
+    /// 
+    /// ⚠️ KHÔNG dùng hàm này từ bên trong state khác — chỉ Controller.
+    /// </summary>
+    public void ForceExit()
+    {
+        ClearSubStateRecursive();
+        ExitState();
+    }
+
+    /// <summary>
+    /// Dùng nội bộ cho child state trong cùng root (Grounded → Idle/Run).
+    /// </summary>
     public void SwitchState(PlayerBaseState newState)
     {
         if (newState == null) return;
-
-        // Guard: không switch sang cùng state
         if (GetType() == newState.GetType()) return;
 
         ClearSubStateRecursive();
         ExitState();
 
-        // Root state phải luôn thay CurrentState, bất kể state hiện tại là root hay child
         if (newState.IsRootState)
         {
             _ctx.CurrentState = newState;
             newState._parentState = null;
             newState.EnterState();
         }
+        else if (_parentState != null)
+        {
+            _parentState.SetChildState(newState);
+        }
         else
         {
-            _parentState?.SetChildState(newState);
+            SetChildState(newState);
         }
     }
 
