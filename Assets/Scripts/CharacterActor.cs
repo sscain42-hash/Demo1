@@ -50,7 +50,7 @@ public abstract class CharacterActor : Damageable,
     public AttackType CurrentRuntimeAttackType { get; protected set; }
 
     // Cho Enemy set từ BT
-    public void SetRuntimeAttackType(AttackType type) => CurrentRuntimeAttackType = type;
+
 
     // ═══════════════════════════════════════════════════════════
     // PARRY

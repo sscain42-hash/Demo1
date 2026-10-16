@@ -295,8 +295,15 @@ public class PlayerController : CharacterActor,
 
     private void Start()
     {
+        // 🔥 FORCE RESET LOCKS NGAY KHI START
+        _rotationLocked = false;
+        _isAttacking = false;
+        _isDashing = false;
+
         CurrentState = States.Grounded();
         CurrentState.EnterState();
+
+        Debug.Log($"[Start] rotationLocked={_rotationLocked}, attacking={_isAttacking}");
     }
 
     private void Update()
@@ -461,51 +468,34 @@ public class PlayerController : CharacterActor,
 
     private void HandleImplicitTransitions()
     {
-        if (CurrentState is PlayerAttackState && (skillManager == null || !skillManager.IsAttacking))
-        {
-            SwitchState(ResolveGroundState());
-            return;
-        }
-
-        if (CurrentState is PlayerHitState hitState && hitState.IsFinished)
-        {
-            SwitchState(ResolveGroundState());
-            return;
-        }
-
-        if (CurrentState is PlayerParryState parryState && parryState.IsFinished)
-        {
-            SwitchState(ResolveGroundState());
-            return;
-        }
-
-        if (CurrentState is PlayerParryMovementState moveState && moveState.IsFinished)
+        // Nếu state hiện tại implement IImplicitTransitionable và đã finished
+        if (CurrentState is IImplicitTransitionable transitionable && transitionable.IsFinished)
         {
             SwitchState(ResolveGroundState());
             return;
         }
     }
-
     private void HandleHitRequest(GameObject attacker)
     {
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
 
-        // Chỉ Override mới không bị hit interrupt
+        // Override state không bị hit interrupt lần nữa
         if (category == StateCategory.Override) return;
-        if (CurrentState is PlayerDeadState) return;
 
-        // Locomotion và Combat đều bị hit interrupt
-        // (trừ Dash — i-frame)
+        // i-frame: Dash, Parry (window), ParryMovement
         if (CurrentState is PlayerDashState) return;
-        if (CurrentState is PlayerParryState) return;      // parry window = i-frame
-        if (CurrentState is PlayerParryMovementState) return; // parry movement = i-frame
+        if (CurrentState is PlayerParryState) return;
+        if (CurrentState is PlayerParryMovementState) return;
+        if (CurrentState is PlayerAirDashState) return;  // 🔥 THÊM
 
         ForceSwitchState(States.Hit());
     }
 
     private void HandleParryRequest()
     {
-        if (CurrentState is PlayerDeadState) return;
+        var category = CurrentState?.Category ?? StateCategory.Locomotion;
+
+        if (category == StateCategory.Override) return;
         if (CurrentState is PlayerParryState) return;
 
         skillManager?.ForceCancelCombo(false);
@@ -575,6 +565,10 @@ public class PlayerController : CharacterActor,
 
         if (category == StateCategory.Override) return;
 
+        // Chỉ cho phép Jump từ Grounded hoặc Airborne (Jump/Fall/AirDash)
+        // Không cho phép từ Combat (Attack/Parry/ParryMovement)
+        if (category == StateCategory.Combat) return;
+
         SwitchState(States.Jump());
     }
 
@@ -589,6 +583,7 @@ public class PlayerController : CharacterActor,
         ForceSwitchState(States.ParryMovement());
     }
 
+    // PlayerController.cs — trong SwitchState
     private void SwitchState(PlayerBaseState newState)
     {
         if (newState == null) return;
@@ -596,6 +591,11 @@ public class PlayerController : CharacterActor,
 
         CurrentState?.ForceExit();
         CurrentState = newState;
+
+        // 🔥 Reset locks khi vào state mới
+        _rotationLocked = false;
+        // Không reset _isAttacking vì Attack lock dùng riêng
+
         CurrentState.EnterState();
     }
 
@@ -605,6 +605,10 @@ public class PlayerController : CharacterActor,
 
         CurrentState?.ForceExit();
         CurrentState = newState;
+
+        // 🔥 Reset locks
+        _rotationLocked = false;
+
         CurrentState.EnterState();
     }
 
@@ -792,16 +796,24 @@ public void SwitchStateExternal(PlayerBaseState newState)
         Model.rotation = Quaternion.LookRotation(direction.normalized);
     }
 
-    public void RotateTowardDirection(Vector3 direction, float speed)
+    public void RotateTowardDirection(Transform model, Vector3 direction, float rotationSpeed)
     {
-        if (Model == null || _rotationLocked) return;
-        if (direction.sqrMagnitude < 0.001f) return;
+        if (model == null) { Debug.LogWarning("[Rotate] model null"); return; }
+        if (direction.sqrMagnitude < 0.01f) { Debug.LogWarning("[Rotate] dir zero"); return; }
 
-        _rotationHandler?.RotateTowardDirection(Model, direction, speed);
+        Quaternion targetRotation = Quaternion.LookRotation(direction);
+        float t = rotationSpeed * Time.deltaTime;
+        model.rotation = Quaternion.Slerp(model.rotation, targetRotation, t);
+
+        Debug.Log($"[Rotate] model={model.name}, t={t:F3}, " +
+                  $"target={targetRotation.eulerAngles}, current={model.rotation.eulerAngles}");
     }
 
     public void HandleRotation()
     {
+        Debug.Log($"[HR] locked={_rotationLocked}, input={_inputVector.sqrMagnitude:F2}, " +
+                  $"Model={(Model != null ? Model.name : "NULL")}");
+
         if (_rotationLocked) return;
         if (_inputVector.sqrMagnitude <= 0.01f) return;
 
@@ -925,10 +937,5 @@ public void SwitchStateExternal(PlayerBaseState newState)
 
     #endregion
 
-    #region LEGACY
 
-    public void TryEnterParryState() => RequestState(StateRequestType.Parry);
-    public void TryEnterHitState() => RequestState(StateRequestType.Hit);
-
-    #endregion
 }

@@ -1,14 +1,9 @@
-﻿using UnityEngine;
-
-public class PlayerGroundedState : PlayerBaseState
+﻿public class PlayerGroundedState : PlayerBaseState
 {
     public override StateCategory Category => StateCategory.Locomotion;
 
     public PlayerGroundedState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory)
-    {
-        _isRootState = true;
-    }
+        : base(ctx, factory) { }
 
     public override void EnterState()
     {
@@ -20,36 +15,28 @@ public class PlayerGroundedState : PlayerBaseState
     {
         _ctx.HandleRotation();
 
-        // Nếu có child (Idle/Run/Dash) → để child tự update
-        // Grounded chỉ check transition lên Airborne
-        if (_childState != null)
-        {
-            CheckSwitchToAirborne();
-            return;
-        }
-
-        // Không có child → check ground transitions
-        CheckSwitchState();
-    }
-
-    public override void CheckSwitchState()
-    {
-        // Jump
+        // 🔥 CHECK JUMP/DASH TRƯỚC — không return sớm
         if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f)
         {
             SwitchState(_factory.Jump());
             return;
         }
 
-        // Dash → gán child
         if (_ctx.TryDash)
         {
             SetChildState(_factory.Dash());
             return;
         }
 
-        // Airborne
         CheckSwitchToAirborne();
+
+        // Nếu có child (Idle/Run/Dash) → child tự update
+        // Không cần check gì thêm
+    }
+
+    public override void CheckSwitchState()
+    {
+        // Để trống hoặc log warning — không dùng nữa
     }
 
     private void CheckSwitchToAirborne()
@@ -57,7 +44,6 @@ public class PlayerGroundedState : PlayerBaseState
         if (_ctx.IsAirborneStable && _ctx.JumpVelocity < -0.1f)
         {
             SwitchState(_factory.Fall());
-            return;
         }
     }
 

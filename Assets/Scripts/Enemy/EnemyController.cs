@@ -240,11 +240,6 @@ public class EnemyController : CharacterActor,
 
     #region === EnemyAttack accessor (giữ API cũ) ===
 
-    public void ExecuteDamage_Old(GameObject victim, AttackType type)
-    {
-        if (_enemyAttackRef != null)
-            _enemyAttackRef.ExecuteDamage(victim, type);
-    }
 
     #endregion
-}// Custom ActionTask cho NodeCanvas
+}

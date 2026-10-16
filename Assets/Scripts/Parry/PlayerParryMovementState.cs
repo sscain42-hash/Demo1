@@ -4,7 +4,7 @@ using Combat.Parry;
 /// <summary>
 /// Parry Movement — bay theo movement type, KHÔNG quay model.
 /// </summary>
-public class PlayerParryMovementState : PlayerBaseState
+public class PlayerParryMovementState : PlayerBaseState,IImplicitTransitionable
 {
     private ParryMovementType _movementType;
     private Vector3 _movementVelocity;
@@ -18,7 +18,7 @@ public class PlayerParryMovementState : PlayerBaseState
     public PlayerParryMovementState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = true;
+      
     }
 
     public override void EnterState()

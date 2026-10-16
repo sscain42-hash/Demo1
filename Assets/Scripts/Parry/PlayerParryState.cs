@@ -5,7 +5,7 @@ using Combat.Parry;
 /// Parry State — phong cách Homura Hime.
 /// Chờ kết quả parry (success/fail) trước khi tự thoát.
 /// </summary>
-public class PlayerParryState : PlayerBaseState
+public class PlayerParryState : PlayerBaseState,IImplicitTransitionable
 {
     public override StateCategory Category => StateCategory.Combat;
     private const float MIN_DURATION = 0.1f;
@@ -32,7 +32,7 @@ public class PlayerParryState : PlayerBaseState
     public PlayerParryState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = true;
+      
     }
 
     public override void EnterState()

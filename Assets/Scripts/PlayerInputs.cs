@@ -141,7 +141,11 @@ public partial class PlayerInputs : MonoBehaviour
     }
 
     // --- Handlers ---
-    private void OnMovePerformed(InputAction.CallbackContext ctx) => Move = ctx.ReadValue<Vector2>();
+    private void OnMovePerformed(InputAction.CallbackContext ctx)
+    {
+        Move = ctx.ReadValue<Vector2>();
+        Debug.Log($"[Input] Move = {Move}");   // 🔥 thêm dòng này
+    }
     private void OnMoveCanceled(InputAction.CallbackContext ctx) => Move = Vector2.zero;
 
     private void OnLookPerformed(InputAction.CallbackContext ctx) => Look = ctx.ReadValue<Vector2>();

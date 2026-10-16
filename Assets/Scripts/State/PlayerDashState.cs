@@ -8,13 +8,11 @@ public class PlayerDashState : PlayerBaseState
     public override StateCategory Category => StateCategory.Locomotion;
 
     public bool IsFinished => _timer >= _ctx.DashDuration;
-
     public PlayerDashState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = false;   // 🔥 CHILD của Grounded
+        _isChildState = true;   // 🔥 Đánh dấu là child
     }
-
     public override void EnterState()
     {
         _timer = 0f;

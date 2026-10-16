@@ -146,7 +146,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         UpdateParryAnimation();
         HandleCamera();
 
-        // Combo engine update khi đang attack
+        // 🔥 Nếu đang attack → update engine
         if (IsAttacking && _ctx.CurrentState is PlayerAttackState)
         {
             _comboEngine.UpdateWindows();
@@ -154,30 +154,26 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             if (_comboEngine.IsAnimationFinished())
             {
                 FinishComboAttack(_activeState);
+                return;   // 🔥 RETURN — không xử lý input frame này
             }
+
+            // Chỉ khi VẪN đang attack mới xử lý combo input
+            HandleComboInput();
+            return;       // 🔥 RETURN — không chạy ProcessLocomotionInput
         }
 
-        // 🔥 INPUT — chia 2 nhánh theo category
+        // Chỉ xử lý input khi ở Locomotion
         var category = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
-
         if (category == StateCategory.Locomotion)
         {
-            // Nhận input bình thường — start combo mới
             ProcessLocomotionInput();
         }
-        else if (category == StateCategory.Combat && _ctx.CurrentState is PlayerAttackState)
-        {
-            // Đang attack — xử lý combo window / cancel
-            HandleComboInput();
-        }
-        // Override → không nhận input
     }
 
     private void ProcessLocomotionInput()
     {
         if (playerInputs == null) return;
 
-        // PARRY
         if (playerInputs.HasCommand(BufferedAction.Parry))
         {
             playerInputs.ConsumeCommand(BufferedAction.Parry);
@@ -187,26 +183,33 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             return;
         }
 
-        // ATTACK
         if (!IsAttacking)
         {
             if (playerInputs.HasCommand(BufferedAction.NormalAttack))
             {
+                playerInputs.ConsumeCommand(BufferedAction.NormalAttack);   // 🔥 CONSUME
                 _pendingComboType = ComboType.Normal;
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
+                return;
             }
-            else if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
+
+            if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
             {
+                playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);  // 🔥 CONSUME
                 _pendingComboType = ComboType.SkillE;
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
+                return;
             }
-            else if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
+
+            if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
             {
+                playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);  // 🔥 CONSUME
                 _pendingComboType = ComboType.BurstQ;
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
+                return;
             }
         }
     }
@@ -215,13 +218,15 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (state == null) return;
 
-        Debug.Log($"[PlayerSkillManager] FinishComboAttack — {state.associatedAction}");
+        Debug.Log($"[FinishComboAttack] CALLED. " +
+                  $"IsAttacking before={IsAttacking}, " +
+                  $"activeState={(_activeState != null ? _activeState.associatedAction.ToString() : "null")}, " +
+                  $"stackTrace=\n{System.Environment.StackTrace}");
 
         state.isAttacking = false;
         state.comboResetTimer = 1.0f;
         _activeState = null;
     }
-
     private void UpdateComboTimers(ComboState state)
     {
         if (state.sequence == null) return;
@@ -354,6 +359,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (_comboEngine == null) return;
         if (!(_ctx.CurrentState is PlayerAttackState)) return;
+        if (_activeState == null) return;   // 🔥 GUARD — không có combo nào active
 
         // Dash cancel
         if (_comboEngine.CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
@@ -380,6 +386,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         {
             if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
             {
+                playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);   // 🔥 CONSUME
                 _pendingComboType = ComboType.BurstQ;
                 StartComboChain(stateQ);
                 return;
@@ -387,6 +394,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
             if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
             {
+                playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);   // 🔥 CONSUME
                 _pendingComboType = ComboType.SkillE;
                 StartComboChain(stateE);
                 return;
@@ -394,9 +402,9 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
             if (playerInputs.HasCommand(BufferedAction.NormalAttack))
             {
+                playerInputs.ConsumeCommand(BufferedAction.NormalAttack);     // 🔥 CONSUME
                 if (_activeState == stateNormal)
                 {
-                    playerInputs.ConsumeCommand(BufferedAction.NormalAttack);
                     MoveToNextComboStep(stateNormal);
                 }
                 else

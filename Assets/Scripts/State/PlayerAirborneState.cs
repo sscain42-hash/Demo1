@@ -9,7 +9,7 @@ public abstract class PlayerAirborneState : PlayerBaseState
     protected PlayerAirborneState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = true;
+       
     }
 
     public override void EnterState()

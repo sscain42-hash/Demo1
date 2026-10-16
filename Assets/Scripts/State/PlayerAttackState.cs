@@ -1,13 +1,14 @@
 using UnityEngine;
 
-public class PlayerAttackState : PlayerBaseState
+public class PlayerAttackState : PlayerBaseState,IImplicitTransitionable
 {
     private readonly PlayerSkillManager _skillManager;
     public override StateCategory Category => StateCategory.Combat;
+    public bool IsFinished => _skillManager == null || !_skillManager.IsAttacking;
     public PlayerAttackState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = true;
+        
         _skillManager = ctx.GetComponent<PlayerSkillManager>();
     }
 

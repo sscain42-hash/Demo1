@@ -5,7 +5,7 @@ public class PlayerDeadState : PlayerBaseState
     public PlayerDeadState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = true;
+        
     }
     public override StateCategory Category => StateCategory.Override;
     public override void EnterState()

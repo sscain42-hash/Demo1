@@ -120,23 +120,11 @@ public abstract class ComboEngineBase
         if (Animator == null) return;
         if (string.IsNullOrEmpty(animationName)) return;
 
-        // 🔥 CÁCH 1: Dùng Animator.Play() để force restart
-        // Play(stateName, layer, normalizedTime)
-        try
-        {
-            Animator.Play(animationName, AttackLayerIndex, 0f);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning($"[ComboEngine] Play animation '{animationName}' thất bại: {e.Message}");
-        }
-
-        // 🔥 CÁCH 2: CrossFade để có blend mượt
-        // Nhưng phải ForceUpdate trước để đảm bảo state đã reset
+        // 🔥 Chỉ dùng Play — không CrossFade sang chính state đang chạy
+        Animator.Play(animationName, AttackLayerIndex, 0f);
         Animator.Update(0f);
-        Animator.CrossFadeInFixedTime(animationName, 0.1f, AttackLayerIndex, 0f);
 
-        Debug.Log($"[ComboEngine] ForcePlayAnimation: '{animationName}' session #{_currentSessionId}");
+        // Debug.Log($"[ComboEngine] ForcePlayAnimation: '{animationName}' session #{_currentSessionId}");
     }
 
     public void UpdateWindows()
@@ -214,34 +202,34 @@ public abstract class ComboEngineBase
 
     public bool IsAnimationFinished()
     {
-        if (Animator == null || CurrentAttackData == null) return false;
+        if (Animator == null || CurrentAttackData == null)
+        {
+            Debug.Log("[IsFinished] FAIL: Animator or Data null");
+            return false;
+        }
 
-        // 1. Grace period — không kết thúc trong 80ms đầu
         float timeSinceStart = Time.time - _sessionStartTime;
+
+        Debug.Log($"[IsFinished] CHECK: " +
+                  $"timeSinceStart={timeSinceStart:F3}, " +
+                  $"graceTime={SESSION_GRACE_TIME}, " +
+                  $"minDur={MIN_ANIMATION_DURATION}, " +
+                  $"isInTransition={Animator.IsInTransition(AttackLayerIndex)}, " +
+                  $"observedSess={_observedSessionId}, " +
+                  $"currentSess={_currentSessionId}, " +
+                  $"stateName={Animator.GetCurrentAnimatorStateInfo(AttackLayerIndex).shortNameHash}, " +
+                  $"expectedHash={Animator.StringToHash(CurrentAttackData.animationName)}, " +
+                  $"nTime={Animator.GetCurrentAnimatorStateInfo(AttackLayerIndex).normalizedTime:F3}");
+
         if (timeSinceStart < SESSION_GRACE_TIME) return false;
-
-        // 2. Minimum duration — không kết thúc trước 100ms
         if (timeSinceStart < MIN_ANIMATION_DURATION) return false;
-
-        // 3. Đang transition — chưa xong
         if (Animator.IsInTransition(AttackLayerIndex)) return false;
-
-        // 4. Session chưa observe — chưa xong
         if (_observedSessionId != _currentSessionId) return false;
 
-        // 5. Check state
         AnimatorStateInfo stateInfo = Animator.GetCurrentAnimatorStateInfo(AttackLayerIndex);
+        if (!stateInfo.IsName(CurrentAttackData.animationName)) return false;
 
-        if (!stateInfo.IsName(CurrentAttackData.animationName))
-            return false;
-
-        // 🔥 6. Check normalizedTime >= 0.98 (không phải 1.0 vì có thể bị kẹt)
         float nTime = stateInfo.normalizedTime;
-
-        // 7. Nếu nTime < 0.5 → animation mới bắt đầu lại → CHƯA xong
-        if (nTime < 0.5f) return false;
-
-        // 8. Chỉ xong khi nTime >= 0.98
         return nTime >= 0.98f;
     }
 

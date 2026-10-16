@@ -3,12 +3,15 @@
     protected readonly PlayerController _ctx;
     protected readonly PlayerStateFactory _factory;
 
-    protected bool _isRootState = false;
+   
     protected PlayerBaseState _childState;
     protected PlayerBaseState _parentState;
-
+    protected bool _isChildState = false;
     public PlayerBaseState ChildState => _childState;
-    public bool IsRootState => _isRootState;
+    public bool IsRootState => !_isChildState;
+    public bool IsChildState => _isChildState;
+
+
 
     public virtual StateCategory Category => StateCategory.Locomotion;
 
@@ -44,6 +47,7 @@
         ClearSubStateRecursive();
         ExitState();
 
+        // ✅ Dùng newState.IsRootState — giờ là property tự detect
         if (newState.IsRootState)
         {
             _ctx.CurrentState = newState;
@@ -112,11 +116,5 @@
         _childState.EnterState();
     }
 
-    protected void SwitchRootState(PlayerBaseState newRootState)
-    {
-        if (_isRootState)
-            SwitchState(newRootState);
-        else
-            _parentState?.SwitchRootState(newRootState);
-    }
+
 }

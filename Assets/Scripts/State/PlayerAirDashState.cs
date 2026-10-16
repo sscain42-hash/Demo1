@@ -17,7 +17,7 @@ public class PlayerAirDashState : PlayerBaseState
     public PlayerAirDashState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = false;   // 🔥 CHILD của Airborne
+       
     }
 
     public override void EnterState()
