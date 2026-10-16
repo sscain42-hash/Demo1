@@ -101,8 +101,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: HitBox
-    startTime: 0.3611111
-    endTime: 0.44444445
+    startTime: 0.5
+    endTime: 0.5833334
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}

@@ -8,6 +8,8 @@
     public PlayerBaseState Jump() => new PlayerJumpState(_ctx, this);
     public PlayerBaseState Fall() => new PlayerFallState(_ctx, this);
     public PlayerBaseState Dash() => new PlayerDashState(_ctx, this);
+    public PlayerBaseState AirDash() => new PlayerAirDashState(_ctx, this);   // 🔥 MỚI
+
     public PlayerBaseState Attack() => new PlayerAttackState(_ctx, this);
     public PlayerBaseState Dead() => new PlayerDeadState(_ctx, this);
     public PlayerBaseState Hit() => new PlayerHitState(_ctx, this);

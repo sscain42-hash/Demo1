@@ -7,13 +7,12 @@ public class PlayerDashState : PlayerBaseState
 
     public override StateCategory Category => StateCategory.Locomotion;
 
-    // 🔥 QUAN TRỌNG: Dash là child của Grounded, KHÔNG phải root
     public bool IsFinished => _timer >= _ctx.DashDuration;
 
     public PlayerDashState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        _isRootState = false;   // ← CHILD
+        _isRootState = false;   // 🔥 CHILD của Grounded
     }
 
     public override void EnterState()
@@ -34,10 +33,8 @@ public class PlayerDashState : PlayerBaseState
     {
         _timer += Time.deltaTime;
 
-        // Di chuyển dash
         _ctx.AppliedMovement = new Vector3(_dashVelocity.x, 0f, _dashVelocity.z);
 
-        // Xoay model theo hướng dash
         if (_ctx.Model != null)
         {
             Vector3 dashDir = _ctx.GetHorizontalDashDirection();
@@ -45,17 +42,12 @@ public class PlayerDashState : PlayerBaseState
                 _ctx.Model.rotation = Quaternion.LookRotation(dashDir);
         }
 
-        // Kết thúc dash → tự pop về parent (Grounded)
         if (IsFinished)
         {
-            FinishDash();
+            PopToParent();   // 🔥 Về Grounded → InitializeSubState → Idle/Run
         }
     }
 
-    private void FinishDash()
-    {
-        PopToParent();
-    }
     protected override void ExitState()
     {
         _ctx.SetRotationLock(false);

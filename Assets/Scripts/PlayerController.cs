@@ -531,11 +531,42 @@ public class PlayerController : CharacterActor,
 
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
 
+        // Override không nhận dash
         if (category == StateCategory.Override) return;
 
-        SwitchState(States.Dash());
-    }
+        // === CASE 1: Đang ở Grounded → Dash là child ===
+        if (CurrentState is PlayerGroundedState groundedState)
+        {
+            groundedState.SetChildState(States.Dash());
+            return;
+        }
 
+        // === CASE 2: Đang ở Airborne (Jump/Fall) → AirDash là child ===
+        if (CurrentState is PlayerAirborneState airborneState)
+        {
+            airborneState.SetChildState(States.AirDash());
+            return;
+        }
+
+        // === CASE 3: Đang ở Combat (Attack) → về Grounded trước, rồi Dash ===
+        if (category == StateCategory.Combat)
+        {
+            // Force về Grounded (sẽ tự InitializeSubState → Idle/Run)
+            ForceSwitchState(States.Grounded());
+
+            // Grounded giờ là CurrentState → enter Dash ngay
+            // Không cần chờ frame — vì đã ForceSwitchState → CurrentState = Grounded
+            if (CurrentState is PlayerGroundedState gState)
+            {
+                gState.SetChildState(States.Dash());
+            }
+            return;
+        }
+
+        // === Fallback: switch root (không nên xảy ra) ===
+        Debug.LogWarning($"[PlayerController] HandleDashStateRequest fallback từ {CurrentState?.GetType().Name}");
+        SwitchState(States.Grounded());
+    }
     private void HandleJumpStateRequest()
     {
         if (!TryJump) return;
@@ -597,10 +628,13 @@ public class PlayerController : CharacterActor,
         if (Animator == null)
             animator = GetComponentInChildren<Animator>();
     }
-    public void SwitchStateExternal(PlayerBaseState newState)
-    {
-        SwitchState(newState);
-    }
+   /// <summary>
+/// Public switch cho state gọi khi cần. Dùng bởi PopToParent khi không có parent.
+/// </summary>
+public void SwitchStateExternal(PlayerBaseState newState)
+{
+    SwitchState(newState);
+}
     private void InitializeServices()
     {
         _physicsHandler = new GravityHandler(_gravity, GravityScaling, FallClamp);

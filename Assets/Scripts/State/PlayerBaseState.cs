@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-public abstract class PlayerBaseState
+﻿public abstract class PlayerBaseState
 {
     protected readonly PlayerController _ctx;
     protected readonly PlayerStateFactory _factory;
@@ -11,9 +9,9 @@ public abstract class PlayerBaseState
 
     public PlayerBaseState ChildState => _childState;
     public bool IsRootState => _isRootState;
-    // 🔥 THÊM
-    /// <summary>Category của state. Default = Locomotion.</summary>
+
     public virtual StateCategory Category => StateCategory.Locomotion;
+
     protected PlayerBaseState(PlayerController ctx, PlayerStateFactory factory)
     {
         _ctx = ctx;
@@ -22,7 +20,7 @@ public abstract class PlayerBaseState
 
     public virtual void EnterState() { }
     protected virtual void UpdateState() { }
-    protected virtual void ExitState() { }   // ← GIỮ protected
+    protected virtual void ExitState() { }
     public virtual void CheckSwitchState() { }
     public virtual void InitializeSubState() { }
 
@@ -32,22 +30,12 @@ public abstract class PlayerBaseState
         _childState?.UpdateStates();
     }
 
-    /// <summary>
-    /// 🔥 PUBLIC API — DÀNH RIÊNG CHO PlayerController.
-    /// Controller gọi hàm này để force state hiện tại thoát,
-    /// trước khi gán state mới (Hit/Parry/Dead...).
-    /// 
-    /// ⚠️ KHÔNG dùng hàm này từ bên trong state khác — chỉ Controller.
-    /// </summary>
     public void ForceExit()
     {
         ClearSubStateRecursive();
         ExitState();
     }
 
-    /// <summary>
-    /// Dùng nội bộ cho child state trong cùng root (Grounded → Idle/Run).
-    /// </summary>
     public void SwitchState(PlayerBaseState newState)
     {
         if (newState == null) return;
@@ -70,6 +58,40 @@ public abstract class PlayerBaseState
         {
             SetChildState(newState);
         }
+    }
+
+    /// <summary>
+    /// 🔥 CHILD state gọi hàm này để pop về parent.
+    /// Parent sẽ tự InitializeSubState lại (Idle/Run).
+    /// </summary>
+    public void PopToParent()
+    {
+        if (_parentState == null)
+        {
+            // Fallback: nếu không có parent, switch root về Grounded
+            _ctx.SwitchStateExternal(_factory.Grounded());
+            return;
+        }
+
+        var parent = _parentState;
+
+        // Xoá child hiện tại (chính là state này)
+        parent.ClearChild();
+
+        // Parent tự init lại (Idle/Run)
+        parent.InitializeSubState();
+    }
+
+    /// <summary>
+    /// 🔥 Dùng nội bộ cho PopToParent. Xoá child khỏi parent.
+    /// </summary>
+    internal void ClearChild()
+    {
+        if (_childState == null) return;
+
+        _childState.ClearSubStateRecursive();
+        _childState.ExitState();
+        _childState = null;
     }
 
     private void ClearSubStateRecursive()
@@ -96,37 +118,5 @@ public abstract class PlayerBaseState
             SwitchState(newRootState);
         else
             _parentState?.SwitchRootState(newRootState);
-    }
-    /// <summary>
-    /// Child state gọi hàm này để pop về parent.
-    /// Parent sẽ tự InitializeSubState lại.
-    /// </summary>
-    protected void PopToParent()
-    {
-        if (_parentState == null)
-        {
-            Debug.LogWarning($"[{GetType().Name}] PopToParent nhưng không có parent!");
-            _ctx.SwitchStateExternal(_factory.Grounded());
-            return;
-        }
-
-        // Báo parent reset child
-        var parent = _parentState;
-
-        // Xoá child khỏi parent
-        parent.ClearChild();
-
-        // Parent tự initialize lại sub state
-        parent.InitializeSubState();
-    }
-
-    /// <summary>Dùng nội bộ cho PopToParent.</summary>
-    internal void ClearChild()
-    {
-        if (_childState == null) return;
-
-        _childState.ClearSubStateRecursive();
-        _childState.ExitState();
-        _childState = null;
     }
 }

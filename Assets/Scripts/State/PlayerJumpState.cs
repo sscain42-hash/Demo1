@@ -18,11 +18,11 @@ public class PlayerJumpState : PlayerAirborneState
 
     protected override void OnAirUpdate()
     {
-        // Variable jump height: thả nút → cắt velocity
+        // Variable jump height
         if (!_ctx._playerInputs.JumpHeld && _ctx.JumpVelocity > 0f)
             _ctx.JumpVelocity *= JUMP_RELEASE_MULTIPLIER;
 
-        // Khi hết bay lên → Fall
+        // Hết bay lên → Fall
         if (_ctx.JumpVelocity <= 0f)
         {
             SwitchState(_factory.Fall());

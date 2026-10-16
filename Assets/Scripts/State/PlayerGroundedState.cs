@@ -20,13 +20,10 @@ public class PlayerGroundedState : PlayerBaseState
     {
         _ctx.HandleRotation();
 
-        // ========================================================
-        // Nếu đang có child state (Idle/Run/Dash), để child xử lý
-        // ========================================================
+        // Nếu có child (Idle/Run/Dash) → để child tự update
+        // Grounded chỉ check transition lên Airborne
         if (_childState != null)
         {
-            // Child state tự CheckSwitchState trong UpdateStates()
-            // Grounded chỉ check transition lên Airborne
             CheckSwitchToAirborne();
             return;
         }
@@ -37,29 +34,26 @@ public class PlayerGroundedState : PlayerBaseState
 
     public override void CheckSwitchState()
     {
-        // Jump (từ Idle/Run)
+        // Jump
         if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f)
         {
             SwitchState(_factory.Jump());
             return;
         }
 
-        // Dash (từ Idle/Run) → chuyển thành child Dash
+        // Dash → gán child
         if (_ctx.TryDash)
         {
             SetChildState(_factory.Dash());
             return;
         }
 
-        // Airborne → thoát khỏi Grounded
+        // Airborne
         CheckSwitchToAirborne();
     }
 
     private void CheckSwitchToAirborne()
     {
-        // Chỉ chuyển sang Airborne khi:
-        // - Rời đất ổn định (> 3 frame)
-        // - VÀ đang rơi xuống (jumpVelocity < 0)
         if (_ctx.IsAirborneStable && _ctx.JumpVelocity < -0.1f)
         {
             SwitchState(_factory.Fall());

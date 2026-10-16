@@ -28,15 +28,4 @@ public class PlayerFallState : PlayerAirborneState
             SwitchState(_factory.Grounded());
         }
     }
-
-    protected override bool ShouldLand()
-    {
-        // Base logic
-        if (base.ShouldLand()) return true;
-
-        // Fall-specific: nếu coyote counter còn → chưa land
-        // (đã xử lý trong base)
-
-        return false;
-    }
 }

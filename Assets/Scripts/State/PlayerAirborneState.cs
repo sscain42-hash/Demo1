@@ -1,12 +1,5 @@
 ﻿using UnityEngine;
-/// <summary>
-/// Root abstract cho mọi state trên không: Jump, Fall.
-/// Quản lý:
-/// - Coyote time
-/// - Air control
-/// - Chuyển Jump ↔ Fall
-/// - Landing detection → quay về Grounded
-/// </summary>
+
 public abstract class PlayerAirborneState : PlayerBaseState
 {
     protected float _airborneTimer;
@@ -29,13 +22,17 @@ public abstract class PlayerAirborneState : PlayerBaseState
     {
         _airborneTimer += Time.deltaTime;
 
-        // === AIR CONTROL chung ===
         ApplyAirControl();
 
-        // === TRANSITION chung ===
-        CheckCommonTransitions();
+        // Nếu đang có child (AirDash) → để child update, root chỉ check landing
+        if (_childState != null)
+        {
+            CheckLanding();
+            return;
+        }
 
-        // === Subclass update ===
+        CheckLanding();
+        CheckAirDashRequest();
         OnAirUpdate();
     }
 
@@ -49,40 +46,39 @@ public abstract class PlayerAirborneState : PlayerBaseState
         _ctx.Velocity = velocity;
     }
 
-    /// <summary>
-    /// Transition rules chung cho mọi state trên không.
-    /// Subclass có thể override để thêm logic riêng.
-    /// </summary>
-    protected virtual void CheckCommonTransitions()
+    protected virtual void CheckLanding()
     {
-        // 1. Landing → về Grounded
-        if (ShouldLand())
+        // Priority 1: CharacterController.isGrounded + small velocity
+        if (_ctx.CharController.isGrounded && Mathf.Abs(_ctx.JumpVelocity) < 2f)
         {
             SwitchState(_factory.Grounded());
             return;
         }
 
-        // 2. Dash cancel (chỉ khi Grounded)
-        // Note: Dash là child của Grounded, nên chỉ được khi chạm đất
-        // Nhưng ở đây đang trên không → không cho dash
-        // (Nếu muốn air dash sau này, thêm AirDash state)
+        // Priority 2: IsGroundedStable
+        if (_ctx.IsGroundedStable)
+        {
+            SwitchState(_factory.Grounded());
+            return;
+        }
 
-        // 3. Jump cancel (coyote time) — chỉ từ Fall mới cho phép
-        // Jump → Fall đã tự xử lý, nên ở đây không cần
+        // Priority 3: IsGroundedRaw + small velocity
+        if (_ctx.IsGroundedRaw && Mathf.Abs(_ctx.JumpVelocity) < 1f)
+        {
+            SwitchState(_factory.Grounded());
+            return;
+        }
     }
 
-    protected virtual bool ShouldLand()
+    /// <summary>
+    /// Root xử lý Dash request chung cho Jump/Fall.
+    /// </summary>
+    protected virtual void CheckAirDashRequest()
     {
-        if (_ctx.CharController.isGrounded && Mathf.Abs(_ctx.JumpVelocity) < 2f)
-            return true;
-
-        if (_ctx.IsGroundedStable)
-            return true;
-
-        if (_ctx.IsGroundedRaw && Mathf.Abs(_ctx.JumpVelocity) < 1f)
-            return true;
-
-        return false;
+        if (_ctx.TryDash)
+        {
+            SetChildState(_factory.AirDash());
+        }
     }
 
     protected abstract void OnAirEnter();
