@@ -1,13 +1,18 @@
-﻿using UnityEngine;
+using UnityEngine;
 
-public class PlayerJumpState : PlayerAirborneState
+public class PlayerJumpState : PlayerBaseState
 {
     private const float JUMP_RELEASE_MULTIPLIER = 0.5f;
 
-    public PlayerJumpState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory) { }
+    public override StateCategory Category => StateCategory.Locomotion;
 
-    protected override void OnAirEnter()
+    public PlayerJumpState(PlayerController ctx, PlayerStateFactory factory)
+        : base(ctx, factory)
+    {
+        _isChildState = true;
+    }
+
+    public override void EnterState()
     {
         _ctx.PlayAnimation(_ctx.Anim_Jump_Begin, 0.05f);
 
@@ -16,13 +21,13 @@ public class PlayerJumpState : PlayerAirborneState
         _ctx.CoyoteCounter = 0f;
     }
 
-    protected override void OnAirUpdate()
+    protected override void UpdateState()
     {
         // Variable jump height
         if (!_ctx._playerInputs.JumpHeld && _ctx.JumpVelocity > 0f)
             _ctx.JumpVelocity *= JUMP_RELEASE_MULTIPLIER;
 
-        // Hết bay lên → Fall
+        // Hết bay lên → Fall (cùng parent Airborne)
         if (_ctx.JumpVelocity <= 0f)
         {
             SwitchState(_factory.Fall());

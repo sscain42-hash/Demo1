@@ -1,4 +1,4 @@
-﻿namespace Combat.Parry
+namespace Combat.Parry
 {
     /// <summary>
     /// 🔥 Hướng di chuyển sau parry.

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Combat.Parry;
 
 /// <summary>
@@ -16,7 +16,12 @@ public class PlayerParryState : PlayerBaseState,IImplicitTransitionable
     private float _elapsedTime;
     private bool _movementCommitted;
     private bool _parryResultReceived;
-
+    public void RefreshTimer()
+    {
+        _elapsedTime = 0f;
+        _movementCommitted = false;
+        _parryResultReceived = false;
+    }
     public bool IsFinished
     {
         get
@@ -45,6 +50,10 @@ public class PlayerParryState : PlayerBaseState,IImplicitTransitionable
 
         PlayParryAnimation();
 
+        // 🔥 MỞ PARRY WINDOW — bất kể parry được trigger từ đâu
+        // (Locomotion, Attack interrupt, Hit interrupt)
+        _ctx.ParryController?.OnParryInput();
+
         var pc = _ctx.ParryController;
         if (pc != null)
         {
@@ -52,7 +61,6 @@ public class PlayerParryState : PlayerBaseState,IImplicitTransitionable
             pc.OnParryFail += HandleParryFail;
         }
     }
-
     private void PlayParryAnimation()
     {
         if (_ctx.Animator == null) return;

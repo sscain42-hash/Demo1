@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 /// <summary>
 /// Single Responsibility: Xử lý movement logic (acceleration/friction)

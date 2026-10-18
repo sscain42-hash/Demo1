@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 [CreateAssetMenu(fileName = "NewSlashData", menuName = "Combat/Slash Data")]
@@ -18,3 +18,4 @@ public class SlashDataSO : ScriptableObject
         new ControlPointData(new Vector3(1.5f, 0, 0.5f), new Vector3(0, 30, 0), 1.2f)
     };
 }
+

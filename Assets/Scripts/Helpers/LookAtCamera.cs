@@ -11,3 +11,4 @@ public class LookAtCamera : MonoBehaviour
             mainCamera.transform.rotation * Vector3.up);
     }
 }
+

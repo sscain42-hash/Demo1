@@ -1,4 +1,4 @@
-﻿// Một lớp "cái túi" chứa thông tin sự kiện
+// Một lớp "cái túi" chứa thông tin sự kiện
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -57,3 +57,4 @@ public static class GlobalVFXManager
         _vfxPools.Add(prefabKey, newPool);
     }
 }
+

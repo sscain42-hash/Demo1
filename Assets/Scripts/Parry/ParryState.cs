@@ -1,4 +1,4 @@
-﻿namespace Combat.Parry
+namespace Combat.Parry
 {
     /// <summary>
     /// Các trạng thái của hệ thống parry.

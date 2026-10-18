@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 /// <summary>
 /// Interface cho bất kỳ GameObject nào có thể parry đòn đánh.
@@ -13,3 +13,4 @@ public interface IParryReceiver
     /// <returns>True = đã parry, False = không parry được</returns>
     bool TryParry(GameObject attacker);
 }
+

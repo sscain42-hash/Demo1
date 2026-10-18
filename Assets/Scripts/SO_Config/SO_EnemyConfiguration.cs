@@ -15,3 +15,4 @@ public class SO_EnemyConfiguration : SO_CharacterConfiguration
     
  
 }
+

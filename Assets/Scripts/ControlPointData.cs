@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [System.Serializable]
 public struct ControlPointData
@@ -16,4 +16,5 @@ public struct ControlPointData
         fanHeight = height;
     }
 }
+
 

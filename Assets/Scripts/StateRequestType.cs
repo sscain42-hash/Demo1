@@ -1,4 +1,4 @@
-﻿public enum StateRequestType
+public enum StateRequestType
 {
     None = 0,
     Jump = 2,

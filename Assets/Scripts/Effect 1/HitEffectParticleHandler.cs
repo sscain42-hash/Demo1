@@ -13,10 +13,10 @@ public class HitEffectParticleHandler : MonoBehaviour
         _reference = GetComponent<Reference>();
     }
 
-    // Hàm Callback ?n c?a Unity, t? d?ng ch?y ngay khi Particle System d?ng phát h?t
+    // Hï¿½m Callback ?n c?a Unity, t? d?ng ch?y ngay khi Particle System d?ng phï¿½t h?t
     private void OnParticleSystemStopped()
     {
-        // G?i hàm gi?i phóng c?a chính script Reference b?n dã vi?t d? tr? v? Pool
+        // G?i hï¿½m gi?i phï¿½ng c?a chï¿½nh script Reference b?n dï¿½ vi?t d? tr? v? Pool
         _reference.Release();
     }
 }

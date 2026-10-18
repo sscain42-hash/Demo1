@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: 2Hand-Sword-Attack1
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   animationName: 2Hand-Sword-Attack1
+  useRootMotion: 1
+  rootMotionMultiplier: 1
   windows:
   - actionName: Slash
     startTime: 0.3888889
@@ -32,7 +34,7 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.6146585
+    startTime: 0.9166667
     endTime: 1
     enableVFX: 0
     vfxTransform:

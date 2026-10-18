@@ -21,3 +21,4 @@ public class PointerDetection : MonoBehaviour, IPointerEnterHandler, IPointerExi
         OnClickEvent?.Invoke();
     }
 }
+

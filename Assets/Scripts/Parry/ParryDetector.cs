@@ -1,4 +1,4 @@
-﻿using Combat.Parry;
+using Combat.Parry;
 using UnityEngine;
 /// <summary>
 /// Component gắn lên Player để implement IParryReceiver.

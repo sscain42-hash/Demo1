@@ -1,4 +1,4 @@
-﻿public class PlayerGroundedState : PlayerBaseState
+public class PlayerGroundedState : PlayerBaseState
 {
     public override StateCategory Category => StateCategory.Locomotion;
 
@@ -15,10 +15,9 @@
     {
         _ctx.HandleRotation();
 
-        // 🔥 CHECK JUMP/DASH TRƯỚC — không return sớm
         if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f)
         {
-            SwitchState(_factory.Jump());
+            SwitchState(_factory.Airborne());   // 🔥 ĐỔI
             return;
         }
 
@@ -29,21 +28,15 @@
         }
 
         CheckSwitchToAirborne();
-
-        // Nếu có child (Idle/Run/Dash) → child tự update
-        // Không cần check gì thêm
     }
 
-    public override void CheckSwitchState()
-    {
-        // Để trống hoặc log warning — không dùng nữa
-    }
+    public override void CheckSwitchState() { }
 
     private void CheckSwitchToAirborne()
     {
         if (_ctx.IsAirborneStable && _ctx.JumpVelocity < -0.1f)
         {
-            SwitchState(_factory.Fall());
+            SwitchState(_factory.Airborne());   // 🔥 ĐỔI
         }
     }
 

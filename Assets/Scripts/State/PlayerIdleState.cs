@@ -1,10 +1,11 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class PlayerIdleState : PlayerBaseState
 {
     public override StateCategory Category => StateCategory.Locomotion;
+
     public PlayerIdleState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory) 
+        : base(ctx, factory)
     {
         _isChildState = true;
     }
@@ -16,6 +17,11 @@ public class PlayerIdleState : PlayerBaseState
 
     protected override void UpdateState()
     {
+        // 🔥 Decay velocity về 0 — nhân vật trượt nhẹ khi dừng
+        Vector3 velocity = _ctx.Velocity;
+        _ctx.GroundMovementHandler.ApplyMovement(Vector3.zero, 0f, ref velocity);
+        _ctx.Velocity = velocity;
+
         CheckSwitchState();
     }
 

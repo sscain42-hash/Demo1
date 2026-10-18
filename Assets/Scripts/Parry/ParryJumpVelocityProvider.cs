@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 /// <summary>
 /// 🔥 Velocity provider cho cú nhảy sau parry.

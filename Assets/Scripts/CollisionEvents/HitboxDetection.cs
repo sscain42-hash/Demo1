@@ -18,7 +18,7 @@ public class HitBoxDetection : DetectionBase
     {
         Collider[] hits = null;
 
-        // Quét 1 l?n duy nh?t khi Enable
+        // Quï¿½t 1 l?n duy nh?t khi Enable
         if (type == DetectionType.Box)
         {
             hits = Physics.OverlapBox(transform.position, boxSize / 2*transform.localScale.x, transform.rotation, mask);
@@ -39,7 +39,7 @@ public class HitBoxDetection : DetectionBase
         }
     }
 
-    // V? vùng quét trong Editor d? d? can ch?nh
+    // V? vï¿½ng quï¿½t trong Editor d? d? can ch?nh
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;

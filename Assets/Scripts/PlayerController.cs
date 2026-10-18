@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Combat.Parry;
@@ -120,7 +120,7 @@ public class PlayerController : CharacterActor,
     #endregion
 
     #region VELOCITY PROVIDERS
-
+    private RootMotionVelocityProvider _rootMotionProvider;
     private readonly List<IVelocityProvider> _velocityProviders = new List<IVelocityProvider>();
 
     public void RegisterVelocityProvider(IVelocityProvider provider) => _velocityProviders.Add(provider);
@@ -272,7 +272,7 @@ public class PlayerController : CharacterActor,
         }
         base.OnDisable();
     }
-
+    
     private void HandleAttackRequest() => RequestState(StateRequestType.Attack);
     private void HandleDashCancelRequest() => RequestState(StateRequestType.Dash);
     private void HandleJumpCancelRequest() => RequestState(StateRequestType.Jump);
@@ -280,7 +280,26 @@ public class PlayerController : CharacterActor,
     #endregion
 
     #region UNITY LIFECYCLE
+    private void OnAnimatorMove()
+    {
+        if (Animator == null) return;
 
+        // 🔥 Chỉ feed khi attack có useRootMotion
+        if (!ShouldApplyRootMotion())
+            return;
+
+        var attackData = skillManager?.CurrentAttackData;
+        if (attackData == null) return;
+
+        // Đọc delta từ Animator (animation curve tự nhiên)
+        Vector3 worldDelta = Animator.deltaPosition * attackData.rootMotionMultiplier;
+
+        // Chỉ lấy XZ — Y do gravity / jump xử lý
+        worldDelta.y = 0f;
+
+        // Nạp vào provider — pipeline ApplyMovement sẽ apply như step
+        _rootMotionProvider?.FeedDelta(worldDelta);
+    }
     protected override void Awake()
     {
         base.Awake(); // CharacterActor.Awake — init Health, Config, ParryController, ComboEngine
@@ -304,6 +323,22 @@ public class PlayerController : CharacterActor,
         CurrentState.EnterState();
 
         Debug.Log($"[Start] rotationLocked={_rotationLocked}, attacking={_isAttacking}");
+    }
+ 
+    private bool ShouldApplyRootMotion()
+    {
+        if (CurrentState == null) return false;
+
+        // Chỉ apply root motion khi đang Attack
+        if (CurrentState is PlayerAttackState)
+        {
+            var attackData = skillManager?.CurrentAttackData;
+            if (attackData == null) return false;
+
+            return attackData.useRootMotion;   // 🔥 Check flag
+        }
+
+        return false;
     }
 
     private void Update()
@@ -493,15 +528,17 @@ public class PlayerController : CharacterActor,
 
     private void HandleParryRequest()
     {
-        var category = CurrentState?.Category ?? StateCategory.Locomotion;
+        // 🔥 XÓA dòng if (category == StateCategory.Override) return;
 
-        if (category == StateCategory.Override) return;
         if (CurrentState is PlayerParryState) return;
 
         skillManager?.ForceCancelCombo(false);
+
+        Vector3 v = Velocity;
+        SetVelocity(v.x * 0.3f, v.y, v.z * 0.3f);
+
         ForceSwitchState(States.Parry());
     }
-
     private void HandleAttackStateRequest()
     {
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
@@ -562,14 +599,10 @@ public class PlayerController : CharacterActor,
         if (!TryJump) return;
 
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
-
         if (category == StateCategory.Override) return;
-
-        // Chỉ cho phép Jump từ Grounded hoặc Airborne (Jump/Fall/AirDash)
-        // Không cho phép từ Combat (Attack/Parry/ParryMovement)
         if (category == StateCategory.Combat) return;
 
-        SwitchState(States.Jump());
+        SwitchState(States.Airborne());   // 🔥 ĐỔI từ Jump
     }
 
     private void HandleParryMovementRequest()
@@ -641,19 +674,21 @@ public void SwitchStateExternal(PlayerBaseState newState)
 }
     private void InitializeServices()
     {
+        _rootMotionProvider = new RootMotionVelocityProvider();
+        RegisterVelocityProvider(_rootMotionProvider);
         _physicsHandler = new GravityHandler(_gravity, GravityScaling, FallClamp);
         _rotationHandler = new ModelRotationHandler();
 
         _animationHandler = new MovementAnimationHandler(
-            Animator,
-            ID_Idle,
+            Animator, ID_Idle,
             Anim_Run_F, Anim_Run_B, Anim_Run_L, Anim_Run_R,
             Anim_Run_FL, Anim_Run_FR, Anim_Run_BL, Anim_Run_BR);
 
         _inputHandler = new CameraRelativeInputHandler(MainCamera, _playerInputs);
 
-        _groundMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack);
-        _airMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack * 1.5f);
+        // 🔥 Truyền thêm TRelease
+        _groundMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack, TRelease);
+        _airMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack * 2f, TRelease * 2f);
     }
 
     private void ComputePhysicsConstants()
@@ -715,7 +750,6 @@ public void SwitchStateExternal(PlayerBaseState newState)
         {
             if (_jumpVelocity < 3f)
                 return States.Grounded();
-
             if (_jumpVelocity < 5f && IsGroundedStable)
                 return States.Grounded();
         }
@@ -726,7 +760,7 @@ public void SwitchStateExternal(PlayerBaseState newState)
         if (_groundedFrameCount > 0 && _jumpVelocity < 1f)
             return States.Grounded();
 
-        return States.Fall();
+        return States.Airborne();   // 🔥 ĐỔI từ Fall
     }
 
     #endregion
@@ -760,6 +794,7 @@ public void SwitchStateExternal(PlayerBaseState newState)
             return;
         }
 
+        // Pick highest-priority provider
         IVelocityProvider best = null;
         int bestPriority = int.MinValue;
         for (int i = 0; i < _velocityProviders.Count; i++)
@@ -772,16 +807,15 @@ public void SwitchStateExternal(PlayerBaseState newState)
         if (best != null)
         {
             _charController.Move(best.GetVelocityModifier() * Time.deltaTime);
-            _appliedMovement = Vector3.zero;
             return;
         }
 
-        Vector3 motion = _appliedMovement + new Vector3(0f, _jumpVelocity, 0f);
-        _charController.Move(motion * Time.deltaTime);
-        _appliedMovement = Vector3.zero;
+       
 
-        _velocity.x = Mathf.MoveTowards(_velocity.x, 0f, Friction * Time.deltaTime);
-        _velocity.z = Mathf.MoveTowards(_velocity.z, 0f, Friction * Time.deltaTime);
+        // 🔥 Apply _velocity trực tiếp — giảm tốc do State xử lý qua handler
+        Vector3 motion = new Vector3(_velocity.x, _jumpVelocity, _velocity.z);
+        _charController.Move(motion * Time.deltaTime);
+
     }
 
     #endregion

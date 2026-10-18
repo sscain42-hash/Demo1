@@ -52,3 +52,4 @@ public class ResponsiveDecelerationHandler
         return Vector3.zero;
     }
 }
+

@@ -21,6 +21,10 @@ public class PlayerHitState : PlayerBaseState,IImplicitTransitionable
         _ctx.SetRotationLock(true);
         _ctx.PlayAnimation(_ctx.HitReactionAnimName, 0.05f);
         _ctx._playerInputs?.ClearBuffer();
+
+        // 🔥 Giảm 80% momentum khi bị hit
+        Vector3 v = _ctx.Velocity;
+        _ctx.SetVelocity(v.x * 0.2f, v.y, v.z * 0.2f);
     }
 
     protected override void UpdateState()

@@ -55,3 +55,4 @@ public abstract class Damageable : MonoBehaviour
     public virtual int CalculationDMG(float _percent) => 0;*/
     
 }
+

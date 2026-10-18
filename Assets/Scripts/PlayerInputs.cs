@@ -7,7 +7,8 @@ using UnityEngine.InputSystem;
 public partial class PlayerInputs : MonoBehaviour
 {
     [Header("Buffer Settings")]
-    [SerializeField] private float bufferDuration = 0.15f; // Thời gian sống tối đa của 1 lệnh (150ms)
+
+    [SerializeField] private float bufferDuration = 0.25f; // Tăng lên 0.25s // Thời gian sống tối đa của 1 lệnh (150ms)
 
     // Lưu duy nhất 1 lệnh đang chờ xử lý (Slot-based đè lệnh)
     private InputCommand? _bufferedCommand;

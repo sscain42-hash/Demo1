@@ -7,3 +7,4 @@ public class ComboSequence : ScriptableObject
     [Tooltip("Nạp các file AttackData theo thứ tự chuỗi combo tại đây.")]
     public List<AttackData> attacks = new List<AttackData>();
 }
+

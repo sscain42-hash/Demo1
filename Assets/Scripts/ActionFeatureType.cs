@@ -1,4 +1,4 @@
-﻿public enum ActionFeatureType
+public enum ActionFeatureType
 {
     ComboInputBuffer, // Cửa sổ nhận nút để nối combo tiếp theo
     DashCancel,       // Cửa sổ cho phép hủy động tác bằng Dash

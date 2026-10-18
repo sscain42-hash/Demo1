@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class WeaponTrailHandler : MonoBehaviour
 {
@@ -23,4 +23,5 @@ public class WeaponTrailHandler : MonoBehaviour
         }
     }
 }
+
 

@@ -1,4 +1,4 @@
-﻿// Một lớp "cái túi" chứa thông tin sự kiện
+// Một lớp "cái túi" chứa thông tin sự kiện
 using UnityEngine;
 using UnityEngine.AI;
 

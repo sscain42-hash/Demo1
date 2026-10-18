@@ -16,10 +16,12 @@ public class PlayerAttackState : PlayerBaseState,IImplicitTransitionable
     {
         _ctx.SetAttackLock(true);
 
-        // 🔥 Start combo Ở ĐÂY — không sớm hơn
+        // 🔥 Dampen momentum — giữ chút quán tính, không snap về 0
+        Vector3 v = _ctx.Velocity;
+        _ctx.SetVelocity(v.x * 0.3f, v.y, v.z * 0.3f);
+
         _skillManager?.StartPendingCombo();
     }
-
     protected override void UpdateState()
     {
         // Combo update do SkillManager.Update xử lý (chỉ khi CurrentState is PlayerAttackState)
@@ -29,8 +31,6 @@ public class PlayerAttackState : PlayerBaseState,IImplicitTransitionable
     protected override void ExitState()
     {
         _ctx.SetAttackLock(false);
-
-        // 🔥 Dispose combo Ở ĐÂY — cùng lúc với state
         _skillManager?.OnAttackStateExit();
     }
 }

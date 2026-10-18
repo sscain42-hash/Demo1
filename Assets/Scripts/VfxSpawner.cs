@@ -1,7 +1,5 @@
-﻿using UnityEngine;
-// ==========================================
+using UnityEngine;
 // 🚀 LOGIC SPAWN VFX TỪ POOL C# THUẦN
-// ==========================================
 public class VfxSpawner
 {
     private readonly ObjectPooler<Reference> _pooler;

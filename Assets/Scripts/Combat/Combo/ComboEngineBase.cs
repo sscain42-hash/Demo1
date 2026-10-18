@@ -36,14 +36,15 @@ public abstract class ComboEngineBase
     private const float MIN_ANIMATION_DURATION = 0.1f;
 
     private readonly HashSet<ActionWindow> _triggeredWindows = new HashSet<ActionWindow>();
-    private readonly HashSet<Collider> _alreadyHitTargets = new HashSet<Collider>();
+
     private readonly Collider[] _hitBuffer = new Collider[16];
     private readonly HashSet<ActionWindow> _hitStopTriggeredWindows = new HashSet<ActionWindow>();
     private readonly HashSet<ActionWindow> _majorVfxTriggeredWindows = new HashSet<ActionWindow>();
 
     // 🔥 CACHE HASH — nhanh hơn string compare
     private int _currentAnimationHash = 0;
-
+    private readonly Dictionary<Collider, float> _lastHitTimes = new Dictionary<Collider, float>();
+    private const float RE_HIT_COOLDOWN = 0.15f; // 0.15s mới được đánh trúng lại cùng 1 mục tiêu
     protected ComboEngineBase(ICombatActor actor, Animator animator)
     {
         if (actor == null)
@@ -83,11 +84,13 @@ public abstract class ComboEngineBase
 
         _lastNormalizedTime = -1f;
         _triggeredWindows.Clear();
-        _alreadyHitTargets.Clear();
+
+        // 🔥 SỬA DÒNG NÀY:
+        _lastHitTimes.Clear();
+
         _hitStopTriggeredWindows.Clear();
         _majorVfxTriggeredWindows.Clear();
 
-        // 🔥 SESSION MỚI
         _currentSessionId++;
         _sessionStartTime = Time.time;
 
@@ -163,7 +166,7 @@ public abstract class ComboEngineBase
             _observedSessionId = _currentSessionId;
             _lastNormalizedTime = currentNTime;
             _triggeredWindows.Clear();
-            _alreadyHitTargets.Clear();
+            
             _hitStopTriggeredWindows.Clear();
             _majorVfxTriggeredWindows.Clear();
 
@@ -210,16 +213,6 @@ public abstract class ComboEngineBase
 
         float timeSinceStart = Time.time - _sessionStartTime;
 
-        Debug.Log($"[IsFinished] CHECK: " +
-                  $"timeSinceStart={timeSinceStart:F3}, " +
-                  $"graceTime={SESSION_GRACE_TIME}, " +
-                  $"minDur={MIN_ANIMATION_DURATION}, " +
-                  $"isInTransition={Animator.IsInTransition(AttackLayerIndex)}, " +
-                  $"observedSess={_observedSessionId}, " +
-                  $"currentSess={_currentSessionId}, " +
-                  $"stateName={Animator.GetCurrentAnimatorStateInfo(AttackLayerIndex).shortNameHash}, " +
-                  $"expectedHash={Animator.StringToHash(CurrentAttackData.animationName)}, " +
-                  $"nTime={Animator.GetCurrentAnimatorStateInfo(AttackLayerIndex).normalizedTime:F3}");
 
         if (timeSinceStart < SESSION_GRACE_TIME) return false;
         if (timeSinceStart < MIN_ANIMATION_DURATION) return false;
@@ -287,7 +280,9 @@ public abstract class ComboEngineBase
 
         if (window.actionName != "HitBox") return;
 
-        if (_alreadyHitTargets.Count > 0) _alreadyHitTargets.Clear();
+        // 🔥 XÓA DÒNG NÀY ĐI (Vì đã dùng cooldown thời gian, không cần clear HashSet nữa):
+        // if (_alreadyHitTargets.Count > 0) _alreadyHitTargets.Clear();
+
         if (_hitStopTriggeredWindows.Contains(window)) _hitStopTriggeredWindows.Remove(window);
         if (_majorVfxTriggeredWindows.Contains(window)) _majorVfxTriggeredWindows.Remove(window);
     }
@@ -298,6 +293,8 @@ public abstract class ComboEngineBase
 
     private Vector3 ProcessStepWindow(ActionWindow window, float currentNTime)
     {
+        if (CurrentAttackData != null && CurrentAttackData.useRootMotion)
+            return Vector3.zero;
         float windowWidth = window.endTime - window.startTime;
         if (windowWidth <= 0.001f) return Vector3.zero;
 
@@ -367,9 +364,16 @@ public abstract class ComboEngineBase
         {
             Collider col = _hitBuffer[i];
             if (col.gameObject == Actor.GameObject) continue;
-            if (_alreadyHitTargets.Contains(col)) continue;
 
-            _alreadyHitTargets.Add(col);
+            // 🔥 SỬA LOGIC CHECK Ở ĐÂY:
+            if (_lastHitTimes.TryGetValue(col, out float lastHitTime))
+            {
+                if (Time.time - lastHitTime < RE_HIT_COOLDOWN)
+                    continue; // Đang trong thời gian hồi, bỏ qua
+            }
+
+            // Cập nhật thời gian trúng đòn mới nhất
+            _lastHitTimes[col] = Time.time;
             hasHitNewTarget = true;
 
             var parryReceiver = col.GetComponent<IParryReceiver>();

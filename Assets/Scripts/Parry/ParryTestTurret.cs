@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 /// <summary>
 /// Máy bắn test Parry — CHỈ auto fire theo tần suất.

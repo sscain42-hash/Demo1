@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eeaf8e8a267f6b648b0a8f4873b6ad46, type: 3}
   m_Name: 2Hand-Sword-Attack2
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  animationName: 2Hand-Sword-Attack3
+  animationName: 2Hand-Sword-Attack2
+  useRootMotion: 1
+  rootMotionMultiplier: 1
   windows:
   - actionName: Slash
     startTime: 0.41666666
@@ -33,7 +35,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
     eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.6944444
+    startTime: 0.9444444
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -101,8 +103,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: HitBox
-    startTime: 0.3611111
-    endTime: 0.44444445
+    startTime: 0.5
+    endTime: 0.5833334
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}

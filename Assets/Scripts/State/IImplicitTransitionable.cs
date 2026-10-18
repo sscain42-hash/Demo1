@@ -1,4 +1,4 @@
-﻿public interface IImplicitTransitionable
+public interface IImplicitTransitionable
 {
     /// <summary>
     /// True khi state đã hoàn thành và cần tự động chuyển về Locomotion.

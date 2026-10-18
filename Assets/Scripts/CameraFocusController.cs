@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Cinemachine;
 
 public class CameraFocusController : MonoBehaviour
@@ -46,3 +46,4 @@ public class CameraFocusController : MonoBehaviour
         _targetGroup.RemoveMember(enemyTransform);
     }
 }
+

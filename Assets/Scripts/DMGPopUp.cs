@@ -74,3 +74,4 @@ public class DMGPopUp : MonoBehaviour, IPooled<DMGPopUp>
    public void Release() => ReleaseCallback?.Invoke(this);
    public Action<DMGPopUp> ReleaseCallback { get; set; }
 }
+

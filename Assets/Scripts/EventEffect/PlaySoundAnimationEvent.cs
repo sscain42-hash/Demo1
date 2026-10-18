@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [CreateAssetMenu(fileName = "PlaySoundAnimationEvent", menuName = "Animation Events/Play Sound")]
 public class PlaySoundAnimationEvent : AnimationEvent

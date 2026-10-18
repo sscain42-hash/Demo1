@@ -1,4 +1,4 @@
-﻿using NaughtyAttributes;
+using NaughtyAttributes;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -29,3 +29,4 @@ public class ScreenShakeManager : MonoBehaviour
         TriggerShake(2f); // Mặc định cường độ rung là 2 nếu không truyền vào
     }
 }
+

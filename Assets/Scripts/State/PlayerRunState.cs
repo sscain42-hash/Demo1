@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class PlayerRunState : PlayerBaseState
 {
     public override StateCategory Category => StateCategory.Locomotion;
+
     public PlayerRunState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
@@ -17,7 +18,11 @@ public class PlayerRunState : PlayerBaseState
     protected override void UpdateState()
     {
         Vector3 moveDir = _ctx.GetLookDirection();
-        _ctx.AppliedMovement = moveDir.normalized * _ctx.RunMaxSpeed;
+        Vector3 velocity = _ctx.Velocity;
+
+        // 🔥 Tăng tốc qua handler — không còn snap
+        _ctx.GroundMovementHandler.ApplyMovement(moveDir, _ctx.RunMaxSpeed, ref velocity);
+        _ctx.Velocity = velocity;
 
         _ctx.PlayAnimation(_ctx.GetMovementAnimation());
         CheckSwitchState();

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using System;
 using Combat.Parry;
@@ -146,42 +146,57 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         UpdateParryAnimation();
         HandleCamera();
 
-        // 🔥 Nếu đang attack → update engine
+        // 🔥 PRIORITY 1: PARRY
+        if (playerInputs != null && playerInputs.HasCommand(BufferedAction.Parry))
+        {
+            var cat = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
+
+            // Nếu đang trong Parry State mà bấm tiếp -> Reset lại thời gian Parry
+            if (_ctx.CurrentState is PlayerParryState parryState)
+            {
+                if (playerInputs.ConsumeCommand(BufferedAction.Parry))
+                {
+                    parryState.RefreshTimer();
+                    _ctx.ParryController?.OnParryInput();
+                }
+                return;
+            }
+
+            // Nếu đang ở các state khác (trừ Hit/Dead) -> Cho phép Parry
+            if (cat != StateCategory.Override)
+            {
+                playerInputs.ConsumeCommand(BufferedAction.Parry);
+                ForceCancelCombo(false);
+                _ctx.RequestState(StateRequestType.Parry);
+                return;
+            }
+        }
+
+        // PRIORITY 2: ATTACK
         if (IsAttacking && _ctx.CurrentState is PlayerAttackState)
         {
             _comboEngine.UpdateWindows();
-
             if (_comboEngine.IsAnimationFinished())
             {
                 FinishComboAttack(_activeState);
-                return;   // 🔥 RETURN — không xử lý input frame này
+                return;
             }
-
-            // Chỉ khi VẪN đang attack mới xử lý combo input
             HandleComboInput();
-            return;       // 🔥 RETURN — không chạy ProcessLocomotionInput
+            return;
         }
 
-        // Chỉ xử lý input khi ở Locomotion
+        // PRIORITY 3: LOCOMOTION
         var category = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
         if (category == StateCategory.Locomotion)
         {
             ProcessLocomotionInput();
         }
     }
-
     private void ProcessLocomotionInput()
     {
         if (playerInputs == null) return;
 
-        if (playerInputs.HasCommand(BufferedAction.Parry))
-        {
-            playerInputs.ConsumeCommand(BufferedAction.Parry);
-            _ctx.RequestState(StateRequestType.Parry);
-            _ctx.ParryController?.OnParryInput();
-            OnAttackRequested?.Invoke();
-            return;
-        }
+      
 
         if (!IsAttacking)
         {
@@ -359,15 +374,14 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (_comboEngine == null) return;
         if (!(_ctx.CurrentState is PlayerAttackState)) return;
-        if (_activeState == null) return;   // 🔥 GUARD — không có combo nào active
+        if (_activeState == null) return;
 
-        // Dash cancel
-        if (_comboEngine.CanDashCancelNow && playerInputs.HasCommand(BufferedAction.Dash))
+        // 🔥 Parry — ưu tiên cao nhất, interrupt mọi combo
+        if (playerInputs.HasCommand(BufferedAction.Parry))
         {
-            playerInputs.ConsumeCommand(BufferedAction.Dash);
+            playerInputs.ConsumeCommand(BufferedAction.Parry);
             ForceCancelCombo(false);
-            _ctx.RequestState(StateRequestType.Dash);
-            OnDashCancelRequested?.Invoke();
+            _ctx.RequestState(StateRequestType.Parry);
             return;
         }
 

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 
 public class EnemyAttack : MonoBehaviour, IComboCharacter, IDamageProvider

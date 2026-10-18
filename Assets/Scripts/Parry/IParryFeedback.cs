@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public interface IParryFeedback
 {
@@ -6,3 +6,4 @@ public interface IParryFeedback
     void OnParryFail();
     void OnChainParry(int count);
 }
+

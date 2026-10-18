@@ -1,20 +1,29 @@
-﻿using UnityEngine;
+using UnityEngine;
 
-public class PlayerFallState : PlayerAirborneState
+public class PlayerFallState : PlayerBaseState
 {
     private const float MAX_FALL_DURATION = 10f;
+    private float _timer;
+
+    public override StateCategory Category => StateCategory.Locomotion;
 
     public PlayerFallState(PlayerController ctx, PlayerStateFactory factory)
-        : base(ctx, factory) { }
-
-    protected override void OnAirEnter()
+        : base(ctx, factory)
     {
+        _isChildState = true;
+    }
+
+    public override void EnterState()
+    {
+        _timer = 0f;
         _ctx.PlayAnimation(_ctx.Anim_Falling, 0.15f);
     }
 
-    protected override void OnAirUpdate()
+    protected override void UpdateState()
     {
-        // Jump cancel (coyote time)
+        _timer += Time.deltaTime;
+
+        // Coyote jump
         if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f && _ctx.CoyoteCounter > 0f)
         {
             SwitchState(_factory.Jump());
@@ -22,7 +31,7 @@ public class PlayerFallState : PlayerAirborneState
         }
 
         // Safety timeout
-        if (_airborneTimer >= MAX_FALL_DURATION)
+        if (_timer >= MAX_FALL_DURATION)
         {
             Debug.LogWarning("[PlayerFallState] Timeout — force transition to Grounded");
             SwitchState(_factory.Grounded());

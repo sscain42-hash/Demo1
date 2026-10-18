@@ -83,3 +83,4 @@ public class SO_PlayerConfiguration : SO_CharacterConfiguration
     public int SetWeaponLevel(int _value) => WeaponLevel = _value;
     
 }
+

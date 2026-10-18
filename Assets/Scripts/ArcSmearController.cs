@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
 public class ArcSmearController : MonoBehaviour
@@ -97,3 +97,4 @@ public class ArcSmearController : MonoBehaviour
         meshTransform.localScale = _originalScale;
     }
 }
+

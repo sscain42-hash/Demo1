@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1774c8336c11ec439f8b8079e736cfb, type: 3}
   m_Name: ParryConfig
   m_EditorClassIdentifier: Assembly-CSharp::Combat.Parry.ParryConfig
-  defaultWindowFrames: 25
+  defaultWindowFrames: 26
   minWindowFrames: 6
   spamPenaltyPerPress: 0
   parryInputCooldown: 0
@@ -23,10 +23,10 @@ MonoBehaviour:
   requireTelegraph: 0
   telegraphDuration: 0.5
   enableDirectionalJump: 1
-  forwardJumpSpeed: 22.5
-  backwardJumpSpeed: 23
-  sideJumpSpeed: 24.6
-  jumpDuration: 0.4
+  forwardJumpSpeed: 50
+  backwardJumpSpeed: 50
+  sideJumpSpeed: 50
+  jumpDuration: 0.362
   applyGravityDuringMovement: 0
   enableDebugLog: 1
   drawDebugGizmos: 1

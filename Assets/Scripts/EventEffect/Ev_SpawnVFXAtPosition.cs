@@ -1,4 +1,4 @@
-﻿using Assets.VFXPACK_IMPACT_WALLCOEUR.Scripts;
+using Assets.VFXPACK_IMPACT_WALLCOEUR.Scripts;
 using NodeCanvas.Tasks.Actions;
 using UnityEngine;
 

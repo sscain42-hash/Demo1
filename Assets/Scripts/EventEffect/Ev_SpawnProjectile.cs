@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [CreateAssetMenu(fileName = "Ev_SpawnProjectile", menuName = "Combo System/Events/Spawn Projectile")]
 public class Ev_SpawnProjectile : AnimationEvent

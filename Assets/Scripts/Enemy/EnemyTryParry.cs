@@ -1,4 +1,4 @@
-﻿using NodeCanvas.Framework;
+using NodeCanvas.Framework;
 using UnityEngine;
 
 public class EnemyTryParry : ActionTask<EnemyController>

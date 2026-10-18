@@ -1,4 +1,4 @@
-﻿
+
 /// <summary>
 /// Phân loại state theo hành vi. Dùng để quyết định transition rules
 /// thay vì check `is Type` thủ công ở nhiều nơi.

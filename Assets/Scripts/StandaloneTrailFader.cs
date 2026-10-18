@@ -1,7 +1,5 @@
-﻿using UnityEngine;
-// =======================================================
+using UnityEngine;
 // LỚP FADER CÓ HỖ TRỢ POOLING
-// =======================================================
 public class StandaloneTrailFader : MonoBehaviour
 {
     private Mesh _targetMesh;

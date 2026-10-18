@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class HitVFXHandler : MonoBehaviour
 {
@@ -44,4 +44,5 @@ public class HitVFXHandler : MonoBehaviour
         if (ps != null) ps.Play();
     }
 }
+
 

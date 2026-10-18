@@ -23,3 +23,4 @@ public interface IAttack
     public void Detection_Q(GameObject _gameObject);
 
 }
+

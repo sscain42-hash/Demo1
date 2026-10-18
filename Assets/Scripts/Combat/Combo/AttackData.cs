@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,6 +6,13 @@ using UnityEngine;
 public class AttackData : ScriptableObject
 {
     public string animationName;
+    [Header("Root Motion")]
+    [Tooltip("Nếu true, animation sẽ dùng root motion để di chuyển nhân vật")]
+    public bool useRootMotion = true;
+
+    [Tooltip("Hệ số nhân root motion. 1 = giữ nguyên, 0.5 = giảm nửa")]
+    [Range(0f, 2f)]
+    public float rootMotionMultiplier = 1f;
     public List<ActionWindow> windows = new List<ActionWindow>();
     // Thêm vào ScriptableObject chứa dữ liệu đòn đánh của bạn
     [Header("Screen Shake")]
@@ -17,4 +24,5 @@ public class AttackData : ScriptableObject
 
 
 }
+
 

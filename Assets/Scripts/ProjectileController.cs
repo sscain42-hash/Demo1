@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class ProjectileController : MonoBehaviour
 {
@@ -73,3 +73,4 @@ public class ProjectileController : MonoBehaviour
         }
     }
 }
+

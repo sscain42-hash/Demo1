@@ -18,3 +18,4 @@ public class SpriteConverter : JsonConverter<Sprite>
     public override bool CanRead => false;
     public override bool CanWrite => true;
 }
+

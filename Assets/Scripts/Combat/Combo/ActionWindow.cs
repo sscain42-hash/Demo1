@@ -33,3 +33,4 @@ public class ActionWindow
     public bool IsInside(float normalizedTime)
         => normalizedTime >= startTime && normalizedTime <= endTime;
 }
+

@@ -1,21 +1,21 @@
 ﻿using UnityEngine;
 
-public abstract class PlayerAirborneState : PlayerBaseState
+public class PlayerAirborneState : PlayerBaseState
 {
     protected float _airborneTimer;
 
     public override StateCategory Category => StateCategory.Locomotion;
 
-    protected PlayerAirborneState(PlayerController ctx, PlayerStateFactory factory)
+    public PlayerAirborneState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-       
+        // Root: _isChildState = false (mặc định)
     }
 
     public override void EnterState()
     {
         _airborneTimer = 0f;
-        OnAirEnter();
+        InitializeSubState();
     }
 
     protected override void UpdateState()
@@ -23,17 +23,21 @@ public abstract class PlayerAirborneState : PlayerBaseState
         _airborneTimer += Time.deltaTime;
 
         ApplyAirControl();
-
-        // Nếu đang có child (AirDash) → để child update, root chỉ check landing
-        if (_childState != null)
-        {
-            CheckLanding();
-            return;
-        }
-
         CheckLanding();
+
+        // Nếu CheckLanding đã switch sang Grounded → dừng
+        if (_ctx.CurrentState != this) return;
+
         CheckAirDashRequest();
-        OnAirUpdate();
+    }
+
+    public override void InitializeSubState()
+    {
+        // Có jump buffer → Jump. Ngược lại → Fall.
+        if (_ctx.JumpBufferCounter > 0f)
+            SetChildState(_factory.Jump());
+        else
+            SetChildState(_factory.Fall());
     }
 
     protected virtual void ApplyAirControl()
@@ -48,21 +52,16 @@ public abstract class PlayerAirborneState : PlayerBaseState
 
     protected virtual void CheckLanding()
     {
-        // Priority 1: CharacterController.isGrounded + small velocity
         if (_ctx.CharController.isGrounded && Mathf.Abs(_ctx.JumpVelocity) < 2f)
         {
             SwitchState(_factory.Grounded());
             return;
         }
-
-        // Priority 2: IsGroundedStable
         if (_ctx.IsGroundedStable)
         {
             SwitchState(_factory.Grounded());
             return;
         }
-
-        // Priority 3: IsGroundedRaw + small velocity
         if (_ctx.IsGroundedRaw && Mathf.Abs(_ctx.JumpVelocity) < 1f)
         {
             SwitchState(_factory.Grounded());
@@ -70,17 +69,16 @@ public abstract class PlayerAirborneState : PlayerBaseState
         }
     }
 
-    /// <summary>
-    /// Root xử lý Dash request chung cho Jump/Fall.
-    /// </summary>
     protected virtual void CheckAirDashRequest()
     {
-        if (_ctx.TryDash)
+        if (_ctx.TryDash && !(_childState is PlayerAirDashState))
         {
+            if (_childState != null)
+            {
+                _childState.ForceExit();
+                _childState = null;
+            }
             SetChildState(_factory.AirDash());
         }
     }
-
-    protected abstract void OnAirEnter();
-    protected abstract void OnAirUpdate();
 }

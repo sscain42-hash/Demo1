@@ -1,4 +1,4 @@
-﻿public abstract class PlayerBaseState
+public abstract class PlayerBaseState
 {
     protected readonly PlayerController _ctx;
     protected readonly PlayerStateFactory _factory;
