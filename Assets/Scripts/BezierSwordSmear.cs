@@ -9,199 +9,171 @@ public class BezierSwordSmear : MonoBehaviour
     [SerializeField] private Transform basePoint;
     [SerializeField] private Transform tipPoint;
 
-    [Header("Trail Settings")]
-    [SerializeField] private float minDistance = 0.02f;
-    [Range(1, 10)][SerializeField] private int subdivisionsPerSegment = 5;
-    [SerializeField] private float fadeDuration = 0.2f;
+    [Header("Trail Settings (Like TrailRenderer)")]
+    [Tooltip("Thời gian tồn tại của một điểm trên vệt chém (giây)")]
+    [SerializeField] private float time = 0.2f;
+
+    [Tooltip("Khoảng cách tối thiểu để ghi nhận một điểm mới (sẽ tự scale theo speed)")]
+    [SerializeField] private float minVertexDistance = 0.02f;
+
+    [Range(1, 20)][SerializeField] private int subdivisionsPerSegment = 5;
     [SerializeField] private float tipExtension = 0.3f;
-    [SerializeField] private float maxSwingDuration = 1.5f;
-    [SerializeField] private float maxAllowedBaseJump = 15.0f;
-    [SerializeField] private bool updateBladeLengthPerFrame = true;
+
+    [Tooltip("Thời gian mờ dần khi dừng vung kiếm")]
+    [SerializeField] private float fadeDuration = 0.15f;
 
     [Header("Speed Adaptation")]
-    [Tooltip("Tốc độ (m/s) bắt đầu giảm smoothing và tăng mật độ điểm")]
     [SerializeField] private float speedThresholdLow = 2f;
-
-    [Tooltip("Tốc độ (m/s) tại đó smoothing = 0 và mật độ điểm tối đa")]
     [SerializeField] private float speedThresholdHigh = 15f;
-
-    [Tooltip("Số sub-step tối đa (cao để chịu được dash)")]
     [SerializeField] private int maxSubSteps = 256;
 
-    [Header("Blend Animation Stability")]
-    [Tooltip("Hệ số làm mượt khi tốc độ thấp (chống jitter blend)")]
-    [Range(0.05f, 1f)][SerializeField] private float positionSmoothFactorLow = 0.4f;
+    [Header("Mesh Rendering")]
+    [Tooltip("Tạo cả 2 mặt — bắt buộc nếu material Cull Back")]
+    [SerializeField] private bool doubleSided = true;
 
-    [Tooltip("Dùng camera forward làm reference winding")]
-    [SerializeField] private bool useCameraReference = true;
+    [Tooltip("Đảo winding order — dùng khi mesh bị lộn mặt")]
+    [SerializeField] private bool flipWinding = false;
 
     [Header("Material")]
     [SerializeField] private Material trailMaterial;
 
-    private bool _isSwinging;
-    private float _swingTimer;
-    private float _bladeLength;
+    [Header("Debug")]
+    [SerializeField] private bool logStateWhenEmpty = false;
+    [SerializeField] private bool drawGizmos = false;
+
+    // --- RUNTIME STATE ---
+    private bool _isEmitting;
+    private float _fadeTimer;
+    private bool _isFading;
+
     private Mesh _dynamicMesh;
     private MeshFilter _meshFilter;
     private MeshRenderer _meshRenderer;
 
-    private bool _pendingBegin;
-    private bool _pendingEnd;
-
-    private Vector3 _swingDirection = Vector3.zero;
-    private Vector3 _fixedFaceNormal = Vector3.zero;
-    private Vector3 _cachedReferenceForward = Vector3.forward;
-
-    // Smoothing state
     private Vector3 _smoothedBasePos;
     private Vector3 _smoothedTipPos;
-    private Vector3 _prevRawBasePos;
     private bool _hasSmoothedPos;
-
-    private static readonly Queue<GameObject> FaderPool = new Queue<GameObject>();
+    private Vector3 _prevRawBasePos;
 
     public class TrailPoint
     {
         public Vector3 BasePos;
         public Vector3 TipPos;
+        public float TimeAdded;
     }
 
     private readonly List<TrailPoint> _rawPoints = new List<TrailPoint>();
     private readonly List<TrailPoint> _smoothedPoints = new List<TrailPoint>();
 
+    // Cache lists để tránh alloc
     private readonly List<Vector3> _vertices = new List<Vector3>();
+    private readonly List<Vector3> _normals = new List<Vector3>();
     private readonly List<int> _triangles = new List<int>();
     private readonly List<Vector2> _uvs = new List<Vector2>();
     private readonly List<Color> _colors = new List<Color>();
 
+    // =========================================================
+    // LIFECYCLE
+    // =========================================================
     private void Awake()
     {
         _meshFilter = GetComponent<MeshFilter>();
         _meshRenderer = GetComponent<MeshRenderer>();
+
+        if (_meshFilter == null || _meshRenderer == null)
+        {
+            Debug.LogError($"[BezierSwordSmear] {name}: thiếu MeshFilter hoặc MeshRenderer!");
+            enabled = false;
+            return;
+        }
+
         _dynamicMesh = new Mesh { name = "DynamicTrailMesh" };
         _dynamicMesh.MarkDynamic();
-        _meshFilter.mesh = _dynamicMesh;
+        _meshFilter.sharedMesh = _dynamicMesh;
 
         if (trailMaterial != null)
-            _meshRenderer.material = trailMaterial;
+            _meshRenderer.sharedMaterial = trailMaterial;
+        else
+            Debug.LogWarning($"[BezierSwordSmear] {name}: chưa gán Trail Material!");
+
+        // Bounds lớn để tránh frustum cull frame đầu
+        _dynamicMesh.bounds = new Bounds(Vector3.zero, Vector3.one * 1000f);
 
         _meshRenderer.enabled = false;
     }
 
-    public void BeginSwing() { _pendingBegin = true; }
-    public void TriggerArcSmear() { _pendingEnd = true; }
+    // =========================================================
+    // PUBLIC API — GỌI TỪ ANIMATION EVENT
+    // =========================================================
+    public void StartSmear()
+    {
+        if (basePoint == null || tipPoint == null)
+        {
+            Debug.LogWarning($"[BezierSwordSmear] {name}: chưa gán basePoint/tipPoint!");
+            return;
+        }
 
-    // Ghi điểm ở cả Update và LateUpdate để không bỏ sót khi
-    // nhân vật di chuyển bằng FixedUpdate hoặc Update
+        _isEmitting = true;
+        _isFading = false;
+        _fadeTimer = 0f;
+
+        ResetState();
+    }
+
+    public void StopSmear()
+    {
+        if (!_isEmitting) return;
+
+        _isEmitting = false;
+        _isFading = true;
+        _fadeTimer = 0f;
+    }
+
+    // =========================================================
+    // UPDATE
+    // =========================================================
     private void Update()
     {
-        if (_isSwinging) RecordCurrentPositions();
-    }
-
-    private void LateUpdate()
-    {
-        if (_pendingBegin)
+        if (_isEmitting)
         {
-            _pendingBegin = false;
-            ProcessBeginSwing();
+            RecordCurrentPositions();
+            CleanupOldPoints();
         }
 
-        if (_isSwinging)
+        if (_isFading)
         {
-            _swingTimer += Time.deltaTime;
-            if (_swingTimer > maxSwingDuration)
-                ProcessTriggerArcSmear();
-            else
-                RecordCurrentPositions();
+            _fadeTimer += Time.deltaTime;
+            if (_fadeTimer >= fadeDuration)
+            {
+                _isFading = false;
+                _meshRenderer.enabled = false;
+                ResetState();
+                return;
+            }
         }
 
-        if (_pendingEnd)
-        {
-            _pendingEnd = false;
-            if (_isSwinging)
-                ProcessTriggerArcSmear();
-        }
-    }
-
-    private void ProcessBeginSwing()
-    {
-        if (basePoint == null || tipPoint == null) return;
-        if (_isSwinging) ProcessTriggerArcSmear();
-
-        ResetState();
-
-        _bladeLength = Vector3.Distance(basePoint.position, tipPoint.position) + tipExtension;
-        _isSwinging = true;
-        _swingTimer = 0f;
-        _meshRenderer.enabled = true;
-        _swingDirection = Vector3.zero;
-        _fixedFaceNormal = Vector3.zero;
-        _hasSmoothedPos = false;
-        _prevRawBasePos = basePoint.position;
-
-        _cachedReferenceForward = GetStableReferenceForward();
-
-        RecordCurrentPositions();
-    }
-
-    private Vector3 GetStableReferenceForward()
-    {
-        
-        if (transform.parent != null)
-            return transform.parent.forward;
-        return Vector3.forward;
-    }
-
-    private void ProcessTriggerArcSmear()
-    {
-        if (!_isSwinging) return;
-
-        _isSwinging = false;
-        _meshRenderer.enabled = false;
-
-        if (_rawPoints.Count >= 2)
+        if (_isEmitting || _isFading)
         {
             GenerateSmoothedPoints();
-            DetachAndFade();
+            UpdateDynamicMesh();
         }
-
-        ResetState();
     }
 
-    private void ResetState()
-    {
-        _rawPoints.Clear();
-        _smoothedPoints.Clear();
-        _swingDirection = Vector3.zero;
-        _fixedFaceNormal = Vector3.zero;
-        _hasSmoothedPos = false;
-        _prevRawBasePos = Vector3.zero;
-
-        if (_dynamicMesh != null) _dynamicMesh.Clear();
-    }
-
-    private void OnDisable()
-    {
-        _isSwinging = false;
-        _pendingBegin = false;
-        _pendingEnd = false;
-        ResetState();
-    }
-
+    // =========================================================
+    // RECORD POINTS
+    // =========================================================
     private void RecordCurrentPositions()
     {
+        if (basePoint == null || tipPoint == null) return;
+
         Vector3 rawBase = basePoint.position;
         Vector3 rawTip = tipPoint.position;
 
-        // === ADAPTIVE SMOOTHING ===
-        // Tốc độ cao -> theo kịp ngay (smoothFactor = 1)
-        // Tốc độ thấp -> smooth mạnh (chống jitter blend)
         float currentSpeed = Time.deltaTime > 0.0001f
             ? Vector3.Distance(rawBase, _prevRawBasePos) / Time.deltaTime
             : 0f;
-
         float speedT = Mathf.InverseLerp(speedThresholdLow, speedThresholdHigh, currentSpeed);
-        float smoothFactor = Mathf.Lerp(positionSmoothFactorLow, 1f, speedT);
+        float smoothFactor = Mathf.Lerp(0.4f, 1f, speedT);
 
         if (!_hasSmoothedPos)
         {
@@ -217,115 +189,84 @@ public class BezierSwordSmear : MonoBehaviour
 
         _prevRawBasePos = rawBase;
 
-        if (updateBladeLengthPerFrame)
-            _bladeLength = Vector3.Distance(_smoothedBasePos, _smoothedTipPos) + tipExtension;
-
         Vector3 curBase = _smoothedBasePos;
         Vector3 curTipDir = (_smoothedTipPos - _smoothedBasePos).normalized;
-        if (curTipDir == Vector3.zero) curTipDir = _cachedReferenceForward;
-        Vector3 curTip = curBase + curTipDir * _bladeLength;
+        if (curTipDir == Vector3.zero)
+            curTipDir = transform.parent != null ? transform.parent.forward : Vector3.forward;
 
-        // Điểm đầu tiên
+        float currentBladeLength = Vector3.Distance(_smoothedBasePos, _smoothedTipPos) + tipExtension;
+        Vector3 curTip = curBase + curTipDir * currentBladeLength;
+
         if (_rawPoints.Count == 0)
         {
-            AddRawPoint(curBase, curTip);
+            AddPoint(curBase, curTip);
+            // Point "ảo" nhẹ để tránh frame đầu mesh rỗng
+            Vector3 fakeDir = curTipDir * 0.01f;
+            AddPoint(curBase - fakeDir, curTip - fakeDir);
             return;
         }
 
         TrailPoint lastPoint = _rawPoints[_rawPoints.Count - 1];
-
-        // Chỉ kết thúc trail khi thực sự teleport
-        float baseJump = Vector3.Distance(lastPoint.BasePos, curBase);
-        if (baseJump > maxAllowedBaseJump)
-        {
-            ProcessTriggerArcSmear();
-            ProcessBeginSwing();
-            return;
-        }
-
         float distMoved = Vector3.Distance(lastPoint.TipPos, curTip);
-        if (distMoved < minDistance * 0.1f) return; // dead zone nhỏ
 
-        // Cập nhật hướng chém
-        Vector3 stepDir = curTip - lastPoint.TipPos;
-        if (stepDir.sqrMagnitude > 0.0001f)
-        {
-            Vector3 newDir = stepDir.normalized;
-            _swingDirection = _swingDirection.sqrMagnitude < 0.0001f
-                ? newDir
-                : (_swingDirection + newDir).normalized;
-        }
-
-        // === ADAPTIVE MIN DISTANCE ===
-        // Tốc độ cao -> minDistance nhỏ hơn -> nhiều điểm hơn -> mượt hơn
-        float adaptiveMinDist = Mathf.Lerp(
-            minDistance,
-            minDistance * 0.25f,
-            speedT
-        );
+        float adaptiveMinDist = Mathf.Lerp(minVertexDistance * 0.5f, minVertexDistance, speedT);
+        if (distMoved < adaptiveMinDist) return;
 
         int subSteps = Mathf.CeilToInt(distMoved / adaptiveMinDist);
         subSteps = Mathf.Clamp(subSteps, 1, maxSubSteps);
 
-        // === SLERP CHO HƯỚNG BLADE ===
-        // Giữ độ cong tự nhiên khi nhân vật vừa chạy vừa xoay
         Vector3 lastDir = (lastPoint.TipPos - lastPoint.BasePos).normalized;
         Vector3 curDir = (curTip - curBase).normalized;
-        if (lastDir == Vector3.zero) lastDir = curDir;
-        if (curDir == Vector3.zero) curDir = lastDir;
-
         float lastBladeLen = Vector3.Distance(lastPoint.BasePos, lastPoint.TipPos);
         float curBladeLen = Vector3.Distance(curBase, curTip);
 
         for (int i = 1; i <= subSteps; i++)
         {
             float t = (float)i / subSteps;
-
             Vector3 interpBase = Vector3.Lerp(lastPoint.BasePos, curBase, t);
             Vector3 interpDir = Vector3.Slerp(lastDir, curDir, t).normalized;
             float interpLen = Mathf.Lerp(lastBladeLen, curBladeLen, t);
             Vector3 interpTip = interpBase + interpDir * interpLen;
 
-            AddRawPoint(interpBase, interpTip);
+            AddPoint(interpBase, interpTip);
         }
-
-        UpdateFixedFaceNormal();
-        GenerateSmoothedPoints();
-        UpdateDynamicMesh();
     }
 
-    private void AddRawPoint(Vector3 bPos, Vector3 tPos)
+    private void AddPoint(Vector3 bPos, Vector3 tPos)
     {
-        _rawPoints.Add(new TrailPoint { BasePos = bPos, TipPos = tPos });
+        _rawPoints.Add(new TrailPoint
+        {
+            BasePos = bPos,
+            TipPos = tPos,
+            TimeAdded = Time.time
+        });
     }
 
-    private void UpdateFixedFaceNormal()
+    private void CleanupOldPoints()
     {
-        if (_fixedFaceNormal != Vector3.zero) return;
-        if (_rawPoints.Count < 2) return;
-
-        Vector3 swing = _rawPoints[_rawPoints.Count - 1].TipPos - _rawPoints[0].TipPos;
-        if (swing.sqrMagnitude < 0.0001f) return;
-
-        int mid = _rawPoints.Count / 2;
-        Vector3 blade = _rawPoints[mid].TipPos - _rawPoints[mid].BasePos;
-        if (blade.sqrMagnitude < 0.0001f) return;
-
-        Vector3 normal = Vector3.Cross(swing.normalized, blade.normalized);
-        if (normal.sqrMagnitude < 0.0001f) return;
-
-        if (Vector3.Dot(normal, _cachedReferenceForward) < 0)
-            normal = -normal;
-
-        _fixedFaceNormal = normal.normalized;
+        float expireTime = Time.time - time;
+        while (_rawPoints.Count > 0 && _rawPoints[0].TimeAdded < expireTime)
+            _rawPoints.RemoveAt(0);
     }
 
+    // =========================================================
+    // SMOOTH — 🔥 FIX: sinh inclusive t=1, không seam
+    // =========================================================
     private void GenerateSmoothedPoints()
     {
         _smoothedPoints.Clear();
         int count = _rawPoints.Count;
 
-        if (count < 2) return;
+        if (count == 0) return;
+
+        if (count == 1)
+        {
+            var p = _rawPoints[0];
+            Vector3 delta = (p.TipPos - p.BasePos) * 0.05f;
+            _smoothedPoints.Add(new TrailPoint { BasePos = p.BasePos - delta, TipPos = p.TipPos - delta });
+            _smoothedPoints.Add(p);
+            return;
+        }
 
         if (count == 2)
         {
@@ -341,7 +282,11 @@ public class BezierSwordSmear : MonoBehaviour
             TrailPoint p2 = _rawPoints[i + 1];
             TrailPoint p3 = _rawPoints[Mathf.Min(i + 2, count - 1)];
 
-            for (int step = 0; step < subdivisionsPerSegment; step++)
+            // 🔥 Segment đầu lấy t=0; các segment sau bỏ t=0 để tránh duplicate điểm
+            int startStep = (i == 0) ? 0 : 1;
+
+            // 🔥 step <= subdivisions (inclusive) — sinh điểm cuối t=1, khớp với segment sau
+            for (int step = startStep; step <= subdivisionsPerSegment; step++)
             {
                 float t = (float)step / subdivisionsPerSegment;
 
@@ -349,35 +294,47 @@ public class BezierSwordSmear : MonoBehaviour
                 Vector3 smoothTipRaw = CatmullRomHelper.GetPoint(p0.TipPos, p1.TipPos, p2.TipPos, p3.TipPos, t);
 
                 Vector3 dir = (smoothTipRaw - smoothBase).normalized;
-                if (dir == Vector3.zero) dir = _cachedReferenceForward;
+                if (dir == Vector3.zero) dir = Vector3.forward;
 
-                Vector3 smoothTip = smoothBase + dir * _bladeLength;
+                float bladeLen = Vector3.Distance(p1.BasePos, p1.TipPos);
+                Vector3 smoothTip = smoothBase + dir * bladeLen;
 
                 _smoothedPoints.Add(new TrailPoint { BasePos = smoothBase, TipPos = smoothTip });
             }
         }
-
-        _smoothedPoints.Add(_rawPoints[count - 1]);
     }
 
+    // =========================================================
+    // MESH BUILD
+    // =========================================================
     private void UpdateDynamicMesh()
     {
         if (_smoothedPoints.Count < 2)
         {
             _dynamicMesh.Clear();
+            _dynamicMesh.bounds = new Bounds(Vector3.zero, Vector3.one * 1000f);
+            _meshRenderer.enabled = false;
+
+            if (logStateWhenEmpty)
+                Debug.Log($"[Smear] Empty: raw={_rawPoints.Count} smoothed={_smoothedPoints.Count} " +
+                          $"emitting={_isEmitting} fading={_isFading} timescale={Time.timeScale:F2}");
             return;
         }
 
+        _meshRenderer.enabled = true;
+
         _dynamicMesh.Clear();
         _vertices.Clear();
+        _normals.Clear();
         _triangles.Clear();
         _uvs.Clear();
         _colors.Clear();
 
-        // Cache matrix 1 lần — nhanh hơn InverseTransformPoint gọi 1000 lần
         Matrix4x4 worldToLocal = transform.worldToLocalMatrix;
 
         int total = _smoothedPoints.Count;
+        float maxFade = _isFading ? (1f - (_fadeTimer / fadeDuration)) : 1f;
+
         for (int i = 0; i < total; i++)
         {
             _vertices.Add(worldToLocal.MultiplyPoint3x4(_smoothedPoints[i].BasePos));
@@ -388,129 +345,144 @@ public class BezierSwordSmear : MonoBehaviour
             _uvs.Add(new Vector2(progress, 1));
 
             float alphaProgress = Mathf.Sin(progress * Mathf.PI);
-            _colors.Add(new Color(1f, 1f, 1f, alphaProgress * 0.1f));
-            _colors.Add(new Color(1f, 1f, 1f, alphaProgress * 1.0f));
+            float finalAlpha = alphaProgress * maxFade;
+
+            _colors.Add(new Color(1f, 1f, 1f, finalAlpha * 0.1f));
+            _colors.Add(new Color(1f, 1f, 1f, finalAlpha * 1.0f));
+
+            // 🔥 Normal thủ công — smooth dọc ribbon, không bị gộp lung tung
+            Vector3 nWS = ComputeSmoothNormal(i);
+            Vector3 nLocal = transform.InverseTransformDirection(nWS);
+            _normals.Add(nLocal);   // base
+            _normals.Add(nLocal);   // tip
         }
 
         GenerateTriangles();
 
         _dynamicMesh.SetVertices(_vertices);
+        _dynamicMesh.SetNormals(_normals);   // 🔥 set normal thủ công
         _dynamicMesh.SetTriangles(_triangles, 0);
         _dynamicMesh.SetUVs(0, _uvs);
         _dynamicMesh.SetColors(_colors);
-
-        _dynamicMesh.RecalculateNormals();
+        // KHÔNG gọi RecalculateNormals — normal đã set thủ công
         _dynamicMesh.RecalculateBounds();
+    }
+
+    /// <summary>
+    /// 🔥 Tính normal smooth dọc ribbon — vuông góc với mặt phẳng ribbon.
+    /// Dùng central difference: lấy tangent dọc + hướng blade → cross.
+    /// </summary>
+    private Vector3 ComputeSmoothNormal(int index)
+    {
+        var p = _smoothedPoints[index];
+
+        Vector3 along;
+        if (index == 0)
+            along = (_smoothedPoints[1].BasePos - p.BasePos);
+        else if (index == _smoothedPoints.Count - 1)
+            along = (p.BasePos - _smoothedPoints[index - 1].BasePos);
+        else
+            along = (_smoothedPoints[index + 1].BasePos - _smoothedPoints[index - 1].BasePos);
+
+        Vector3 blade = (p.TipPos - p.BasePos);
+
+        if (along.sqrMagnitude < 1e-6f || blade.sqrMagnitude < 1e-6f)
+            return Vector3.up;
+
+        Vector3 n = Vector3.Cross(blade, along).normalized;
+        return n.sqrMagnitude > 1e-6f ? n : Vector3.up;
     }
 
     private void GenerateTriangles()
     {
-        bool flip = ComputeWindingFlip();
+        int count = _smoothedPoints.Count;
 
-        for (int i = 0; i < _smoothedPoints.Count - 1; i++)
+        for (int i = 0; i < count - 1; i++)
         {
-            int idx = i * 2;
+            int bL = i * 2;
+            int tL = i * 2 + 1;
+            int bR = (i + 1) * 2;
+            int tR = (i + 1) * 2 + 1;
 
-            if (!flip)
+            if (!flipWinding)
             {
-                _triangles.Add(idx);
-                _triangles.Add(idx + 1);
-                _triangles.Add(idx + 2);
-                _triangles.Add(idx + 2);
-                _triangles.Add(idx + 1);
-                _triangles.Add(idx + 3);
+                // Front face CW
+                _triangles.Add(bL);
+                _triangles.Add(tL);
+                _triangles.Add(bR);
+
+                _triangles.Add(bR);
+                _triangles.Add(tL);
+                _triangles.Add(tR);
+
+                // Back face CCW
+                if (doubleSided)
+                {
+                    _triangles.Add(bL);
+                    _triangles.Add(bR);
+                    _triangles.Add(tL);
+
+                    _triangles.Add(bR);
+                    _triangles.Add(tR);
+                    _triangles.Add(tL);
+                }
             }
             else
             {
-                _triangles.Add(idx);
-                _triangles.Add(idx + 2);
-                _triangles.Add(idx + 1);
-                _triangles.Add(idx + 2);
-                _triangles.Add(idx + 3);
-                _triangles.Add(idx + 1);
+                _triangles.Add(bL);
+                _triangles.Add(bR);
+                _triangles.Add(tL);
+
+                _triangles.Add(bR);
+                _triangles.Add(tR);
+                _triangles.Add(tL);
+
+                if (doubleSided)
+                {
+                    _triangles.Add(bL);
+                    _triangles.Add(tL);
+                    _triangles.Add(bR);
+
+                    _triangles.Add(bR);
+                    _triangles.Add(tL);
+                    _triangles.Add(tR);
+                }
             }
         }
     }
 
-    private bool ComputeWindingFlip()
+    // =========================================================
+    // RESET
+    // =========================================================
+    private void ResetState()
     {
-        if (_smoothedPoints.Count < 2) return false;
+        _rawPoints.Clear();
+        _smoothedPoints.Clear();
+        _hasSmoothedPos = false;
 
-        Vector3 swing = _smoothedPoints[_smoothedPoints.Count - 1].TipPos
-                      - _smoothedPoints[0].TipPos;
-
-        int mid = _smoothedPoints.Count / 2;
-        Vector3 blade = _smoothedPoints[mid].TipPos - _smoothedPoints[mid].BasePos;
-
-        if (swing.sqrMagnitude < 0.0001f || blade.sqrMagnitude < 0.0001f)
-            return false;
-
-        Vector3 currentNormal = Vector3.Cross(swing.normalized, blade.normalized);
-        if (currentNormal.sqrMagnitude < 0.0001f) return false;
-
-        if (_fixedFaceNormal != Vector3.zero)
-            return Vector3.Dot(currentNormal, _fixedFaceNormal) < 0f;
-
-        return Vector3.Dot(currentNormal, _cachedReferenceForward) < 0f;
+        if (_dynamicMesh != null)
+        {
+            _dynamicMesh.Clear();
+            _dynamicMesh.bounds = new Bounds(Vector3.zero, Vector3.one * 1000f);
+        }
     }
 
-    private void DetachAndFade()
+    // =========================================================
+    // DEBUG GIZMOS
+    // =========================================================
+    private void OnDrawGizmos()
     {
-        GameObject smearObj = GetPooledFaderObject();
+        if (!drawGizmos) return;
+        if (_smoothedPoints == null || _smoothedPoints.Count < 2) return;
 
-        Mesh detachedMesh = new Mesh { name = "StandaloneSmoothTrail" };
-        List<Vector3> worldVerts = new List<Vector3>();
-        List<Color> worldColors = new List<Color>();
-
-        int total = _smoothedPoints.Count;
-        for (int i = 0; i < total; i++)
+        Gizmos.color = Color.red;
+        for (int i = 0; i < _smoothedPoints.Count - 1; i++)
         {
-            worldVerts.Add(_smoothedPoints[i].BasePos);
-            worldVerts.Add(_smoothedPoints[i].TipPos);
-
-            float progress = (float)i / (total - 1);
-            float alphaProgress = Mathf.Sin(progress * Mathf.PI);
-            worldColors.Add(new Color(1f, 1f, 1f, alphaProgress * 0.1f));
-            worldColors.Add(new Color(1f, 1f, 1f, alphaProgress * 1.0f));
+            var p1 = _smoothedPoints[i];
+            var p2 = _smoothedPoints[i + 1];
+            Gizmos.DrawLine(p1.BasePos, p1.TipPos);
+            Gizmos.DrawLine(p2.BasePos, p2.TipPos);
+            Gizmos.DrawLine(p1.BasePos, p2.BasePos);
         }
-
-        detachedMesh.SetVertices(worldVerts);
-        detachedMesh.SetTriangles(_triangles, 0);
-        detachedMesh.SetUVs(0, _uvs);
-        detachedMesh.SetColors(worldColors);
-        detachedMesh.RecalculateNormals();
-        detachedMesh.RecalculateBounds();
-
-        MeshFilter mf = smearObj.GetComponent<MeshFilter>();
-        MeshRenderer mr = smearObj.GetComponent<MeshRenderer>();
-        mf.mesh = detachedMesh;
-        mr.material = trailMaterial;
-
-        StandaloneTrailFader fader = smearObj.GetComponent<StandaloneTrailFader>();
-        fader.StartFade(fadeDuration, detachedMesh, mr, ReturnObjectToPool);
-    }
-
-    private GameObject GetPooledFaderObject()
-    {
-        GameObject obj;
-        if (FaderPool.Count > 0)
-        {
-            obj = FaderPool.Dequeue();
-            obj.SetActive(true);
-        }
-        else
-        {
-            obj = new GameObject("DetachedTrail_Pooled");
-            obj.AddComponent<MeshFilter>();
-            obj.AddComponent<MeshRenderer>();
-            obj.AddComponent<StandaloneTrailFader>();
-        }
-        return obj;
-    }
-
-    private static void ReturnObjectToPool(GameObject obj)
-    {
-        obj.SetActive(false);
-        FaderPool.Enqueue(obj);
     }
 }

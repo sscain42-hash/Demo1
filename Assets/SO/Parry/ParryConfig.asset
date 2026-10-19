@@ -22,11 +22,11 @@ MonoBehaviour:
   maxChainParryCount: 3
   requireTelegraph: 0
   telegraphDuration: 0.5
-  enableDirectionalJump: 1
-  forwardJumpSpeed: 50
-  backwardJumpSpeed: 50
+  enableDirectionalJump: 0
+  forwardJumpSpeed: 5
+  backwardJumpSpeed: 5
   sideJumpSpeed: 50
-  jumpDuration: 0.362
-  applyGravityDuringMovement: 0
+  jumpDuration: 0.573
+  applyGravityDuringMovement: 1
   enableDebugLog: 1
   drawDebugGizmos: 1

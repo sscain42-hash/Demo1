@@ -12,7 +12,8 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _USEPROCNOISE_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -41,14 +42,21 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Cull: 2
+    - _AlphaGamma: 1.81
+    - _Cull: 1
     - _DebugFaces: 0
     - _DistortionStrength: 0.2
-    - _EdgePow: 7.14
+    - _EdgePow: 10
+    - _MaskBoost: 7.42
+    - _NoiseAmount: 0.5
+    - _NoiseScale: 22.3
+    - _NoiseSpeed: 4.38
+    - _NoiseStrength: 5
+    - _UseProcNoise: 1
     m_Colors:
     - _DistortionSpeed: {r: 0.5, g: 0.2, b: 0, a: 0}
     - _EdgeColor: {r: 1, g: 1, b: 1, a: 1}
-    - _GlassTint: {r: 0.9, g: 0.95, b: 1, a: 1}
+    - _GlassTint: {r: 1, g: 1, b: 1, a: 1}
     - _Speed: {r: 0.5, g: 0, b: 0, a: 0}
     - _TrailColor: {r: 0.8705506, g: 0.8705506, b: 0.8705506, a: 1}
   m_BuildTextureStacks: []

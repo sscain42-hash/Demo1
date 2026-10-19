@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEditor.IMGUI.Controls;
 using System.Linq;
+using System.Collections.Generic;
 using System0 = System.StringComparison;
 
 public class AttackTimelineWindow : EditorWindow
@@ -12,6 +13,9 @@ public class AttackTimelineWindow : EditorWindow
     private int _selectedAttackIndex = 0;
     private Animator _targetAnimator;
     private AnimationClip _selectedClip;
+
+    // --- CHỌN WINDOW ĐỂ HIỆN CHI TIẾT ---
+    private int _selectedWindowIndex = -1;
 
     private AttackData TargetAttackData
     {
@@ -44,11 +48,14 @@ public class AttackTimelineWindow : EditorWindow
     // --- SCENE GUI HANDLE ---
     private readonly BoxBoundsHandle _boxHandle = new BoxBoundsHandle();
 
+    // --- SCROLL POS ---
+    private Vector2 _scrollPos;
+
     [MenuItem("Tools/Attack Timeline Window")]
     public static void OpenWindow()
     {
         AttackTimelineWindow window = GetWindow<AttackTimelineWindow>("Attack Timeline");
-        window.minSize = new Vector2(650, 300);
+        window.minSize = new Vector2(650, 400);
         window.Show();
     }
 
@@ -80,6 +87,7 @@ public class AttackTimelineWindow : EditorWindow
         if (Selection.activeObject is ComboSequence combo)
         {
             _targetComboSequence = combo;
+            _selectedWindowIndex = -1; // Reset selection khi đổi combo
             UpdateSelectedClip();
         }
 
@@ -96,17 +104,21 @@ public class AttackTimelineWindow : EditorWindow
 
     private void OnGUI()
     {
+        _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
+
         DrawHeaderToolbar();
 
         if (_targetComboSequence == null)
         {
             EditorGUILayout.HelpBox("Hãy chọn hoặc gán file ComboSequence ở thanh Toolbar để bắt đầu.", MessageType.Info);
+            EditorGUILayout.EndScrollView();
             return;
         }
 
         if (TargetAttackData == null)
         {
             EditorGUILayout.HelpBox("ComboSequence hiện chưa có AttackData nào trong danh sách 'attacks'.", MessageType.Warning);
+            EditorGUILayout.EndScrollView();
             return;
         }
 
@@ -117,6 +129,11 @@ public class AttackTimelineWindow : EditorWindow
         DrawAddWindowToolbar();
         EditorGUILayout.Space(5);
         DrawTimelineTracks(totalFrames);
+
+        EditorGUILayout.Space(10);
+        DrawSelectedWindowDetails(); // 🔥 Vẽ bảng chi tiết Window được chọn
+
+        EditorGUILayout.EndScrollView();
     }
 
     private float GetTotalFrames()
@@ -134,6 +151,7 @@ public class AttackTimelineWindow : EditorWindow
         if (EditorGUI.EndChangeCheck())
         {
             _selectedAttackIndex = 0;
+            _selectedWindowIndex = -1;
             UpdateSelectedClip();
         }
 
@@ -157,6 +175,7 @@ public class AttackTimelineWindow : EditorWindow
             _selectedAttackIndex = EditorGUILayout.Popup(_selectedAttackIndex, popupOptions, EditorStyles.toolbarPopup, GUILayout.Width(200));
             if (EditorGUI.EndChangeCheck())
             {
+                _selectedWindowIndex = -1;
                 UpdateSelectedClip();
             }
         }
@@ -186,10 +205,18 @@ public class AttackTimelineWindow : EditorWindow
         {
             AddNewWindow("JumpCancel");
         }
-        if (GUILayout.Button("+ Step", EditorStyles.miniButtonRight, GUILayout.Width(60)))
+        if (GUILayout.Button("+ Step", EditorStyles.miniButtonMid, GUILayout.Width(60)))
         {
             AddNewWindow("Step");
         }
+
+        // 🔥 NÚT MOTION+ NẰM Ở ĐÂY
+        GUI.backgroundColor = new Color(0.4f, 1f, 0.4f);
+        if (GUILayout.Button("Motion+", EditorStyles.miniButtonRight, GUILayout.Width(70)))
+        {
+            GenerateStepsFromRootMotion();
+        }
+        GUI.backgroundColor = Color.white;
 
         EditorGUILayout.Space(10);
         _customActionName = EditorGUILayout.TextField(_customActionName, GUILayout.Width(110));
@@ -231,6 +258,8 @@ public class AttackTimelineWindow : EditorWindow
             serializedData.ApplyModifiedProperties();
             EditorUtility.SetDirty(currentAttack);
 
+            _selectedWindowIndex = windowsProp.arraySize - 1; // 🔥 Tự động select window mới tạo
+
             Repaint();
             SceneView.RepaintAll();
         }
@@ -250,6 +279,9 @@ public class AttackTimelineWindow : EditorWindow
             windowsProp.DeleteArrayElementAtIndex(index);
             serializedObject.ApplyModifiedProperties();
             EditorUtility.SetDirty(currentAttack);
+
+            if (_selectedWindowIndex == index) _selectedWindowIndex = -1;
+            else if (_selectedWindowIndex > index) _selectedWindowIndex--;
 
             Repaint();
             SceneView.RepaintAll();
@@ -333,8 +365,9 @@ public class AttackTimelineWindow : EditorWindow
 
     private void DrawTimelineTracks(float totalFrames)
     {
-        Rect contentRect = EditorGUILayout.GetControlRect(false, GUILayout.ExpandHeight(true));
-        if (contentRect.height < 100) contentRect.height = 100;
+        // Giới hạn chiều cao để có thể scroll
+        float height = Mathf.Max(150, TargetAttackData.windows.Count * 26f + 40);
+        Rect contentRect = EditorGUILayout.GetControlRect(false, height);
 
         const float deleteButtonWidth = 22f;
         Rect timelineAreaRect = new Rect(contentRect.x + deleteButtonWidth, contentRect.y, contentRect.width - deleteButtonWidth, contentRect.height);
@@ -394,6 +427,15 @@ public class AttackTimelineWindow : EditorWindow
                 Rect rightHandleRect = new Rect(barX + barWidth - (handleWidth / 2f), trackY + 2, handleWidth, trackHeight - 6);
 
                 Color barColor = GetColorForAction(nameProp.stringValue);
+
+                // 🔥 LÀM NỔI BẬT WINDOW ĐANG CHỌN
+                if (i == _selectedWindowIndex)
+                {
+                    barColor = Color.Lerp(barColor, Color.white, 0.5f);
+                    // Vẽ viền trắng
+                    EditorGUI.DrawRect(new Rect(windowBarRect.x - 1, windowBarRect.y - 1, windowBarRect.width + 2, windowBarRect.height + 2), Color.white);
+                }
+
                 EditorGUI.DrawRect(windowBarRect, barColor);
                 EditorGUI.DrawRect(leftHandleRect, Color.white);
                 EditorGUI.DrawRect(rightHandleRect, Color.white);
@@ -413,21 +455,25 @@ public class AttackTimelineWindow : EditorWindow
                     {
                         _currentDragMode = DragMode.StartTime;
                         _draggedWindowIndex = i;
+                        _selectedWindowIndex = i; // 🔥 Select window
                         e.Use();
                     }
                     else if (rightHandleRect.Contains(e.mousePosition))
                     {
                         _currentDragMode = DragMode.EndTime;
                         _draggedWindowIndex = i;
+                        _selectedWindowIndex = i; // 🔥 Select window
                         e.Use();
                     }
                     else if (windowBarRect.Contains(e.mousePosition))
                     {
                         _currentDragMode = DragMode.MoveWindow;
                         _draggedWindowIndex = i;
+                        _selectedWindowIndex = i; // 🔥 Select window
                         float clickMouseNorm = (e.mousePosition.x - tracksRect.x) / tracksRect.width;
                         _dragOffsetNormalized = clickMouseNorm - startProp.floatValue;
                         e.Use();
+                        Repaint(); // Vẽ lại để thấy viền trắng
                     }
                 }
             }
@@ -502,6 +548,82 @@ public class AttackTimelineWindow : EditorWindow
         }
     }
 
+    // =========================================================================
+    // 🔥 BẢNG CHI TIẾT CỦA WINDOW ĐANG CHỌN
+    // =========================================================================
+    private void DrawSelectedWindowDetails()
+    {
+        AttackData currentAttack = TargetAttackData;
+        if (currentAttack == null) return;
+
+        SerializedObject serializedData = new SerializedObject(currentAttack);
+        SerializedProperty windowsProp = serializedData.FindProperty("windows");
+
+        if (_selectedWindowIndex < 0 || _selectedWindowIndex >= windowsProp.arraySize)
+        {
+            EditorGUILayout.HelpBox("Chọn một thanh Window trên Timeline để xem chi tiết.", MessageType.Info);
+            return;
+        }
+
+        SerializedProperty windowProp = windowsProp.GetArrayElementAtIndex(_selectedWindowIndex);
+        SerializedProperty nameProp = windowProp.FindPropertyRelative("actionName");
+
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        EditorGUILayout.LabelField($"⚙️ DETAILS: {nameProp.stringValue} (Index {_selectedWindowIndex})", EditorStyles.boldLabel);
+
+        serializedData.Update();
+
+        // Hiển thị chung
+        EditorGUILayout.PropertyField(nameProp, new GUIContent("Action Name"));
+
+        SerializedProperty startProp = windowProp.FindPropertyRelative("startTime");
+        SerializedProperty endProp = windowProp.FindPropertyRelative("endTime");
+
+        // 🔥 SỬA LỖI CS0206: Dùng biến tạm thay vì truyền trực tiếp property
+        float startVal = startProp.floatValue;
+        float endVal = endProp.floatValue;
+
+        EditorGUILayout.MinMaxSlider(new GUIContent("Time Range"), ref startVal, ref endVal, 0f, 1f);
+
+        startProp.floatValue = startVal;
+        endProp.floatValue = endVal;
+
+        // Hiển thị riêng theo loại
+        string actionName = nameProp.stringValue;
+        if (actionName == "Step")
+        {
+            EditorGUILayout.Space(5);
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("cursorStep"), new GUIContent("Cursor Step"));
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("targetDistance"), new GUIContent("Target Distance"));
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("targetLayer"), new GUIContent("Target Layer (Chặn tường)"));
+        }
+        else if (actionName == "HitBox")
+        {
+            EditorGUILayout.Space(5);
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("hitBoxSize"), new GUIContent("HitBox Size"));
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("hitBoxOffset"), new GUIContent("HitBox Offset"));
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("targetLayer"), new GUIContent("Target Layer"));
+        }
+
+        EditorGUILayout.Space(5);
+        EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("enableVFX"), new GUIContent("Enable VFX"));
+        if (windowProp.FindPropertyRelative("enableVFX").boolValue)
+        {
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("vfxTransform"), true);
+        }
+
+        EditorGUILayout.Space(5);
+        // Chỉ hiện Event Effects nếu không phải là Step (theo yêu cầu của bạn)
+        if (actionName != "Step")
+        {
+            EditorGUILayout.PropertyField(windowProp.FindPropertyRelative("eventEffects"), true);
+        }
+
+        serializedData.ApplyModifiedProperties();
+
+        EditorGUILayout.EndVertical();
+    }
+
     private float SnapNormalized(float normValue, float totalFrames)
     {
         if (!_snapToFrame || totalFrames <= 0) return normValue;
@@ -552,7 +674,7 @@ public class AttackTimelineWindow : EditorWindow
                 Handles.matrix = Matrix4x4.TRS(worldCenter, originTransform.rotation, Vector3.one);
                 _boxHandle.center = Vector3.zero;
                 _boxHandle.size = currentSize;
-                _boxHandle.handleColor = Color.yellow;
+                _boxHandle.handleColor = (i == _selectedWindowIndex) ? Color.green : Color.yellow;
                 _boxHandle.wireframeColor = Color.cyan;
 
                 EditorGUI.BeginChangeCheck();
@@ -606,7 +728,7 @@ public class AttackTimelineWindow : EditorWindow
         if (_targetAnimator != null) return _targetAnimator.transform;
         if (Selection.activeTransform != null) return Selection.activeTransform;
 
-        var animator = Object.FindFirstObjectByType<Animator>();
+        var animator = Object.FindAnyObjectByType<Animator>();
         return animator != null ? animator.transform : null;
     }
 
@@ -631,12 +753,10 @@ public class AttackTimelineWindow : EditorWindow
         }
     }
 
-    // --- CẬP NHẬT LOGIC SAMPLE BẰNG ANIMATOR STATE ---
     private void SampleAnimation()
     {
         AttackData currentAttack = TargetAttackData;
 
-        // Ưu tiên play bằng Animator State nếu có TargetAnimator
         if (_targetAnimator != null && currentAttack != null)
         {
             string stateName = !string.IsNullOrEmpty(currentAttack.animationName) ? currentAttack.animationName : currentAttack.name;
@@ -646,15 +766,13 @@ public class AttackTimelineWindow : EditorWindow
                 float totalFrames = GetTotalFrames();
                 float normalizedTime = totalFrames > 0 ? Mathf.Clamp01(_currentFrame / totalFrames) : 0f;
 
-                // Play Animator State ở layer 0 tại tỉ lệ thời gian (0.0 đến 1.0)
                 _targetAnimator.Play(stateName, 0, normalizedTime);
-                _targetAnimator.Update(0f); // Ép Animator cập nhật ngay trong Editor
+                _targetAnimator.Update(0f);
                 SceneView.RepaintAll();
                 return;
             }
         }
 
-        // Fallback: Sample trực tiếp Clip nếu không tìm thấy/chưa gán Animator
         if (_selectedClip != null)
         {
             GameObject targetGO = (_targetAnimator != null) ? _targetAnimator.gameObject : Selection.activeGameObject;
@@ -679,6 +797,149 @@ public class AttackTimelineWindow : EditorWindow
             case "Step": return new Color(0.9f, 0.6f, 0.1f, 0.85f);
             default: return new Color(0.2f, 0.7f, 0.8f, 0.85f);
         }
+    }
+
+    // =========================================================================
+    // 🔥 LOGIC CỦA NÚT MOTION+ (KHÔNG COPY EVENT EFFECTS)
+    // =========================================================================
+    private void GenerateStepsFromRootMotion()
+    {
+        AttackData currentAttack = TargetAttackData;
+        if (currentAttack == null || _selectedClip == null)
+        {
+            Debug.LogWarning("[Motion+] Chưa chọn AttackData hoặc Animation Clip!");
+            return;
+        }
+
+        GameObject targetGO = _targetAnimator != null ? _targetAnimator.gameObject : Selection.activeGameObject;
+        if (targetGO == null)
+        {
+            Debug.LogWarning("[Motion+] Hãy chọn một GameObject (Player/Enemy) trong Scene để làm mẫu.");
+            return;
+        }
+
+        EditorCurveBinding[] bindings = AnimationUtility.GetCurveBindings(_selectedClip);
+        AnimationCurve curveX = null, curveZ = null;
+
+        foreach (var binding in bindings)
+        {
+            if (binding.path == "" && binding.propertyName == "RootT.x") curveX = AnimationUtility.GetEditorCurve(_selectedClip, binding);
+            if (binding.path == "" && binding.propertyName == "RootT.z") curveZ = AnimationUtility.GetEditorCurve(_selectedClip, binding);
+        }
+
+        if (curveX == null && curveZ == null)
+        {
+            Debug.LogWarning($"[Motion+] Clip '{_selectedClip.name}' không có Root Position Keyframes. Hãy kiểm tra Import Settings.");
+            return;
+        }
+
+        List<float> times = new List<float>();
+        if (curveX != null) foreach (var key in curveX.keys) if (!times.Contains(key.time)) times.Add(key.time);
+        if (curveZ != null) foreach (var key in curveZ.keys) if (!times.Contains(key.time)) times.Add(key.time);
+        times.Sort();
+        if (!times.Contains(0f)) times.Insert(0, 0f);
+        if (!times.Contains(_selectedClip.length)) times.Add(_selectedClip.length);
+
+        if (times.Count < 2) return;
+
+        // Tính toán và gom cụm
+        List<StepData> rawSteps = new List<StepData>();
+        for (int i = 1; i < times.Count; i++)
+        {
+            float startTime = times[i - 1];
+            float endTime = times[i];
+
+            float x1 = curveX != null ? curveX.Evaluate(startTime) : 0f;
+            float z1 = curveZ != null ? curveZ.Evaluate(startTime) : 0f;
+            float x2 = curveX != null ? curveX.Evaluate(endTime) : 0f;
+            float z2 = curveZ != null ? curveZ.Evaluate(endTime) : 0f;
+
+            Vector3 startPos = new Vector3(x1, 0, z1);
+            Vector3 endPos = new Vector3(x2, 0, z2);
+            Vector3 delta = endPos - startPos;
+            delta.y = 0;
+
+            if (delta.magnitude < 0.005f) continue;
+
+            rawSteps.Add(new StepData
+            {
+                startTime = startTime,
+                endTime = endTime,
+                delta = delta,
+                speed = delta.magnitude / (endTime - startTime)
+            });
+        }
+
+        if (rawSteps.Count == 0) return;
+
+        List<StepData> mergedSteps = new List<StepData>();
+        StepData currentGroup = rawSteps[0];
+        float angleThreshold = 30f;
+        float timeGapThreshold = 0.1f;
+
+        for (int i = 1; i < rawSteps.Count; i++)
+        {
+            StepData nextStep = rawSteps[i];
+            float angleDiff = Vector3.Angle(currentGroup.delta.normalized, nextStep.delta.normalized);
+            float timeGap = nextStep.startTime - currentGroup.endTime;
+            float speedDiff = Mathf.Abs(currentGroup.speed - nextStep.speed);
+
+            if (angleDiff < angleThreshold && timeGap < timeGapThreshold && speedDiff < 2.0f)
+            {
+                currentGroup.endTime = nextStep.endTime;
+                currentGroup.delta += nextStep.delta;
+                currentGroup.speed = currentGroup.delta.magnitude / (currentGroup.endTime - currentGroup.startTime);
+            }
+            else
+            {
+                mergedSteps.Add(currentGroup);
+                currentGroup = nextStep;
+            }
+        }
+        mergedSteps.Add(currentGroup);
+
+        SerializedObject serializedData = new SerializedObject(currentAttack);
+        SerializedProperty windowsProp = serializedData.FindProperty("windows");
+        serializedData.Update();
+
+        // Xóa các Step cũ (nếu muốn) - hiện tại mình sẽ thêm vào cuối
+        foreach (var step in mergedSteps)
+        {
+            windowsProp.arraySize++;
+            SerializedProperty newElem = windowsProp.GetArrayElementAtIndex(windowsProp.arraySize - 1);
+
+            // 🔥 CHỈ GÁN CÁC THUỘC TÍNH CẦN THIẾT, BỎ TRỐNG EVENT EFFECTS
+            newElem.FindPropertyRelative("actionName").stringValue = "Step";
+            newElem.FindPropertyRelative("startTime").floatValue = step.startTime / _selectedClip.length;
+            newElem.FindPropertyRelative("endTime").floatValue = step.endTime / _selectedClip.length;
+            newElem.FindPropertyRelative("cursorStep").boolValue = true;
+            newElem.FindPropertyRelative("targetDistance").vector3Value = step.delta;
+
+            SerializedProperty sizeProp = newElem.FindPropertyRelative("hitBoxSize");
+            if (sizeProp != null) sizeProp.vector3Value = Vector3.one;
+            SerializedProperty offsetProp = newElem.FindPropertyRelative("hitBoxOffset");
+            if (offsetProp != null) offsetProp.vector3Value = Vector3.zero;
+
+            // Xóa sạch Event Effects (để không copy Play Sound cũ)
+            SerializedProperty eventEffectsProp = newElem.FindPropertyRelative("eventEffects");
+            if (eventEffectsProp != null) eventEffectsProp.ClearArray();
+        }
+
+        serializedData.ApplyModifiedProperties();
+        EditorUtility.SetDirty(currentAttack);
+
+        Repaint();
+        SceneView.RepaintAll();
+        Debug.Log($"[Motion+] Đã tạo thành công {mergedSteps.Count} Step Windows (Không kèm Event).");
+    }
+
+    // Lớp phụ trợ cho thuật toán Gom nhóm
+    private class StepData
+    {
+        public float startTime;
+        public float endTime;
+        public Vector3 delta;
+        public float speed;
     }
 }
 #endif

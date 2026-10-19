@@ -1,31 +1,46 @@
+using NodeCanvas.Tasks.Actions;
 using UnityEngine;
 
-public class PlayerAttackState : PlayerBaseState,IImplicitTransitionable
+public class PlayerAttackState : PlayerBaseState, IImplicitTransitionable
 {
     private readonly PlayerSkillManager _skillManager;
+    private float _stateTimer;
+    private const float HARD_TIMEOUT = 3f;
+
     public override StateCategory Category => StateCategory.Combat;
-    public bool IsFinished => _skillManager == null || !_skillManager.IsAttacking;
+
+    public bool IsFinished =>
+        _stateTimer >= HARD_TIMEOUT ||
+        _skillManager == null ||
+        !_skillManager.IsAttacking;
+
     public PlayerAttackState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory)
     {
-        
         _skillManager = ctx.GetComponent<PlayerSkillManager>();
     }
 
     public override void EnterState()
     {
+        _stateTimer = 0f;
         _ctx.SetAttackLock(true);
 
-        // 🔥 Dampen momentum — giữ chút quán tính, không snap về 0
         Vector3 v = _ctx.Velocity;
         _ctx.SetVelocity(v.x * 0.3f, v.y, v.z * 0.3f);
-
+     
         _skillManager?.StartPendingCombo();
     }
+
     protected override void UpdateState()
     {
-        // Combo update do SkillManager.Update xử lý (chỉ khi CurrentState is PlayerAttackState)
-        // Không cần làm gì ở đây
+        _stateTimer += Time.deltaTime;
+
+        // 🔥 Safety net — ép finish nếu state chạy quá lâu
+        if (_stateTimer >= HARD_TIMEOUT && _skillManager != null && _skillManager.IsAttacking)
+        {
+            Debug.LogWarning($"[PlayerAttackState] ⚠️ Kẹt {HARD_TIMEOUT}s — force cancel");
+            _skillManager.ForceCancelCombo(false);
+        }
     }
 
     protected override void ExitState()

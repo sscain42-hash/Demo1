@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eeaf8e8a267f6b648b0a8f4873b6ad46, type: 3}
   m_Name: Special1
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  animationName: 2Hand-Sword-Attack4
+  animationName: 2Hand-Sword-Attack5
+  useRootMotion: 0
+  rootMotionMultiplier: 1
   windows:
   - actionName: Slash
     startTime: 0.43924293
@@ -83,8 +85,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: Step
-    startTime: 0
-    endTime: 0.22222222
+    startTime: 0.3888889
+    endTime: 0.7222222
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -96,12 +98,12 @@ MonoBehaviour:
     hitBoxOffset: {x: 0, y: 1, z: 1.5}
     targetLayer:
       serializedVersion: 2
-      m_Bits: 0
+      m_Bits: 64
     eventEffects: []
     eventTriggered: 1
   - actionName: HitBox
-    startTime: 0.33333334
-    endTime: 0.6333333
+    startTime: 0.3888889
+    endTime: 0.9444444
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}

@@ -72,8 +72,7 @@ public class PlayerController : CharacterActor,
     #endregion
 
     #region STATE MACHINE
-   
-  
+
     private PlayerStateFactory _states;
     private PlayerBaseState _currentState;
 
@@ -106,9 +105,6 @@ public class PlayerController : CharacterActor,
 
     private float _hitReactionIFrameTimer;
 
-    private bool _isInParryMovement;
-    private Vector3 _parryMovementVelocity;
-
     private Combat.Parry.ParryMovementType _pendingParryMovement;
 
     #endregion
@@ -120,14 +116,24 @@ public class PlayerController : CharacterActor,
     #endregion
 
     #region VELOCITY PROVIDERS
+
     private RootMotionVelocityProvider _rootMotionProvider;
     private readonly List<IVelocityProvider> _velocityProviders = new List<IVelocityProvider>();
 
-    public void RegisterVelocityProvider(IVelocityProvider provider) => _velocityProviders.Add(provider);
-    public void UnregisterVelocityProvider(IVelocityProvider provider) => _velocityProviders.Remove(provider);
+    public void RegisterVelocityProvider(IVelocityProvider provider)
+    {
+        if (provider == null) return;
+        if (!_velocityProviders.Contains(provider))
+            _velocityProviders.Add(provider);
+    }
+
+    public void UnregisterVelocityProvider(IVelocityProvider provider)
+    {
+        if (provider == null) return;
+        _velocityProviders.Remove(provider);
+    }
 
     #endregion
-  
 
     #region PROPERTIES
 
@@ -189,7 +195,12 @@ public class PlayerController : CharacterActor,
     public bool IsAirborneStable => _airborneFrameCount >= GROUNDED_STABLE_FRAMES;
 
     public float HitReactionIFrameTimer => _hitReactionIFrameTimer;
-    public bool IsInParryMovement => _isInParryMovement;
+
+    /// <summary>
+    /// True nếu player đang trong Parry Movement state.
+    /// Đây là check state-based, KHÔNG dùng flag riêng — pattern mới.
+    /// </summary>
+    public bool IsInParryMovement => CurrentState is PlayerParryMovementState;
 
     #endregion
 
@@ -272,7 +283,7 @@ public class PlayerController : CharacterActor,
         }
         base.OnDisable();
     }
-    
+
     private void HandleAttackRequest() => RequestState(StateRequestType.Attack);
     private void HandleDashCancelRequest() => RequestState(StateRequestType.Dash);
     private void HandleJumpCancelRequest() => RequestState(StateRequestType.Jump);
@@ -280,29 +291,24 @@ public class PlayerController : CharacterActor,
     #endregion
 
     #region UNITY LIFECYCLE
+
     private void OnAnimatorMove()
     {
         if (Animator == null) return;
-
-        // 🔥 Chỉ feed khi attack có useRootMotion
-        if (!ShouldApplyRootMotion())
-            return;
+        if (!ShouldApplyRootMotion()) return;
 
         var attackData = skillManager?.CurrentAttackData;
         if (attackData == null) return;
 
-        // Đọc delta từ Animator (animation curve tự nhiên)
         Vector3 worldDelta = Animator.deltaPosition * attackData.rootMotionMultiplier;
-
-        // Chỉ lấy XZ — Y do gravity / jump xử lý
         worldDelta.y = 0f;
 
-        // Nạp vào provider — pipeline ApplyMovement sẽ apply như step
         _rootMotionProvider?.FeedDelta(worldDelta);
     }
+
     protected override void Awake()
     {
-        base.Awake(); // CharacterActor.Awake — init Health, Config, ParryController, ComboEngine
+        base.Awake();
 
         InitializeComponents();
         InitializeReferences();
@@ -314,7 +320,6 @@ public class PlayerController : CharacterActor,
 
     private void Start()
     {
-        // 🔥 FORCE RESET LOCKS NGAY KHI START
         _rotationLocked = false;
         _isAttacking = false;
         _isDashing = false;
@@ -324,18 +329,16 @@ public class PlayerController : CharacterActor,
 
         Debug.Log($"[Start] rotationLocked={_rotationLocked}, attacking={_isAttacking}");
     }
- 
+
     private bool ShouldApplyRootMotion()
     {
         if (CurrentState == null) return false;
 
-        // Chỉ apply root motion khi đang Attack
         if (CurrentState is PlayerAttackState)
         {
             var attackData = skillManager?.CurrentAttackData;
             if (attackData == null) return false;
-
-            return attackData.useRootMotion;   // 🔥 Check flag
+            return attackData.useRootMotion;
         }
 
         return false;
@@ -385,6 +388,7 @@ public class PlayerController : CharacterActor,
     {
         if (CurrentState is PlayerDashState) return false;
         if (CurrentState is PlayerParryMovementState) return false;
+        if (CurrentState is PlayerAirDashState) return false;
         return true;
     }
 
@@ -404,23 +408,12 @@ public class PlayerController : CharacterActor,
 
     #endregion
 
-    #region PARRY MOVEMENT API
-
-    public void BeginParryMovement(Vector3 velocity)
-    {
-        _isInParryMovement = true;
-        _parryMovementVelocity = velocity;
-
-        _velocity = Vector3.zero;
-        _jumpVelocity = 0f;
-        _appliedMovement = Vector3.zero;
-    }
+    #region PARRY MOVEMENT API (state transition only)
 
     public void RequestParryMovement(Combat.Parry.ParryMovementType type)
     {
         _pendingParryMovement = type;
 
-        // FORCE — không qua priority check
         _pendingRequest = StateRequestType.ParryMovement;
         _pendingRequestSource = null;
     }
@@ -430,17 +423,6 @@ public class PlayerController : CharacterActor,
         var m = _pendingParryMovement;
         _pendingParryMovement = Combat.Parry.ParryMovementType.None;
         return m;
-    }
-
-    public void UpdateParryMovementVelocity(Vector3 velocity)
-    {
-        _parryMovementVelocity = velocity;
-    }
-
-    public void EndParryMovement()
-    {
-        _isInParryMovement = false;
-        _parryMovementVelocity = Vector3.zero;
     }
 
     #endregion
@@ -458,78 +440,75 @@ public class PlayerController : CharacterActor,
 
     private void ProcessStateRequests()
     {
-        HandleImplicitTransitions();
-
-        if (_pendingRequest == StateRequestType.None) return;
-
-        var request = _pendingRequest;
-        var source = _pendingRequestSource;
-
-        _pendingRequest = StateRequestType.None;
-        _pendingRequestSource = null;
-
-        switch (request)
+        // 🔥 FIX: Pending request phải được xử lý TRƯỚC implicit transition
+        if (_pendingRequest != StateRequestType.None)
         {
-            case StateRequestType.Dead:
-                if (!(CurrentState is PlayerDeadState))
-                    ForceSwitchState(States.Dead());
-                break;
+            var request = _pendingRequest;
+            var source = _pendingRequestSource;
+            _pendingRequest = StateRequestType.None;
+            _pendingRequestSource = null;
 
-            case StateRequestType.Hit:
-                HandleHitRequest(source);
-                break;
+            switch (request)
+            {
+                case StateRequestType.Dead:
+                    if (!(CurrentState is PlayerDeadState))
+                        ForceSwitchState(States.Dead());
+                    return;
 
-            case StateRequestType.Parry:
-                HandleParryRequest();
-                break;
+                case StateRequestType.Hit:
+                    HandleHitRequest(source);
+                    return;
 
-            case StateRequestType.Attack:
-                HandleAttackStateRequest();
-                break;
+                case StateRequestType.Parry:
+                    HandleParryRequest();
+                    return;
 
-            case StateRequestType.Dash:
-                HandleDashStateRequest();
-                break;
+                case StateRequestType.Attack:
+                    HandleAttackStateRequest();
+                    return;
 
-            case StateRequestType.Jump:
-                HandleJumpStateRequest();
-                break;
+                case StateRequestType.Dash:
+                    HandleDashStateRequest();
+                    return;
 
-            case StateRequestType.ParryMovement:
-                HandleParryMovementRequest();
-                break;
+                case StateRequestType.Jump:
+                    HandleJumpStateRequest();
+                    return;
+
+                case StateRequestType.ParryMovement:
+                    HandleParryMovementRequest();
+                    return;
+            }
         }
+
+        // Sau đó mới xử lý implicit transition
+        HandleImplicitTransitions();
     }
 
     private void HandleImplicitTransitions()
     {
-        // Nếu state hiện tại implement IImplicitTransitionable và đã finished
         if (CurrentState is IImplicitTransitionable transitionable && transitionable.IsFinished)
         {
             SwitchState(ResolveGroundState());
             return;
         }
     }
+
     private void HandleHitRequest(GameObject attacker)
     {
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
-
-        // Override state không bị hit interrupt lần nữa
         if (category == StateCategory.Override) return;
 
-        // i-frame: Dash, Parry (window), ParryMovement
         if (CurrentState is PlayerDashState) return;
         if (CurrentState is PlayerParryState) return;
         if (CurrentState is PlayerParryMovementState) return;
-        if (CurrentState is PlayerAirDashState) return;  // 🔥 THÊM
+        if (CurrentState is PlayerAirDashState) return;
 
         ForceSwitchState(States.Hit());
     }
 
     private void HandleParryRequest()
     {
-        // 🔥 XÓA dòng if (category == StateCategory.Override) return;
-
         if (CurrentState is PlayerParryState) return;
 
         skillManager?.ForceCancelCombo(false);
@@ -539,14 +518,12 @@ public class PlayerController : CharacterActor,
 
         ForceSwitchState(States.Parry());
     }
+
     private void HandleAttackStateRequest()
     {
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
 
-        // Combat không cho vào Attack (tránh override combo đang chạy)
         if (category == StateCategory.Combat) return;
-
-        // Override không cho vào Attack
         if (category == StateCategory.Override) return;
 
         SwitchState(States.Attack());
@@ -557,32 +534,23 @@ public class PlayerController : CharacterActor,
         if (!TryDash) return;
 
         var category = CurrentState?.Category ?? StateCategory.Locomotion;
-
-        // Override không nhận dash
         if (category == StateCategory.Override) return;
 
-        // === CASE 1: Đang ở Grounded → Dash là child ===
         if (CurrentState is PlayerGroundedState groundedState)
         {
             groundedState.SetChildState(States.Dash());
             return;
         }
 
-        // === CASE 2: Đang ở Airborne (Jump/Fall) → AirDash là child ===
         if (CurrentState is PlayerAirborneState airborneState)
         {
             airborneState.SetChildState(States.AirDash());
             return;
         }
 
-        // === CASE 3: Đang ở Combat (Attack) → về Grounded trước, rồi Dash ===
         if (category == StateCategory.Combat)
         {
-            // Force về Grounded (sẽ tự InitializeSubState → Idle/Run)
             ForceSwitchState(States.Grounded());
-
-            // Grounded giờ là CurrentState → enter Dash ngay
-            // Không cần chờ frame — vì đã ForceSwitchState → CurrentState = Grounded
             if (CurrentState is PlayerGroundedState gState)
             {
                 gState.SetChildState(States.Dash());
@@ -590,10 +558,10 @@ public class PlayerController : CharacterActor,
             return;
         }
 
-        // === Fallback: switch root (không nên xảy ra) ===
         Debug.LogWarning($"[PlayerController] HandleDashStateRequest fallback từ {CurrentState?.GetType().Name}");
         SwitchState(States.Grounded());
     }
+
     private void HandleJumpStateRequest()
     {
         if (!TryJump) return;
@@ -602,7 +570,7 @@ public class PlayerController : CharacterActor,
         if (category == StateCategory.Override) return;
         if (category == StateCategory.Combat) return;
 
-        SwitchState(States.Airborne());   // 🔥 ĐỔI từ Jump
+        SwitchState(States.Airborne());
     }
 
     private void HandleParryMovementRequest()
@@ -616,7 +584,6 @@ public class PlayerController : CharacterActor,
         ForceSwitchState(States.ParryMovement());
     }
 
-    // PlayerController.cs — trong SwitchState
     private void SwitchState(PlayerBaseState newState)
     {
         if (newState == null) return;
@@ -625,9 +592,7 @@ public class PlayerController : CharacterActor,
         CurrentState?.ForceExit();
         CurrentState = newState;
 
-        // 🔥 Reset locks khi vào state mới
         _rotationLocked = false;
-        // Không reset _isAttacking vì Attack lock dùng riêng
 
         CurrentState.EnterState();
     }
@@ -639,7 +604,6 @@ public class PlayerController : CharacterActor,
         CurrentState?.ForceExit();
         CurrentState = newState;
 
-        // 🔥 Reset locks
         _rotationLocked = false;
 
         CurrentState.EnterState();
@@ -665,17 +629,17 @@ public class PlayerController : CharacterActor,
         if (Animator == null)
             animator = GetComponentInChildren<Animator>();
     }
-   /// <summary>
-/// Public switch cho state gọi khi cần. Dùng bởi PopToParent khi không có parent.
-/// </summary>
-public void SwitchStateExternal(PlayerBaseState newState)
-{
-    SwitchState(newState);
-}
+
+    public void SwitchStateExternal(PlayerBaseState newState)
+    {
+        SwitchState(newState);
+    }
+
     private void InitializeServices()
     {
         _rootMotionProvider = new RootMotionVelocityProvider();
         RegisterVelocityProvider(_rootMotionProvider);
+
         _physicsHandler = new GravityHandler(_gravity, GravityScaling, FallClamp);
         _rotationHandler = new ModelRotationHandler();
 
@@ -686,7 +650,6 @@ public void SwitchStateExternal(PlayerBaseState newState)
 
         _inputHandler = new CameraRelativeInputHandler(MainCamera, _playerInputs);
 
-        // 🔥 Truyền thêm TRelease
         _groundMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack, TRelease);
         _airMovementHandler = new ResponsiveMovementHandler(RunMaxSpeed, TAttack * 2f, TRelease * 2f);
     }
@@ -760,7 +723,7 @@ public void SwitchStateExternal(PlayerBaseState newState)
         if (_groundedFrameCount > 0 && _jumpVelocity < 1f)
             return States.Grounded();
 
-        return States.Airborne();   // 🔥 ĐỔI từ Fall
+        return States.Airborne();
     }
 
     #endregion
@@ -769,7 +732,8 @@ public void SwitchStateExternal(PlayerBaseState newState)
 
     private void ApplyGravity()
     {
-        if (_isInParryMovement)
+        // 🔥 Exclusive provider active → bypass gravity hoàn toàn
+        if (HasExclusiveProviderActive())
         {
             _jumpVelocity = 0f;
             return;
@@ -788,13 +752,20 @@ public void SwitchStateExternal(PlayerBaseState newState)
 
     private void ApplyMovement()
     {
-        if (_isInParryMovement)
+        // 1. Exclusive provider — override toàn bộ (parry movement, lunge, knockback...)
+        for (int i = 0; i < _velocityProviders.Count; i++)
         {
-            _charController.Move(_parryMovementVelocity * Time.deltaTime);
-            return;
+            var p = _velocityProviders[i];
+            if (p == null || !p.IsActive) continue;
+
+            if (p is IExclusiveVelocityProvider)
+            {
+                _charController.Move(p.GetVelocityModifier() * Time.deltaTime);
+                return;
+            }
         }
 
-        // Pick highest-priority provider
+        // 2. Non-exclusive — pick Priority cao nhất (step window, root motion, lunge cũ...)
         IVelocityProvider best = null;
         int bestPriority = int.MinValue;
         for (int i = 0; i < _velocityProviders.Count; i++)
@@ -810,12 +781,24 @@ public void SwitchStateExternal(PlayerBaseState newState)
             return;
         }
 
-       
-
-        // 🔥 Apply _velocity trực tiếp — giảm tốc do State xử lý qua handler
+        // 3. Fallback
         Vector3 motion = new Vector3(_velocity.x, _jumpVelocity, _velocity.z);
         _charController.Move(motion * Time.deltaTime);
+    }
 
+    /// <summary>
+    /// Check có IExclusiveVelocityProvider nào đang active không.
+    /// Dùng cho ApplyGravity để bypass gravity.
+    /// </summary>
+    private bool HasExclusiveProviderActive()
+    {
+        for (int i = 0; i < _velocityProviders.Count; i++)
+        {
+            var p = _velocityProviders[i];
+            if (p != null && p.IsActive && p is IExclusiveVelocityProvider)
+                return true;
+        }
+        return false;
     }
 
     #endregion
@@ -954,7 +937,7 @@ public void SwitchStateExternal(PlayerBaseState newState)
 
         string stateText = GetFormattedStateName(CurrentState);
         string info = $"<b>State:</b> {stateText}\n" +
-                      $"<b>ParryMove:</b> {_isInParryMovement} | " +
+                      $"<b>ParryMove:</b> {IsInParryMovement} | " +
                       $"<b>PendingReq:</b> {_pendingRequest}";
 
         GUI.Box(new Rect(10, 10, 500, 60), info, _cachedStyle);
@@ -970,6 +953,4 @@ public void SwitchStateExternal(PlayerBaseState newState)
     }
 
     #endregion
-
-
 }

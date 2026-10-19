@@ -88,11 +88,11 @@ public static class ParryRegistry
 
         // 1. HitStop
         if (HitStopSystem.Instance != null)
-            HitStopSystem.Instance.Trigger(0.2f, 0.02f);
+            HitStopSystem.Instance.Trigger(0.4f, 0.02f);
 
         // 2. Screen Shake
         if (ScreenShakeManager.Instance != null)
-            ScreenShakeManager.Instance.TriggerShake(0.6f);
+            ScreenShakeManager.Instance.TriggerShake(1f);
 
         // 3. Flash
         if (ParryFlashEffect.Instance != null)
@@ -106,8 +106,7 @@ public static class ParryRegistry
 
         // 6. SFX
         PlayParrySFX(info);
-
-        Debug.Log($"[Parry] {defender.name} PARRY thành công đòn từ {attacker.name}!");
+       
     }
 
     private static void RotateDefenderToAttacker(GameObject defender, GameObject attacker)
