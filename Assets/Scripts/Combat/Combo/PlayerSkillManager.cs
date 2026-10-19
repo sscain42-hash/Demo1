@@ -233,13 +233,9 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (state == null) return;
 
-        Debug.Log($"[FinishComboAttack] CALLED. " +
-                  $"IsAttacking before={IsAttacking}, " +
-                  $"activeState={(_activeState != null ? _activeState.associatedAction.ToString() : "null")}, " +
-                  $"stackTrace=\n{System.Environment.StackTrace}");
-
         state.isAttacking = false;
         state.comboResetTimer = 1.0f;
+        state.currentIndex = 0;   // 🔥 FIX
         _activeState = null;
     }
     private void UpdateComboTimers(ComboState state)
@@ -248,7 +244,10 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         if (state.comboResetTimer > 0 && !state.isAttacking)
         {
             state.comboResetTimer -= Time.unscaledDeltaTime;
-            if (state.comboResetTimer <= 0) state.currentIndex = 0;
+            if (state.comboResetTimer <= 0)
+            {
+                state.currentIndex = 0;   // ← dòng này CÓ nhưng chạy 1s sau
+            }
         }
     }
 
@@ -424,6 +423,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
                 else
                 {
                     _pendingComboType = ComboType.Normal;
+                    stateNormal.currentIndex = 0;   // 🔥 FIX: reset trước khi start
                     StartComboChain(stateNormal);
                 }
                 return;
@@ -445,12 +445,17 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             _activeState.comboResetTimer = 1.0f;
         }
 
+        // 🔥 FIX: nếu vào state MỚI (khác state đang chạy), reset index
+        if (_activeState != state)
+        {
+            state.currentIndex = 0;
+        }
+
         playerInputs.ConsumeCommand(state.associatedAction);
         _activeState = state;
 
         ExecuteComboStep(_activeState);
     }
-
     private void ExecuteComboStep(ComboState state)
     {
         if (targetLock != null) HandleTargetLocked(targetLock.CurrentTarget);
@@ -485,7 +490,15 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
     private void MoveToNextComboStep(ComboState state)
     {
-        state.currentIndex = (state.currentIndex + 1) % state.sequence.attacks.Count;
+        int nextIndex = state.currentIndex + 1;
+
+        if (nextIndex >= state.sequence.attacks.Count)
+        {
+            // Đòn cuối — loop về đầu
+            nextIndex = 0;
+        }
+
+        state.currentIndex = nextIndex;
         ExecuteComboStep(state);
     }
 
