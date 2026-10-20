@@ -45,13 +45,13 @@ Material:
     - _AlphaGamma: 1.81
     - _Cull: 1
     - _DebugFaces: 0
-    - _DistortionStrength: 0.2
-    - _EdgePow: 10
-    - _MaskBoost: 7.42
+    - _DistortionStrength: 0.444
+    - _EdgePow: 4.52
+    - _MaskBoost: 4.78
     - _NoiseAmount: 0.5
-    - _NoiseScale: 22.3
+    - _NoiseScale: 41.8
     - _NoiseSpeed: 4.38
-    - _NoiseStrength: 5
+    - _NoiseStrength: 2.02
     - _UseProcNoise: 1
     m_Colors:
     - _DistortionSpeed: {r: 0.5, g: 0.2, b: 0, a: 0}

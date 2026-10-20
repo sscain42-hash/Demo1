@@ -18,11 +18,9 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     [SerializeField] private ComboSequence skillQCombo;
 
     [Header("Parry Sequence (Animation)")]
+    [Tooltip("Index 0 = parry base, Index 1-8 = 8 hướng (nếu có). Mỗi AttackData cần gán animationName + clip.")]
     [SerializeField] private ComboSequence parryCombo;
 
-    // =========================================================
-    // 🔥 COMBO TYPE — quyết định combo nào sẽ chạy khi vào AttackState
-    // =========================================================
     public enum ComboType { Normal, SkillE, BurstQ }
     private ComboType _pendingComboType = ComboType.Normal;
 
@@ -55,16 +53,19 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
     public bool IsParryActive { get; private set; }
 
-    private float _parryAnimationTimer = 0f;
-    private float _parryAnimationDuration = 0f;
-    private bool _isPlayingParryAnimation = false;
-
     public event Action OnAttackRequested;
     public event Action OnDashCancelRequested;
     public event Action OnJumpCancelRequested;
 
     private bool _eventsHooked = false;
 
+    // Combo input lock — chống double-consume khi loop về đòn đầu
+    private const float COMBO_INPUT_LOCK_TIME = 0.05f;
+    private float _comboInputLockTimer = 0f;
+
+    // =========================================================
+    // LIFECYCLE
+    // =========================================================
     private void OnEnable()
     {
         if (_ctx != null) _ctx.RegisterVelocityProvider(this);
@@ -80,8 +81,28 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     {
         if (_ctx != null) _ctx.UnregisterVelocityProvider(this);
         if (targetLock != null) targetLock.OnTargetLocked -= HandleTargetLocked;
-
         UnhookParryEvents();
+    }
+
+    private void Awake()
+    {
+        _ctx = GetComponent<PlayerController>();
+        if (playerInputs == null) playerInputs = FindAnyObjectByType<PlayerInputs>();
+        if (targetLock == null) targetLock = GetComponent<TargetLockManager>();
+
+        stateNormal.associatedAction = BufferedAction.NormalAttack;
+        stateNormal.sequence = normalAttackCombo;
+
+        stateE.associatedAction = BufferedAction.ElementalSkill;
+        stateE.sequence = skillECombo;
+
+        stateQ.associatedAction = BufferedAction.ElementalBurst;
+        stateQ.sequence = skillQCombo;
+
+        _allStates = new List<ComboState> { stateNormal, stateE, stateQ };
+
+        Animator anim = GetComponentInChildren<Animator>();
+        _comboEngine = new PlayerComboEngine(_ctx, anim);
     }
 
     private void HookParryEvents()
@@ -114,44 +135,24 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
     public Vector3 GetVelocityModifier() => CurrentStepVelocity;
 
-    private void Awake()
-    {
-        _ctx = GetComponent<PlayerController>();
-        if (playerInputs == null) playerInputs = FindAnyObjectByType<PlayerInputs>();
-        if (targetLock == null) targetLock = GetComponent<TargetLockManager>();
-
-        stateNormal.associatedAction = BufferedAction.NormalAttack;
-        stateNormal.sequence = normalAttackCombo;
-
-        stateE.associatedAction = BufferedAction.ElementalSkill;
-        stateE.sequence = skillECombo;
-
-        stateQ.associatedAction = BufferedAction.ElementalBurst;
-        stateQ.sequence = skillQCombo;
-
-        _allStates = new List<ComboState> { stateNormal, stateE, stateQ };
-
-        Animator anim = GetComponentInChildren<Animator>();
-        _comboEngine = new PlayerComboEngine(_ctx, anim);
-    }
-
     // =========================================================
-    // UPDATE — chỉ update combo engine khi ĐANG trong PlayerAttackState
+    // UPDATE
     // =========================================================
     private void Update()
     {
+        if (_comboInputLockTimer > 0f)
+            _comboInputLockTimer -= Time.deltaTime;
+
         UpdateComboTimers(stateNormal);
         UpdateComboTimers(stateE);
         UpdateComboTimers(stateQ);
-        UpdateParryAnimation();
         HandleCamera();
 
-        // 🔥 PRIORITY 1: PARRY
+        // PRIORITY 1: PARRY
         if (playerInputs != null && playerInputs.HasCommand(BufferedAction.Parry))
         {
             var cat = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
 
-            // Nếu đang trong Parry State mà bấm tiếp -> Reset lại thời gian Parry
             if (_ctx.CurrentState is PlayerParryState parryState)
             {
                 if (playerInputs.ConsumeCommand(BufferedAction.Parry))
@@ -162,7 +163,6 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
                 return;
             }
 
-            // Nếu đang ở các state khác (trừ Hit/Dead) -> Cho phép Parry
             if (cat != StateCategory.Override)
             {
                 playerInputs.ConsumeCommand(BufferedAction.Parry);
@@ -192,17 +192,16 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             ProcessLocomotionInput();
         }
     }
+
     private void ProcessLocomotionInput()
     {
         if (playerInputs == null) return;
-
-      
 
         if (!IsAttacking)
         {
             if (playerInputs.HasCommand(BufferedAction.NormalAttack))
             {
-                playerInputs.ConsumeCommand(BufferedAction.NormalAttack);   // 🔥 CONSUME
+                playerInputs.ConsumeCommand(BufferedAction.NormalAttack);
                 _pendingComboType = ComboType.Normal;
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
@@ -211,7 +210,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
             if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
             {
-                playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);  // 🔥 CONSUME
+                playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);
                 _pendingComboType = ComboType.SkillE;
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
@@ -220,7 +219,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
             if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
             {
-                playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);  // 🔥 CONSUME
+                playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);
                 _pendingComboType = ComboType.BurstQ;
                 _ctx.RequestState(StateRequestType.Attack);
                 OnAttackRequested?.Invoke();
@@ -235,9 +234,10 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
         state.isAttacking = false;
         state.comboResetTimer = 1.0f;
-        state.currentIndex = 0;   // 🔥 FIX
+        state.currentIndex = 0;
         _activeState = null;
     }
+
     private void UpdateComboTimers(ComboState state)
     {
         if (state.sequence == null) return;
@@ -246,55 +246,104 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             state.comboResetTimer -= Time.unscaledDeltaTime;
             if (state.comboResetTimer <= 0)
             {
-                state.currentIndex = 0;   // ← dòng này CÓ nhưng chạy 1s sau
+                state.currentIndex = 0;
             }
-        }
-    }
-
-    private void UpdateParryAnimation()
-    {
-        if (!_isPlayingParryAnimation) return;
-
-        _parryAnimationTimer += Time.deltaTime;
-
-        if (_parryAnimationTimer >= _parryAnimationDuration)
-        {
-            _isPlayingParryAnimation = false;
-            IsParryActive = false;
         }
     }
 
     // =========================================================
     // PARRY EVENT HANDLERS
     // =========================================================
-    private void HandleParryWindowOpened(int frames)
-    {
-        IsParryActive = true;
-    }
-
-    public string GetParryAnimationName()
-    {
-        if (parryCombo == null || parryCombo.attacks == null || parryCombo.attacks.Count == 0)
-            return null;
-        return parryCombo.attacks[0]?.animationName;
-    }
-
+    private void HandleParryWindowOpened(int frames) => IsParryActive = true;
     private void HandleParrySuccess(GameObject attacker) { }
+    private void HandleParryFail() => IsParryActive = false;
 
-    private void HandleParryFail()
-    {
-        IsParryActive = false;
-        _isPlayingParryAnimation = false;
-        _parryAnimationTimer = 0f;
-    }
+    #region PARRY ANIMATION API
 
-    // =========================================================
-    // 🔥 PUBLIC API — GỌI TỪ PlayerAttackState
-    // =========================================================
+    // Cache clip theo tên state — tránh query Animator mỗi frame
+    private Dictionary<string, float> _clipLengthCache;
 
     /// <summary>
-    /// Gọi từ PlayerAttackState.EnterState() — start combo thật sự.
+    /// Lấy độ dài clip (giây) theo tên state. Query từ runtimeAnimatorController, cache lại.
     /// </summary>
+    public float GetClipLengthByName(string stateName)
+    {
+        if (string.IsNullOrEmpty(stateName) || _ctx == null || _ctx.Animator == null)
+            return 0f;
+
+        if (_clipLengthCache == null)
+            _clipLengthCache = new Dictionary<string, float>();
+
+        if (_clipLengthCache.TryGetValue(stateName, out float cached))
+            return cached;
+
+        var controller = _ctx.Animator.runtimeAnimatorController;
+        if (controller == null) return 0f;
+
+        foreach (var clip in controller.animationClips)
+        {
+            if (clip == null) continue;
+            // Match theo tên clip == tên state (thường trùng)
+            if (clip.name == stateName)
+            {
+                _clipLengthCache[stateName] = clip.length;
+                return clip.length;
+            }
+        }
+
+        // Fallback: nếu không match tên, thử match bằng hash
+        // (một số setup đặt tên clip khác tên state — hiếm)
+        _clipLengthCache[stateName] = 0f;
+        return 0f;
+    }
+
+    /// <summary>
+    /// Lấy tên animation state parry theo hướng movement.
+    /// parryCombo.attacks index 0 = parry base, 1-8 = 8 hướng.
+    /// Fallback về index 0 nếu hướng đó chưa có.
+    /// </summary>
+    public string GetParryAnimationName(Combat.Parry.ParryMovementType movement)
+    {
+        if (parryCombo == null || parryCombo.attacks == null) return null;
+
+        int index = MovementToIndex(movement);
+
+        if (index < parryCombo.attacks.Count && parryCombo.attacks[index] != null)
+            return parryCombo.attacks[index].animationName;
+
+        return parryCombo.attacks.Count > 0 ? parryCombo.attacks[0]?.animationName : null;
+    }
+
+    /// <summary>
+    /// Lấy độ dài clip parry theo hướng movement — query Animator Controller.
+    /// </summary>
+    public float GetParryClipLength(Combat.Parry.ParryMovementType movement)
+    {
+        string name = GetParryAnimationName(movement);
+        return GetClipLengthByName(name);
+    }
+
+    private static int MovementToIndex(Combat.Parry.ParryMovementType movement)
+    {
+        return movement switch
+        {
+            Combat.Parry.ParryMovementType.None => 0,
+            Combat.Parry.ParryMovementType.Forward => 1,
+            Combat.Parry.ParryMovementType.Backward => 2,
+            Combat.Parry.ParryMovementType.Left => 3,
+            Combat.Parry.ParryMovementType.Right => 4,
+            Combat.Parry.ParryMovementType.ForwardLeft => 5,
+            Combat.Parry.ParryMovementType.ForwardRight => 6,
+            Combat.Parry.ParryMovementType.BackwardLeft => 7,
+            Combat.Parry.ParryMovementType.BackwardRight => 8,
+            _ => 0
+        };
+    }
+
+    #endregion
+    // =========================================================
+    // PUBLIC API
+    // =========================================================
     public void StartPendingCombo()
     {
         ComboState target = _pendingComboType switch
@@ -308,9 +357,6 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         StartComboChain(target);
     }
 
-    /// <summary>
-    /// Gọi từ PlayerAttackState.ExitState() — dọn combo.
-    /// </summary>
     public void OnAttackStateExit()
     {
         ForceCancelCombo(false);
@@ -318,64 +364,16 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     }
 
     // =========================================================
-    // INPUT → REQUEST
+    // INPUT → COMBO
     // =========================================================
-    private void ProcessInputAsRequests()
-    {
-        if (playerInputs == null) return;
-
-        // Lấy category của state hiện tại
-        var category = _ctx.CurrentState?.Category ?? StateCategory.Locomotion;
-
-        // Combat và Override không nhận input mới (trừ trong state riêng)
-        if (category == StateCategory.Combat) return;
-        if (category == StateCategory.Override) return;
-
-        // Locomotion → nhận mọi input
-        // ═══ PARRY — ưu tiên cao nhất ═══
-        if (playerInputs.HasCommand(BufferedAction.Parry))
-        {
-            playerInputs.ConsumeCommand(BufferedAction.Parry);
-            _ctx.RequestState(StateRequestType.Parry);
-            _ctx.ParryController?.OnParryInput();
-            OnAttackRequested?.Invoke();
-            return;
-        }
-
-        // ═══ ATTACK ═══
-        if (!IsAttacking)
-        {
-            if (playerInputs.HasCommand(BufferedAction.NormalAttack))
-            {
-                _pendingComboType = ComboType.Normal;
-                _ctx.RequestState(StateRequestType.Attack);
-                OnAttackRequested?.Invoke();
-            }
-            else if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
-            {
-                _pendingComboType = ComboType.SkillE;
-                _ctx.RequestState(StateRequestType.Attack);
-                OnAttackRequested?.Invoke();
-            }
-            else if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
-            {
-                _pendingComboType = ComboType.BurstQ;
-                _ctx.RequestState(StateRequestType.Attack);
-                OnAttackRequested?.Invoke();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Xử lý input khi đã trong Attack state (combo window, cancel).
-    /// </summary>
     private void HandleComboInput()
     {
         if (_comboEngine == null) return;
         if (!(_ctx.CurrentState is PlayerAttackState)) return;
         if (_activeState == null) return;
+        if (_comboInputLockTimer > 0f) return;
 
-        // 🔥 Parry — ưu tiên cao nhất, interrupt mọi combo
+        // Parry — ưu tiên cao nhất
         if (playerInputs.HasCommand(BufferedAction.Parry))
         {
             playerInputs.ConsumeCommand(BufferedAction.Parry);
@@ -399,7 +397,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
         {
             if (playerInputs.HasCommand(BufferedAction.ElementalBurst))
             {
-                playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);   // 🔥 CONSUME
+                playerInputs.ConsumeCommand(BufferedAction.ElementalBurst);
                 _pendingComboType = ComboType.BurstQ;
                 StartComboChain(stateQ);
                 return;
@@ -407,7 +405,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
             if (playerInputs.HasCommand(BufferedAction.ElementalSkill))
             {
-                playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);   // 🔥 CONSUME
+                playerInputs.ConsumeCommand(BufferedAction.ElementalSkill);
                 _pendingComboType = ComboType.SkillE;
                 StartComboChain(stateE);
                 return;
@@ -415,15 +413,16 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
             if (playerInputs.HasCommand(BufferedAction.NormalAttack))
             {
-                playerInputs.ConsumeCommand(BufferedAction.NormalAttack);     // 🔥 CONSUME
+                playerInputs.ConsumeCommand(BufferedAction.NormalAttack);
                 if (_activeState == stateNormal)
                 {
                     MoveToNextComboStep(stateNormal);
+                    _comboInputLockTimer = COMBO_INPUT_LOCK_TIME;
                 }
                 else
                 {
                     _pendingComboType = ComboType.Normal;
-                    stateNormal.currentIndex = 0;   // 🔥 FIX: reset trước khi start
+                    stateNormal.currentIndex = 0;
                     StartComboChain(stateNormal);
                 }
                 return;
@@ -432,7 +431,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     }
 
     // =========================================================
-    // COMBO CHAIN MANAGEMENT
+    // COMBO CHAIN
     // =========================================================
     private void StartComboChain(ComboState state)
     {
@@ -445,7 +444,6 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             _activeState.comboResetTimer = 1.0f;
         }
 
-        // 🔥 FIX: nếu vào state MỚI (khác state đang chạy), reset index
         if (_activeState != state)
         {
             state.currentIndex = 0;
@@ -456,6 +454,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
         ExecuteComboStep(_activeState);
     }
+
     private void ExecuteComboStep(ComboState state)
     {
         if (targetLock != null) HandleTargetLocked(targetLock.CurrentTarget);
@@ -479,13 +478,9 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     private void HandleCamera()
     {
         if (CurrentAttackData != null && CurrentAttackData.enableCameraZoom)
-        {
             SkillCameraZoom.Instance?.ZoomIn();
-        }
         else
-        {
             SkillCameraZoom.Instance?.ZoomOut();
-        }
     }
 
     private void MoveToNextComboStep(ComboState state)
@@ -494,8 +489,8 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
 
         if (nextIndex >= state.sequence.attacks.Count)
         {
-            // Đòn cuối — loop về đầu
-            nextIndex = 0;
+            FinishComboAttack(state);
+            return;
         }
 
         state.currentIndex = nextIndex;
@@ -503,7 +498,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     }
 
     // =========================================================
-    // FORCE CANCEL — chỉ dọn dẹp dữ liệu, KHÔNG đụng state
+    // FORCE CANCEL
     // =========================================================
     public void ForceCancelCombo(bool playIdleAnimation = true)
     {

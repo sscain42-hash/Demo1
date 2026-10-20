@@ -16,26 +16,8 @@ MonoBehaviour:
   useRootMotion: 0
   rootMotionMultiplier: 1
   windows:
-  - actionName: Slash
-    startTime: 0.3611111
-    endTime: 0.9126044
-    enableVFX: 1
-    vfxTransform:
-      positionOffset: {x: 0, y: 1, z: 0}
-      rotationOffset: {x: 90, y: 180, z: 180}
-      scale: {x: 0.4, y: 0.4, z: 0.4}
-    cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0}
-    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
-    hitBoxOffset: {x: 0, y: 1, z: 1.5}
-    targetLayer:
-      serializedVersion: 2
-      m_Bits: 64
-    eventEffects:
-    - {fileID: 11400000, guid: 67419a65c4f208c4c8f0d41f256bfbca, type: 2}
-    eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.6944444
+    startTime: 0.5
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -86,8 +68,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: HitBox
-    startTime: 0.16666667
-    endTime: 0.6388889
+    startTime: 0.41666666
+    endTime: 0.8055556
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -95,8 +77,8 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0.01}
-    hitBoxSize: {x: 2.7845764, y: 2.6527715, z: 2.5782228}
-    hitBoxOffset: {x: -0.26157284, y: 2.2845578, z: 0.6872768}
+    hitBoxSize: {x: 3.008666, y: 2.6527715, z: 2.5782228}
+    hitBoxOffset: {x: 0.16538164, y: 1.3210704, z: 0.57671255}
     targetLayer:
       serializedVersion: 2
       m_Bits: 192
@@ -121,22 +103,225 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 6f042f776f0f7814592ac386bbf99e97, type: 2}
     eventTriggered: 1
   - actionName: Step
-    startTime: 0.16666667
-    endTime: 0.6388889
+    startTime: 0
+    endTime: 0.055555556
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
       rotationOffset: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
-    cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 7}
+    cursorStep: 1
+    targetDistance: {x: 0.069029234, y: 0, z: 0.09290611}
     hitBoxSize: {x: 1, y: 1, z: 1}
     hitBoxOffset: {x: 0, y: 0, z: 0}
     targetLayer:
       serializedVersion: 2
       m_Bits: 64
-    eventEffects:
-    - {fileID: 11400000, guid: 6f042f776f0f7814592ac386bbf99e97, type: 2}
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.055555556
+    endTime: 0.083333336
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.01647517, y: 0, z: 0.021962613}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.083333336
+    endTime: 0.11111111
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.019561969, y: 0, z: 0.004552692}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.11111111
+    endTime: 0.19444445
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: 0.029364869, y: 0, z: -0.0392529}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.19444445
+    endTime: 0.25
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.0013306364, y: 0, z: -0.013898313}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.27777776
+    endTime: 0.36111113
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.00064790994, y: 0, z: 0.11511055}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.36111113
+    endTime: 0.3888889
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: 0.09548347, y: 0, z: 0.08694859}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.3888889
+    endTime: 0.41666666
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: 0.02049017, y: 0, z: 0.009437561}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.41666666
+    endTime: 0.44444445
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.067159876, y: 0, z: -0.19538805}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.44444445
+    endTime: 0.5
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.020807326, y: 0, z: -0.01841437}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.6388889
+    endTime: 0.7777778
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.015424311, y: 0, z: -0.05252903}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.7777778
+    endTime: 0.8055555
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.0072570518, y: 0, z: -0.0059121884}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
+    eventTriggered: 1
+  - actionName: Step
+    startTime: 0.8055555
+    endTime: 0.9444445
+    enableVFX: 0
+    vfxTransform:
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+    cursorStep: 1
+    targetDistance: {x: -0.07046634, y: 0, z: -0.0034379773}
+    hitBoxSize: {x: 1, y: 1, z: 1}
+    hitBoxOffset: {x: 0, y: 0, z: 0}
+    targetLayer:
+      serializedVersion: 2
+      m_Bits: 64
+    eventEffects: []
     eventTriggered: 1
   useScreenShake: 1
   shakeForce: 0.04

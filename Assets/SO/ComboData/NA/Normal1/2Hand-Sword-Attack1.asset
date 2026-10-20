@@ -16,25 +16,8 @@ MonoBehaviour:
   useRootMotion: 0
   rootMotionMultiplier: 1
   windows:
-  - actionName: Slash
-    startTime: 0.3888889
-    endTime: 0.44444445
-    enableVFX: 0
-    vfxTransform:
-      positionOffset: {x: 0, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-    cursorStep: 0
-    targetDistance: {x: 0, y: 0, z: 0}
-    hitBoxSize: {x: 1.5, y: 1.5, z: 2}
-    hitBoxOffset: {x: 0, y: 1, z: 1.5}
-    targetLayer:
-      serializedVersion: 2
-      m_Bits: 64
-    eventEffects: []
-    eventTriggered: 1
   - actionName: ComboInputBuffer
-    startTime: 0.8888889
+    startTime: 0.5
     endTime: 1
     enableVFX: 0
     vfxTransform:
@@ -85,8 +68,8 @@ MonoBehaviour:
     eventEffects: []
     eventTriggered: 1
   - actionName: HitBox
-    startTime: 0.8055556
-    endTime: 1
+    startTime: 0.41666666
+    endTime: 0.5833333
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -94,16 +77,16 @@ MonoBehaviour:
       scale: {x: 1, y: 1, z: 1}
     cursorStep: 0
     targetDistance: {x: 0, y: 0, z: 0.01}
-    hitBoxSize: {x: 3.887092, y: 1.385202, z: 2.9978914}
-    hitBoxOffset: {x: 0.23547441, y: 0.70128256, z: 0.897111}
+    hitBoxSize: {x: 3.887092, y: 2.339295, z: 4.2247944}
+    hitBoxOffset: {x: 0.23547441, y: 0.9320998, z: 1.5105634}
     targetLayer:
       serializedVersion: 2
       m_Bits: 192
     eventEffects: []
     eventTriggered: 1
   - actionName: Sound
-    startTime: 0.3888889
-    endTime: 0.8888889
+    startTime: 0.3611111
+    endTime: 0.8611111
     enableVFX: 0
     vfxTransform:
       positionOffset: {x: 0, y: 0, z: 0}
@@ -116,7 +99,8 @@ MonoBehaviour:
     targetLayer:
       serializedVersion: 2
       m_Bits: 64
-    eventEffects: []
+    eventEffects:
+    - {fileID: 11400000, guid: 6f042f776f0f7814592ac386bbf99e97, type: 2}
     eventTriggered: 1
   - actionName: Step
     startTime: 0

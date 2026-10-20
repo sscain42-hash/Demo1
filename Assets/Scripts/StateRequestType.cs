@@ -5,7 +5,7 @@ public enum StateRequestType
     Dash = 3,
     Attack = 5,
     Hit = 10,
-    ParryMovement = 12,   // 🔥 Đổi từ 7 → 12
+    ParryMovement = 12,
     Parry = 20,
     Dead = 30,
 }

@@ -3,12 +3,7 @@ using Combat.Parry;
 
 /// <summary>
 /// Parry Movement — bay theo movement type, KHÔNG quay model.
-/// 
-/// CƠ CHẾ:
-///   - Implement IExclusiveVelocityProvider
-///   - Tự register trong EnterState, unregister trong ExitState
-///   - Bypass gravity + mọi provider khác trong lúc active
-///   - PlayerController KHÔNG cần biết class này — chỉ check marker interface
+/// Implement IExclusiveVelocityProvider — bypass gravity + mọi provider khác.
 /// </summary>
 public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable, IExclusiveVelocityProvider
 {
@@ -24,22 +19,13 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
 
     public bool IsFinished => _elapsedTime >= _duration;
 
-    // =========================================================
-    // IExclusiveVelocityProvider
-    // =========================================================
     public Vector3 GetVelocityModifier() => _currentVelocity;
-    public bool IsActive => true;       // state active = provider active
-    public int Priority => 100;         // không quan trọng vì exclusive
+    public bool IsActive => true;
+    public int Priority => 100;
 
-    // =========================================================
-    // CTOR
-    // =========================================================
     public PlayerParryMovementState(PlayerController ctx, PlayerStateFactory factory)
         : base(ctx, factory) { }
 
-    // =========================================================
-    // STATE
-    // =========================================================
     public override void EnterState()
     {
         _elapsedTime = 0f;
@@ -52,7 +38,6 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
         _movementVelocity = CalculateVelocity(_movementType, config);
         _speedCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
 
-        // 🔥 Register làm exclusive provider — bypass gravity + mọi provider khác
         _ctx.RegisterVelocityProvider(this);
 
         PlayAnimation(_movementType);
@@ -60,9 +45,28 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
 
     private void PlayAnimation(ParryMovementType movement)
     {
-        int hash = _ctx.GetParryMovementHash(movement);
-        if (hash < 0) return;
-        _ctx.Animator.CrossFadeInFixedTime(hash, 0.05f, 0, 0f);
+        if (_ctx.Animator == null) return;
+
+        var sm = _ctx.GetComponent<PlayerSkillManager>();
+        if (sm == null) return;
+
+        string clipName = sm.GetParryAnimationName(movement);
+        float clipLength = sm.GetParryClipLength(movement);
+
+        int parryLayer = PlayerController.Layer_Parry;
+        _ctx.Animator.SetLayerWeight(parryLayer, 1f);
+
+        if (string.IsNullOrEmpty(clipName) || clipLength <= 0f)
+        {
+            Debug.LogWarning($"[PlayerParryMovementState] Không có clip cho {movement} — bỏ qua.");
+            return;
+        }
+
+        _ctx.Animator.CrossFadeInFixedTime(clipName, 0.05f, parryLayer, 0f);
+
+        // Auto-speed theo jumpDuration
+        float speed = clipLength / Mathf.Max(0.01f, _duration);
+        _ctx.Animator.speed = Mathf.Clamp(speed, 0.1f, 10f);
     }
 
     private Vector3 CalculateVelocity(ParryMovementType m, ParryConfig cfg)
@@ -101,8 +105,13 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
 
     protected override void ExitState()
     {
-        // 🔥 Gỡ provider — không cần PlayerController biết
         _ctx.UnregisterVelocityProvider(this);
         _currentVelocity = Vector3.zero;
+
+        if (_ctx.Animator != null)
+        {
+            _ctx.Animator.speed = 1f;
+            _ctx.Animator.SetLayerWeight(PlayerController.Layer_Parry, 0f);
+        }
     }
 }

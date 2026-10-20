@@ -14,9 +14,6 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
     private bool _movementCommitted;
     private bool _parryResultReceived;
 
-    // =========================================================
-    // IExclusiveVelocityProvider — trả về ZERO để đứng yên
-    // =========================================================
     public Vector3 GetVelocityModifier() => Vector3.zero;
     public bool IsActive => true;
     public int Priority => 100;
@@ -48,12 +45,8 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
         _parryResultReceived = false;
 
         _ctx.SetAttackLock(true);
-
-        // 🔥 Zero velocity NGAY — không còn quán tính
         _ctx.SetVelocity(0f, _ctx.JumpVelocity, 0f);
 
-        // 🔥 Register làm exclusive provider — trả về 0 → đứng yên
-        // Bypass gravity, bypass fallback movement, bypass mọi provider khác
         _ctx.RegisterVelocityProvider(this);
 
         PlayParryAnimation();
@@ -73,18 +66,23 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
         if (_ctx.Animator == null) return;
 
         var sm = _ctx.GetComponent<PlayerSkillManager>();
-        string clipName = sm != null ? sm.GetParryAnimationName() : null;
+        string clipName = sm != null ? sm.GetParryAnimationName(ParryMovementType.None) : null;
+        float clipLength = sm != null ? sm.GetParryClipLength(ParryMovementType.None) : 0f;
 
-        if (!string.IsNullOrEmpty(clipName) && _ctx.Animator.HasState(0, Animator.StringToHash(clipName)))
+        int parryLayer = PlayerController.Layer_Parry;
+        _ctx.Animator.SetLayerWeight(parryLayer, 1f);
+
+        if (string.IsNullOrEmpty(clipName) || clipLength <= 0f)
         {
-            _ctx.Animator.CrossFadeInFixedTime(clipName, 0.05f, 0, 0f);
-            Debug.Log($"[PlayerParryState] Playing '{clipName}'");
+            Debug.LogWarning("[PlayerParryState] Không có parry clip — bỏ qua animation.");
+            return;
         }
-        else
-        {
-            _ctx.Animator.CrossFadeInFixedTime(_ctx.Anim_Parry, 0.05f, 0, 0f);
-            Debug.Log("[PlayerParryState] Fallback to Anim_Parry hash");
-        }
+
+        _ctx.Animator.CrossFadeInFixedTime(clipName, 0.05f, parryLayer, 0f);
+
+        // Auto-speed theo MIN_DURATION
+        float speed = clipLength / Mathf.Max(0.01f, MIN_DURATION);
+        _ctx.Animator.speed = Mathf.Clamp(speed, 0.1f, 10f);
     }
 
     protected override void UpdateState()
@@ -104,16 +102,20 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
         }
     }
 
-    /// <summary>
-    /// Parry thành công — chỉ set flag, KHÔNG di chuyển.
-    /// </summary>
     private void HandleMovementRequested(ParryMovementType movement)
     {
         if (_movementCommitted) return;
         _movementCommitted = true;
         _parryResultReceived = true;
 
-        Debug.Log($"[PlayerParryState] Parry success: {movement} — stay in place");
+        Debug.Log($"[PlayerParryState] Parry success: {movement}");
+
+        // Nếu enable directional jump → chuyển state
+        if (_ctx.ParryController.Config.enableDirectionalJump && movement != ParryMovementType.None)
+        {
+            _ctx.RequestParryMovement(movement);
+            _ctx.RequestState(StateRequestType.ParryMovement);
+        }
     }
 
     private void HandleParryFail()
@@ -126,12 +128,14 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
     protected override void ExitState()
     {
         _ctx.SetAttackLock(false);
-
-        // 🔥 Gỡ exclusive provider
         _ctx.UnregisterVelocityProvider(this);
-
-        // 🔥 Zero velocity khi exit — không giữ momentum sau parry
         _ctx.SetVelocity(0f, _ctx.JumpVelocity, 0f);
+
+        if (_ctx.Animator != null)
+        {
+            _ctx.Animator.speed = 1f;
+            _ctx.Animator.SetLayerWeight(PlayerController.Layer_Parry, 0f);
+        }
 
         var pc = _ctx.ParryController;
         if (pc != null)

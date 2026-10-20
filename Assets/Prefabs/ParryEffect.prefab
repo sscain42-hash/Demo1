@@ -33,7 +33,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4227625607621752080}
-  - {fileID: 1588867724007678706}
+  - {fileID: 2120399385532869700}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!198 &379268600520031977
@@ -4929,6 +4929,70 @@ PrefabInstance:
       propertyPath: m_Name
       value: vfx_Sparks_01
       objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: lengthInSec
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.type
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.arc.value
+      value: 359.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.m_Scale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.m_Scale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.donutRadius
+      value: 1.997009
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.radius.mode
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.radius.value
+      value: 0.0001
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.radius.spread
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.radiusThickness
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.alignToDirection
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: ShapeModule.randomPositionAmount
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617306792127272604, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: EmissionModule.rateOverTime.scalar
+      value: 300
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516918160821455253, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516918160821455253, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8516918160821455253, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8766931428700617374, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
       propertyPath: simulationSpeed
       value: 1
@@ -5046,8 +5110,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
---- !u!4 &1588867724007678706 stripped
+--- !u!4 &2120399385532869700 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 9030787310508902179, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
+  m_CorrespondingSourceObject: {fileID: 8516918160821455253, guid: 86d7d64d61f3aaa4e9109bb6a9e92899, type: 3}
   m_PrefabInstance: {fileID: 7736911416119174609}
   m_PrefabAsset: {fileID: 0}

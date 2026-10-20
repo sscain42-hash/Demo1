@@ -84,7 +84,12 @@ public abstract class ComboEngineBase
 
         _lastNormalizedTime = -1f;
         _triggeredWindows.Clear();
+        _currentSessionId++;
+        _sessionStartTime = Time.time;
 
+        // 🔥 Reset observed NGAY — tránh frame đầu dùng state cũ
+        _observedSessionId = -1;
+        _lastNormalizedTime = -1f;
         // 🔥 SỬA DÒNG NÀY:
         _lastHitTimes.Clear();
 
@@ -377,10 +382,19 @@ public abstract class ComboEngineBase
             hasHitNewTarget = true;
 
             var parryReceiver = col.GetComponent<IParryReceiver>();
-            if (parryReceiver != null && parryReceiver.TryParry(Actor.GameObject))
+            if (parryReceiver != null)
             {
-                OnParriedByTarget?.Invoke(col.gameObject);
-                continue;
+                // 🔥 Tính hitPoint thật từ collider + sword transform
+                Transform swordTransform = GetSwordTransform();
+                Vector3 hitPoint = swordTransform != null
+                    ? col.ClosestPoint(swordTransform.position)
+                    : col.ClosestPoint(center);
+
+                if (parryReceiver.TryParry(Actor.GameObject, hitPoint))
+                {
+                    OnParriedByTarget?.Invoke(col.gameObject);
+                    continue;
+                }
             }
 
             if (col.TryGetComponent<Damageable>(out _))

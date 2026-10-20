@@ -11,19 +11,14 @@ namespace Combat.Parry
         [Header("=== REFERENCES ===")]
         [SerializeField] private LayerMask enemyLayer;
 
-        // =========================================================
-        // PUBLIC STATE
-        // =========================================================
         public ParryState CurrentState { get; private set; } = ParryState.Idle;
         public int CurrentWindowFrames { get; private set; }
         public int CurrentChainCount { get; private set; }
         public bool IsTelegraphing { get; private set; }
         public ParryConfig Config => config;
 
-        // =========================================================
-        // EVENTS
-        // =========================================================
-        public event Action<GameObject> OnParrySuccess;
+        public event Action<GameObject, Vector3> OnParrySuccessWithPoint;
+        public event Action<GameObject> OnParrySuccess;   // giữ cái cũ
         public event Action OnParryFail;
         public event Action<int> OnParryWindowOpened;
         public event Action OnParryWindowClosed;
@@ -31,9 +26,6 @@ namespace Combat.Parry
         public event Action<int> OnChainParrySuccess;
         public event Action<ParryMovementType> OnParryMovementRequested;
 
-        // =========================================================
-        // RUNTIME
-        // =========================================================
         private float _windowTimer;
         private float _frameAccumulator;
         private float _inputCooldownTimer;
@@ -42,9 +34,6 @@ namespace Combat.Parry
 
         private PlayerController _playerCtx;
 
-        // =========================================================
-        // LIFECYCLE
-        // =========================================================
         private void Awake()
         {
             _playerCtx = GetComponent<PlayerController>();
@@ -60,9 +49,6 @@ namespace Combat.Parry
                 UpdateWindowOpen(dt);
         }
 
-        // =========================================================
-        // TIMERS
-        // =========================================================
         private void UpdateTimers(float dt)
         {
             if (_inputCooldownTimer > 0f)
@@ -78,7 +64,6 @@ namespace Combat.Parry
                 }
             }
 
-            // Frame recovery khi không đang tiêu thụ
             if (CurrentState != ParryState.WindowOpen && CurrentWindowFrames < config.defaultWindowFrames)
             {
                 _recoveryAccumulator += dt;
@@ -109,7 +94,6 @@ namespace Combat.Parry
 
         private void OnWindowExpired()
         {
-            // Chain parry còn grace → mở window mới
             if (_chainGraceTimer > 0f && CurrentChainCount < config.maxChainParryCount)
             {
                 OpenParryWindow(isChain: true);
@@ -122,14 +106,10 @@ namespace Combat.Parry
             CurrentState = ParryState.Idle;
         }
 
-        // =========================================================
-        // PUBLIC API
-        // =========================================================
         public void OnParryInput()
         {
             if (_inputCooldownTimer > 0f) return;
 
-            // Chain grace → mở lại window
             if (_chainGraceTimer > 0f)
             {
                 OpenParryWindow(isChain: false);
@@ -137,7 +117,6 @@ namespace Combat.Parry
                 return;
             }
 
-            // Yêu cầu telegraph
             if (config.requireTelegraph && !IsTelegraphing)
             {
                 CurrentState = ParryState.Blocking;
@@ -145,7 +124,6 @@ namespace Combat.Parry
                 return;
             }
 
-            // Spam penalty khi đang mở window
             if (CurrentState == ParryState.WindowOpen)
             {
                 CurrentWindowFrames = Mathf.Max(
@@ -172,20 +150,18 @@ namespace Combat.Parry
             _inputCooldownTimer = config.parryInputCooldown;
         }
 
-        public bool TryParry(GameObject attacker)
+        public bool TryParry(GameObject attacker, Vector3 hitPoint = default)
         {
             bool inGrace = _chainGraceTimer > 0f && CurrentChainCount < config.maxChainParryCount;
             bool inWindow = CurrentState == ParryState.WindowOpen && CurrentWindowFrames > 0;
 
             if (!inGrace && !inWindow) return false;
 
-            ExecuteParrySuccess(attacker, isChain: inGrace);
+            ExecuteParrySuccess(attacker, hitPoint, isChain: inGrace);
             return true;
         }
 
-        // =========================================================
-        // INTERNAL
-        // =========================================================
+
         private void OpenParryWindow(bool isChain)
         {
             CurrentState = ParryState.WindowOpen;
@@ -199,13 +175,14 @@ namespace Combat.Parry
             OnParryWindowOpened?.Invoke(CurrentWindowFrames);
         }
 
-        private void ExecuteParrySuccess(GameObject attacker, bool isChain)
+        private void ExecuteParrySuccess(GameObject attacker, Vector3 hitPoint, bool isChain)
         {
             CurrentWindowFrames = config.defaultWindowFrames;
             _chainGraceTimer = config.chainParryGraceTime;
             CurrentChainCount = isChain ? CurrentChainCount + 1 : 1;
 
             OnParrySuccess?.Invoke(attacker);
+            OnParrySuccessWithPoint?.Invoke(attacker, hitPoint);
             OnParryWindowClosed?.Invoke();
 
             if (isChain)
@@ -221,9 +198,6 @@ namespace Combat.Parry
             CurrentState = ParryState.Idle;
         }
 
-        /// <summary>
-        /// Đọc input hiện tại. Không input → Backward.
-        /// </summary>
         private ParryMovementType ReadCurrentInput()
         {
             Vector2 input = _playerCtx.InputVector;
@@ -243,7 +217,7 @@ namespace Combat.Parry
             if (l) return ParryMovementType.Left;
             if (r) return ParryMovementType.Right;
 
-            return ParryMovementType.Backward;   // default
+            return ParryMovementType.Backward;
         }
 
         public void SetTelegraphing(bool value) => IsTelegraphing = value;

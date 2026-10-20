@@ -49,10 +49,9 @@ namespace Combat.Parry
         public float telegraphDuration = 0.5f;
 
         // ═══════════════════════════════════════════════════
-        // 🔥 PARRY MOVEMENT — Homura Hime Style
-        // Input được snapshot NGAY khi parry thành công (không còn window đợi)
+        // PARRY MOVEMENT — Homura Hime Style
+        // Input được snapshot NGAY khi parry thành công
         // ═══════════════════════════════════════════════════
-
         [Header("=== PARRY MOVEMENT ===")]
         [Tooltip("Bật/tắt directional movement sau parry")]
         public bool enableDirectionalJump = true;
@@ -75,6 +74,47 @@ namespace Combat.Parry
 
         [Tooltip("Bật gravity trong lúc parry movement (thường false)")]
         public bool applyGravityDuringMovement = false;
+
+        // ═══════════════════════════════════════════════════
+        // PARRY FEEDBACK — HITSTOP & SHAKE
+        // ═══════════════════════════════════════════════════
+        [Header("=== PARRY FEEDBACK — HITSTOP & SHAKE ===")]
+        [Tooltip("Bật/tắt hitstop khi parry thành công")]
+        public bool enableHitStopOnParry = true;
+
+        [Tooltip("Thời gian hitstop (giây) khi parry thành công")]
+        [Range(0f, 1f)]
+        public float parryHitStopDuration = 0.4f;
+
+        [Tooltip("TimeScale trong lúc hitstop")]
+        [Range(0.001f, 0.5f)]
+        public float parryHitStopTimeScale = 0.02f;
+
+        [Tooltip("Bật/tắt rung camera khi parry thành công")]
+        public bool enableScreenShakeOnParry = true;
+
+        [Tooltip("Cường độ rung camera khi parry thường")]
+        [Range(0f, 5f)]
+        public float parryScreenShakeForce = 1f;
+
+        [Tooltip("Cường độ rung camera khi chain parry")]
+        [Range(0f, 5f)]
+        public float chainParryScreenShakeForce = 1.5f;
+
+        [Tooltip("Thời gian flash trắng màn hình khi parry (giây)")]
+        [Range(0f, 0.5f)]
+        public float parryFlashDuration = 0.15f;
+
+        // ═══════════════════════════════════════════════════
+        // PARRY FEEDBACK — ROTATION
+        // ═══════════════════════════════════════════════════
+        [Header("=== PARRY FEEDBACK — ROTATION ===")]
+        [Tooltip("Bật/tắt việc snap model về hướng kẻ tấn công khi parry thành công")]
+        public bool snapRotationToAttacker = true;
+
+        [Tooltip("Thời gian giữ lock rotation (giây)")]
+        [Range(0f, 1f)]
+        public float rotationLockDuration = 0.25f;
 
         [Header("=== DEBUG ===")]
         public bool enableDebugLog = true;

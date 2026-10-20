@@ -7,8 +7,8 @@ using UnityEngine;
 [RequireComponent(typeof(ParryController))]
 public class ParryDetector : MonoBehaviour, IParryReceiver
 {
-    public bool TryParry(GameObject attacker)
+    public bool TryParry(GameObject attacker, Vector3 hitPoint)
     {
-        return ParryRegistry.TryParry(gameObject, attacker);
+        return ParryRegistry.TryParry(gameObject, attacker, hitPoint);
     }
 }

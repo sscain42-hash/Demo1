@@ -114,60 +114,34 @@ namespace Combat.Parry
         /// </summary>
         private void HandleParrySuccess(GameObject attacker)
         {
-            if (debugLog)
-                Debug.Log($"[ParryFeedback] Parry SUCCESS vs {attacker?.name}");
-
-            // Xác định chain hay không
             bool isChain = parryController.CurrentChainCount > 1;
+            var config = parryController.Config;
 
-            // === 1. Tính vị trí spawn VFX ===
             Vector3 spawnPos = CalculateVFXPosition(attacker);
-
-            // === 2. Tính rotation hướng về attacker ===
             Quaternion spawnRot = CalculateVFXRotation(attacker, spawnPos);
 
-            // === 3. Chọn VFX + Scale theo chain ===
-            Reference vfxToSpawn = isChain && parryChainVFX != null
-                ? parryChainVFX
-                : parrySuccessVFX;
-
+            Reference vfxToSpawn = isChain && parryChainVFX != null ? parryChainVFX : parrySuccessVFX;
             Vector3 vfxScale = isChain ? chainVFXScale : successVFXScale;
 
-            // === 4. Spawn VFX ===
             if (vfxToSpawn != null)
-            {
                 GlobalVFXManager.SpawnGlobalVFX(vfxToSpawn, spawnPos, spawnRot, vfxScale);
 
-                if (debugLog)
-                    Debug.Log($"[ParryFeedback] Spawned VFX: {(isChain ? "CHAIN" : "SUCCESS")} at {spawnPos}");
-            }
-
-            // === 5. Chọn SFX + Pitch theo chain ===
-            AudioClip sfxToPlay = isChain && parryChainSFX != null
-                ? parryChainSFX
-                : parrySuccessSFX;
-
+            AudioClip sfxToPlay = isChain && parryChainSFX != null ? parryChainSFX : parrySuccessSFX;
             Vector2 pitchRange = isChain ? chainSFXPitchRange : successSFXPitchRange;
 
-            // === 6. Play SFX ===
             if (sfxToPlay != null && SoundManager.Instance != null)
-            {
-                SoundManager.Instance.PlaySFX(
-                    sfxToPlay,
-                    minPitch: pitchRange.x,
-                    maxPitch: pitchRange.y,
-                    volumeVariance: 0.05f,
-                    baseVolumeScale: 1f
-                );
+                SoundManager.Instance.PlaySFX(sfxToPlay, pitchRange.x, pitchRange.y, 0.05f, 1f);
 
-                if (debugLog)
-                    Debug.Log($"[ParryFeedback] Played SFX: {(isChain ? "CHAIN" : "SUCCESS")}");
-            }
-
-            // === 7. Camera shake nhẹ cho chain ===
-            if (isChain && ScreenShakeManager.Instance != null)
+            if (config != null)
             {
-                ScreenShakeManager.Instance.TriggerShake(0.3f);
+                if (config.enableHitStopOnParry && HitStopSystem.Instance != null)
+                    HitStopSystem.Instance.Trigger(config.parryHitStopDuration, config.parryHitStopTimeScale);
+
+                if (config.enableScreenShakeOnParry && ScreenShakeManager.Instance != null)
+                {
+                    float force = isChain ? config.chainParryScreenShakeForce : config.parryScreenShakeForce;
+                    ScreenShakeManager.Instance.TriggerShake(force);
+                }
             }
         }
 

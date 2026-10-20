@@ -50,37 +50,70 @@ public static class ParryRegistry
         return defender != null && _activeParries.ContainsKey(defender);
     }
 
-    public static bool TryParry(GameObject defender, GameObject attacker)
+    public static bool TryParry(GameObject defender, GameObject attacker, Vector3 hitPoint)
     {
         if (defender == null || attacker == null) return false;
-
         if (!_activeParries.TryGetValue(defender, out var info)) return false;
 
-        // 🔥 ĐÃ PARRY RỒI → không parry nữa
-        // Vẫn return true để nuốt damage (không gây sát thương player)
-        // Nhưng KHÔNG trigger reward
         if (info.hasParried)
         {
-            Debug.Log($"[ParryRegistry] Đã parry trong animation này rồi — nuốt damage, không reward");
+            Debug.Log($"[ParryRegistry] Đã parry trong animation này rồi — nuốt damage");
             return true;
         }
 
-        // 🔥 ĐÁNH DẤU ĐÃ PARRY
         info.hasParried = true;
-
-        // Trigger reward (chỉ 1 lần)
-        TriggerParryReward(info, attacker);
-
+        TriggerParryReward(info, attacker, hitPoint);
         return true;
     }
-  /*  private static void TriggerParryReward(ParryInfo info, GameObject attacker)
+
+    private static void TriggerParryReward(ParryInfo info, GameObject attacker, Vector3 hitPoint)
     {
         GameObject defender = info.defender;
         if (defender == null) return;
 
-        var feedback = defender.GetComponent<IParryFeedback>();
-        feedback?.OnParrySuccess(attacker);
-    }*/
+        if (HitStopSystem.Instance != null)
+            HitStopSystem.Instance.Trigger(0.4f, 0.02f);
+
+        if (ScreenShakeManager.Instance != null)
+            ScreenShakeManager.Instance.TriggerShake(1f);
+
+        if (ParryFlashEffect.Instance != null)
+            ParryFlashEffect.Instance.Flash();
+
+        RotateDefenderToAttacker(defender, attacker);
+
+        // 🔥 Dùng hitPoint thay vì tự tính trung điểm + 1.2f
+        SpawnParryVFX(defender, attacker, hitPoint);
+
+        PlayParrySFX(info);
+    }
+
+    private static void SpawnParryVFX(GameObject defender, GameObject attacker, Vector3 hitPoint)
+    {
+        // 🔥 hitPoint là điểm va chạm thực tế — không cộng offset nào nữa
+        Vector3 spawnPos = hitPoint;
+
+        // Hướng VFX: từ defender nhìn về attacker, hoặc ngược lại
+        Vector3 dirToAttacker = attacker.transform.position - defender.transform.position;
+        dirToAttacker.y = 0;
+        Quaternion vfxRotation = dirToAttacker.sqrMagnitude > 0.001f
+            ? Quaternion.LookRotation(dirToAttacker.normalized)
+            : defender.transform.rotation;
+
+        if (ParryFlashEffect.Instance != null)
+        {
+            ParryFlashEffect.Instance.SpawnShockwave(spawnPos, vfxRotation);
+            ParryFlashEffect.Instance.SpawnSpark(spawnPos, vfxRotation);
+        }
+    }
+    /*  private static void TriggerParryReward(ParryInfo info, GameObject attacker)
+      {
+          GameObject defender = info.defender;
+          if (defender == null) return;
+
+          var feedback = defender.GetComponent<IParryFeedback>();
+          feedback?.OnParrySuccess(attacker);
+      }*/
     private static void TriggerParryReward(ParryInfo info, GameObject attacker)
     {
         GameObject defender = info.defender;

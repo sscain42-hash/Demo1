@@ -107,6 +107,10 @@ public class PlayerController : CharacterActor,
 
     private Combat.Parry.ParryMovementType _pendingParryMovement;
 
+    // Temp rotation lock (parry snap)
+    private float _tempRotationLockTimer = 0f;
+    private Quaternion _lockedRotation;
+
     #endregion
 
     #region INPUT
@@ -196,10 +200,6 @@ public class PlayerController : CharacterActor,
 
     public float HitReactionIFrameTimer => _hitReactionIFrameTimer;
 
-    /// <summary>
-    /// True nếu player đang trong Parry Movement state.
-    /// Đây là check state-based, KHÔNG dùng flag riêng — pattern mới.
-    /// </summary>
     public bool IsInParryMovement => CurrentState is PlayerParryMovementState;
 
     #endregion
@@ -223,6 +223,11 @@ public class PlayerController : CharacterActor,
     public readonly int Anim_DashBack = Animator.StringToHash("DashBack");
     public readonly int HitReactionAnimName = Animator.StringToHash("KnockBack");
     public readonly int Anim_Parry = Animator.StringToHash("HumanM@Parry01");
+
+    // Animator layers
+    public const int Layer_Base = 0;
+    public const int Layer_Attack = 0;
+    public const int Layer_Parry = 2;
 
     private readonly Dictionary<Combat.Parry.ParryMovementType, int> _parryMovementHashes
         = new Dictionary<Combat.Parry.ParryMovementType, int>
@@ -354,6 +359,8 @@ public class PlayerController : CharacterActor,
 
         CurrentState.UpdateStates();
 
+        UpdateTempRotationLock();
+
         ProcessStateRequests();
 
         ApplyGravity();
@@ -389,6 +396,7 @@ public class PlayerController : CharacterActor,
         if (CurrentState is PlayerDashState) return false;
         if (CurrentState is PlayerParryMovementState) return false;
         if (CurrentState is PlayerAirDashState) return false;
+        if (CurrentState is PlayerParryState) return false;
         return true;
     }
 
@@ -408,7 +416,7 @@ public class PlayerController : CharacterActor,
 
     #endregion
 
-    #region PARRY MOVEMENT API (state transition only)
+    #region PARRY MOVEMENT API
 
     public void RequestParryMovement(Combat.Parry.ParryMovementType type)
     {
@@ -440,7 +448,6 @@ public class PlayerController : CharacterActor,
 
     private void ProcessStateRequests()
     {
-        // 🔥 FIX: Pending request phải được xử lý TRƯỚC implicit transition
         if (_pendingRequest != StateRequestType.None)
         {
             var request = _pendingRequest;
@@ -481,7 +488,6 @@ public class PlayerController : CharacterActor,
             }
         }
 
-        // Sau đó mới xử lý implicit transition
         HandleImplicitTransitions();
     }
 
@@ -732,7 +738,6 @@ public class PlayerController : CharacterActor,
 
     private void ApplyGravity()
     {
-        // 🔥 Exclusive provider active → bypass gravity hoàn toàn
         if (HasExclusiveProviderActive())
         {
             _jumpVelocity = 0f;
@@ -752,7 +757,7 @@ public class PlayerController : CharacterActor,
 
     private void ApplyMovement()
     {
-        // 1. Exclusive provider — override toàn bộ (parry movement, lunge, knockback...)
+        // 1. Exclusive provider
         for (int i = 0; i < _velocityProviders.Count; i++)
         {
             var p = _velocityProviders[i];
@@ -765,7 +770,7 @@ public class PlayerController : CharacterActor,
             }
         }
 
-        // 2. Non-exclusive — pick Priority cao nhất (step window, root motion, lunge cũ...)
+        // 2. Non-exclusive — Priority cao nhất
         IVelocityProvider best = null;
         int bestPriority = int.MinValue;
         for (int i = 0; i < _velocityProviders.Count; i++)
@@ -786,10 +791,6 @@ public class PlayerController : CharacterActor,
         _charController.Move(motion * Time.deltaTime);
     }
 
-    /// <summary>
-    /// Check có IExclusiveVelocityProvider nào đang active không.
-    /// Dùng cho ApplyGravity để bypass gravity.
-    /// </summary>
     private bool HasExclusiveProviderActive()
     {
         for (int i = 0; i < _velocityProviders.Count; i++)
@@ -815,27 +816,42 @@ public class PlayerController : CharacterActor,
 
     public void RotateTowardDirection(Transform model, Vector3 direction, float rotationSpeed)
     {
-        if (model == null) { Debug.LogWarning("[Rotate] model null"); return; }
-        if (direction.sqrMagnitude < 0.01f) { Debug.LogWarning("[Rotate] dir zero"); return; }
+        if (model == null) return;
+        if (direction.sqrMagnitude < 0.01f) return;
 
         Quaternion targetRotation = Quaternion.LookRotation(direction);
         float t = rotationSpeed * Time.deltaTime;
         model.rotation = Quaternion.Slerp(model.rotation, targetRotation, t);
-
-        Debug.Log($"[Rotate] model={model.name}, t={t:F3}, " +
-                  $"target={targetRotation.eulerAngles}, current={model.rotation.eulerAngles}");
     }
 
     public void HandleRotation()
     {
-        Debug.Log($"[HR] locked={_rotationLocked}, input={_inputVector.sqrMagnitude:F2}, " +
-                  $"Model={(Model != null ? Model.name : "NULL")}");
-
         if (_rotationLocked) return;
         if (_inputVector.sqrMagnitude <= 0.01f) return;
 
         Vector3 moveDirection = GetLookDirection();
         _rotationHandler?.RotateTowardDirection(Model, moveDirection, RotationSpeed);
+    }
+
+    public void LockRotationForDuration(float duration)
+    {
+        if (duration <= 0f) return;
+        _tempRotationLockTimer = duration;
+        _rotationLocked = true;
+        if (Model != null) _lockedRotation = Model.rotation;
+    }
+
+    private void UpdateTempRotationLock()
+    {
+        if (_tempRotationLockTimer <= 0f) return;
+
+        _tempRotationLockTimer -= Time.deltaTime;
+
+        if (Model != null)
+            Model.rotation = _lockedRotation;
+
+        if (_tempRotationLockTimer <= 0f)
+            _rotationLocked = false;
     }
 
     #endregion

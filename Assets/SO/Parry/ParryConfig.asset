@@ -12,21 +12,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1774c8336c11ec439f8b8079e736cfb, type: 3}
   m_Name: ParryConfig
   m_EditorClassIdentifier: Assembly-CSharp::Combat.Parry.ParryConfig
-  defaultWindowFrames: 26
-  minWindowFrames: 6
+  defaultWindowFrames: 25
+  minWindowFrames: 16
   spamPenaltyPerPress: 0
-  parryInputCooldown: 0
-  windowRecoveryTime: 1
-  windowRecoveryRate: 10
+  parryInputCooldown: 0.1
+  windowRecoveryTime: 0
+  windowRecoveryRate: 9.86
   chainParryGraceTime: 0.3
   maxChainParryCount: 3
   requireTelegraph: 0
   telegraphDuration: 0.5
   enableDirectionalJump: 0
-  forwardJumpSpeed: 5
-  backwardJumpSpeed: 5
-  sideJumpSpeed: 50
-  jumpDuration: 0.573
-  applyGravityDuringMovement: 1
+  forwardJumpSpeed: 20
+  backwardJumpSpeed: 22
+  sideJumpSpeed: 18
+  jumpDuration: 0.22
+  applyGravityDuringMovement: 0
+  enableHitStopOnParry: 1
+  parryHitStopDuration: 0.05
+  parryHitStopTimeScale: 0.02
+  enableScreenShakeOnParry: 1
+  parryScreenShakeForce: 0.32
+  chainParryScreenShakeForce: 1.5
+  parryFlashDuration: 0.15
+  snapRotationToAttacker: 1
+  rotationLockDuration: 0.25
   enableDebugLog: 1
   drawDebugGizmos: 1

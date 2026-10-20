@@ -45227,7 +45227,7 @@ AnimationClip:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 0.033333335
-        value: 34.33
+        value: -0.31911838
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -93755,7 +93755,7 @@ AnimationClip:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 0.033333335
-        value: 34.33
+        value: -0.31911838
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -95815,14 +95815,14 @@ AnimationClip:
   m_HasMotionFloatCurves: 1
   m_Events:
   - time: 0.43333334
-    functionName: BeginSwing
+    functionName: StartSmear
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 0.5
-    functionName: TriggerArcSmear
+  - time: 0.6333333
+    functionName: StopSmear
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0

@@ -199,9 +199,12 @@ public abstract class CharacterActor : Damageable,
     // PARRY
     // ═══════════════════════════════════════════════════════════
     public bool TryParry(GameObject attacker)
+     => TryParry(attacker, attacker != null ? attacker.transform.position : Vector3.zero);
+
+    public bool TryParry(GameObject attacker, Vector3 hitPoint)
     {
         if (_parryController == null) return false;
-        return _parryController.TryParry(attacker);
+        return _parryController.TryParry(attacker, hitPoint);   // ✅ gọi controller
     }
 
     public void RegisterParryWindow(AttackData data, ActionWindow window) { }
