@@ -34,13 +34,7 @@ public class PlayerHitState : PlayerBaseState,IImplicitTransitionable
         var inputs = _ctx._playerInputs;
         if (inputs == null) return;
 
-        // Parry interrupt — ưu tiên cao nhất
-        if (inputs.HasCommand(BufferedAction.Parry))
-        {
-            inputs.ConsumeCommand(BufferedAction.Parry);
-            _ctx.RequestState(StateRequestType.Parry);
-            return;
-        }
+ 
 
         // Dash cancel sau delay
         if (_elapsedTime >= CANCEL_START && _ctx.TryDash)

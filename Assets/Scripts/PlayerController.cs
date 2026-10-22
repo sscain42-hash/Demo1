@@ -506,13 +506,23 @@ public class PlayerController : CharacterActor,
         if (category == StateCategory.Override) return;
 
         if (CurrentState is PlayerDashState) return;
-        if (CurrentState is PlayerParryState) return;
         if (CurrentState is PlayerParryMovementState) return;
         if (CurrentState is PlayerAirDashState) return;
 
+        // 🔥 Chỉ block khi parry window CÒN MỞ (đang thực sự parry)
+        if (CurrentState is PlayerParryState parryState)
+        {
+            var pc = ParryController;
+            bool windowStillOpen = pc != null
+                && pc.CurrentState == Combat.Parry.ParryState.WindowOpen
+                && pc.CurrentWindowFrames > 0;
+
+            if (windowStillOpen) return;   // đang parry → không cho hit chen
+                                           // ngược lại: parry đã hụt → cho hit vào
+        }
+
         ForceSwitchState(States.Hit());
     }
-
     private void HandleParryRequest()
     {
         if (CurrentState is PlayerParryState) return;

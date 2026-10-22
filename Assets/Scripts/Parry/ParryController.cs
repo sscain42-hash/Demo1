@@ -155,7 +155,15 @@ namespace Combat.Parry
             bool inGrace = _chainGraceTimer > 0f && CurrentChainCount < config.maxChainParryCount;
             bool inWindow = CurrentState == ParryState.WindowOpen && CurrentWindowFrames > 0;
 
-            if (!inGrace && !inWindow) return false;
+            if (!inGrace && !inWindow)
+            {
+                // 🔥 Parry hụt → báo fail để PlayerParryState thoát animation
+                CurrentState = ParryState.Idle;
+                _windowTimer = 0f;
+                OnParryWindowClosed?.Invoke();
+                OnParryFail?.Invoke();
+                return false;
+            }
 
             ExecuteParrySuccess(attacker, hitPoint, isChain: inGrace);
             return true;

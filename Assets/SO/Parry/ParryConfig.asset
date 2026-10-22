@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ParryConfig
   m_EditorClassIdentifier: Assembly-CSharp::Combat.Parry.ParryConfig
   defaultWindowFrames: 25
-  minWindowFrames: 16
+  minWindowFrames: 25
   spamPenaltyPerPress: 0
   parryInputCooldown: 0.1
   windowRecoveryTime: 0
@@ -22,12 +22,12 @@ MonoBehaviour:
   maxChainParryCount: 3
   requireTelegraph: 0
   telegraphDuration: 0.5
-  enableDirectionalJump: 0
-  forwardJumpSpeed: 20
-  backwardJumpSpeed: 22
-  sideJumpSpeed: 18
-  jumpDuration: 0.22
-  applyGravityDuringMovement: 0
+  enableDirectionalJump: 1
+  forwardJumpSpeed: 50
+  backwardJumpSpeed: 50
+  sideJumpSpeed: 50
+  jumpDuration: 0.314
+  applyGravityDuringMovement: 1
   enableHitStopOnParry: 1
   parryHitStopDuration: 0.05
   parryHitStopTimeScale: 0.02

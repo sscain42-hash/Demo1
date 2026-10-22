@@ -89,10 +89,14 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
     {
         _elapsedTime += Time.deltaTime;
 
-        if (!_parryResultReceived && _elapsedTime >= NO_RESULT_TIMEOUT)
+        // 🔥 Nếu window đã đóng mà chưa có result → thoát ngay
+        var pc = _ctx.ParryController;
+        if (!_parryResultReceived && pc != null
+            && pc.CurrentState != Combat.Parry.ParryState.WindowOpen
+            && _elapsedTime > 0.05f)
         {
-            Debug.LogWarning($"[PlayerParryState] No result after {NO_RESULT_TIMEOUT}s → assume fail");
             _parryResultReceived = true;
+            Debug.Log("[PlayerParryState] Window closed without success → exit");
         }
 
         if (_elapsedTime >= CANCEL_START)
@@ -121,7 +125,7 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
     private void HandleParryFail()
     {
         if (_parryResultReceived) return;
-        _parryResultReceived = true;
+        _parryResultReceived = true;   // ← IsFinished → true
         Debug.Log("[PlayerParryState] Parry failed → exit");
     }
 
