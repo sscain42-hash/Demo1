@@ -211,20 +211,25 @@ namespace Combat.Parry
             Vector2 input = _playerCtx.InputVector;
             const float DZ = 0.3f;
 
+            // Ưu tiên trục có độ lớn lớn hơn khi cả 2 đều vượt deadzone
             bool f = input.y > DZ;
             bool b = input.y < -DZ;
             bool l = input.x < -DZ;
             bool r = input.x > DZ;
 
-            if (f && l) return ParryMovementType.ForwardLeft;
-            if (f && r) return ParryMovementType.ForwardRight;
-            if (b && l) return ParryMovementType.BackwardLeft;
-            if (b && r) return ParryMovementType.BackwardRight;
-            if (f) return ParryMovementType.Forward;
-            if (b) return ParryMovementType.Backward;
-            if (l) return ParryMovementType.Left;
-            if (r) return ParryMovementType.Right;
+            // Chỉ 4 hướng: chọn trục mạnh hơn nếu cả 2 vượt ngưỡng
+            if (Mathf.Abs(input.x) > Mathf.Abs(input.y))
+            {
+                if (l) return ParryMovementType.Left;
+                if (r) return ParryMovementType.Right;
+            }
+            else
+            {
+                if (f) return ParryMovementType.Forward;
+                if (b) return ParryMovementType.Backward;
+            }
 
+            // Fallback: không giữ phím → backflip (giữ behavior cũ)
             return ParryMovementType.Backward;
         }
 

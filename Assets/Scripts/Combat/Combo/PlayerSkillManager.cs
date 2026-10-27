@@ -332,10 +332,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
             Combat.Parry.ParryMovementType.Backward => 2,
             Combat.Parry.ParryMovementType.Left => 3,
             Combat.Parry.ParryMovementType.Right => 4,
-            Combat.Parry.ParryMovementType.ForwardLeft => 5,
-            Combat.Parry.ParryMovementType.ForwardRight => 6,
-            Combat.Parry.ParryMovementType.BackwardLeft => 7,
-            Combat.Parry.ParryMovementType.BackwardRight => 8,
+      
             _ => 0
         };
     }

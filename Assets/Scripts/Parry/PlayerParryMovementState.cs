@@ -47,27 +47,27 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
     {
         if (_ctx.Animator == null) return;
 
-        var sm = _ctx.GetComponent<PlayerSkillManager>();
-        if (sm == null) return;
-
-        string clipName = sm.GetParryAnimationName(movement);
-        float clipLength = sm.GetParryClipLength(movement);
-
         int parryLayer = PlayerController.Layer_Parry;
         _ctx.Animator.SetLayerWeight(parryLayer, 1f);
 
-        if (string.IsNullOrEmpty(clipName) || clipLength <= 0f)
+        int hash = _ctx.GetParryMovementHash(movement);
+        if (hash == 0)
         {
-            Debug.LogWarning($"[PlayerParryMovementState] Không có clip cho {movement} — bỏ qua.");
+            Debug.LogWarning($"[PlayerParryMovementState] Không có hash cho {movement} — bỏ qua animation.");
             return;
         }
 
-        _ctx.Animator.CrossFadeInFixedTime(clipName, 0.05f, parryLayer, 0f);
+        _ctx.Animator.CrossFadeInFixedTime(hash, 0.05f, parryLayer, 0f);
 
-        // Auto-speed theo jumpDuration
-        float speed = clipLength / Mathf.Max(0.01f, _duration);
-        _ctx.Animator.speed = Mathf.Clamp(speed, 0.1f, 10f);
+        // Auto-speed theo jumpDuration — cần biết clip dài bao lâu
+        float clipLength =_ctx. GetAnimatorClipLengthByHash(hash);
+        if (clipLength > 0f)
+        {
+            float speed = clipLength / Mathf.Max(0.01f, _duration);
+            _ctx.Animator.speed = Mathf.Clamp(speed, 0.1f, 10f);
+        }
     }
+
 
     private Vector3 CalculateVelocity(ParryMovementType m, ParryConfig cfg)
     {
@@ -83,10 +83,6 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
             case ParryMovementType.Backward: dir = -fwd; speed = cfg.backwardJumpSpeed; break;
             case ParryMovementType.Left: dir = -rgt; speed = cfg.sideJumpSpeed; break;
             case ParryMovementType.Right: dir = rgt; speed = cfg.sideJumpSpeed; break;
-            case ParryMovementType.ForwardLeft: dir = (fwd - rgt).normalized; speed = cfg.forwardJumpSpeed * 0.85f; break;
-            case ParryMovementType.ForwardRight: dir = (fwd + rgt).normalized; speed = cfg.forwardJumpSpeed * 0.85f; break;
-            case ParryMovementType.BackwardLeft: dir = (-fwd - rgt).normalized; speed = cfg.backwardJumpSpeed * 0.85f; break;
-            case ParryMovementType.BackwardRight: dir = (-fwd + rgt).normalized; speed = cfg.backwardJumpSpeed * 0.85f; break;
             default: dir = -fwd; speed = cfg.backwardJumpSpeed; break;
         }
 

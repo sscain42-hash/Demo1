@@ -65,24 +65,25 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
     {
         if (_ctx.Animator == null) return;
 
-        var sm = _ctx.GetComponent<PlayerSkillManager>();
-        string clipName = sm != null ? sm.GetParryAnimationName(ParryMovementType.None) : null;
-        float clipLength = sm != null ? sm.GetParryClipLength(ParryMovementType.None) : 0f;
-
         int parryLayer = PlayerController.Layer_Parry;
         _ctx.Animator.SetLayerWeight(parryLayer, 1f);
 
-        if (string.IsNullOrEmpty(clipName) || clipLength <= 0f)
+        int hash = _ctx.GetParryMovementHash(ParryMovementType.None);
+        if (hash == 0)
         {
-            Debug.LogWarning("[PlayerParryState] Không có parry clip — bỏ qua animation.");
+            Debug.LogWarning("[PlayerParryState] Không có hash cho None — bỏ qua animation.");
             return;
         }
 
-        _ctx.Animator.CrossFadeInFixedTime(clipName, 0.05f, parryLayer, 0f);
+        _ctx.Animator.CrossFadeInFixedTime(hash, 0.05f, parryLayer, 0f);
 
-        // Auto-speed theo MIN_DURATION
-        float speed = clipLength / Mathf.Max(0.01f, MIN_DURATION);
-        _ctx.Animator.speed = Mathf.Clamp(speed, 0.1f, 10f);
+        // Auto-speed theo MIN_DURATION — dùng cùng helper lấy clip length
+        float clipLength = _ctx.GetAnimatorClipLengthByHash(hash);
+        if (clipLength > 0f)
+        {
+            float speed = clipLength / Mathf.Max(0.01f, MIN_DURATION);
+            _ctx.Animator.speed = Mathf.Clamp(speed, 0.1f, 10f);
+        }
     }
 
     protected override void UpdateState()

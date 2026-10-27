@@ -230,27 +230,23 @@ public class PlayerController : CharacterActor,
     public const int Layer_Parry = 2;
 
     private readonly Dictionary<Combat.Parry.ParryMovementType, int> _parryMovementHashes
-        = new Dictionary<Combat.Parry.ParryMovementType, int>
-    {
-        { Combat.Parry.ParryMovementType.Forward,       Animator.StringToHash("HumanM@Parry_Jump_F") },
-        { Combat.Parry.ParryMovementType.Backward,      Animator.StringToHash("HumanM@Parry_Backflip") },
-        { Combat.Parry.ParryMovementType.Left,          Animator.StringToHash("HumanM@Parry_Jump_L") },
-        { Combat.Parry.ParryMovementType.Right,         Animator.StringToHash("HumanM@Parry_Jump_R") },
-        { Combat.Parry.ParryMovementType.ForwardLeft,   Animator.StringToHash("HumanM@Parry_Jump_FL") },
-        { Combat.Parry.ParryMovementType.ForwardRight,  Animator.StringToHash("HumanM@Parry_Jump_FR") },
-        { Combat.Parry.ParryMovementType.BackwardLeft,  Animator.StringToHash("HumanM@Parry_Jump_BL") },
-        { Combat.Parry.ParryMovementType.BackwardRight, Animator.StringToHash("HumanM@Parry_Jump_BR") },
-    };
+     = new Dictionary<Combat.Parry.ParryMovementType, int>
+ {
+    { Combat.Parry.ParryMovementType.None,      Animator.StringToHash("HumanM@Parry01") },
+    { Combat.Parry.ParryMovementType.Forward,   Animator.StringToHash("HumanM@Parry_Jump_F") },
+    { Combat.Parry.ParryMovementType.Backward,  Animator.StringToHash("HumanM@Parry_Backflip") },
+    { Combat.Parry.ParryMovementType.Left,      Animator.StringToHash("HumanM@Parry_Jump_L") },
+    { Combat.Parry.ParryMovementType.Right,     Animator.StringToHash("HumanM@Parry_Jump_R") },
+ };
 
     public int GetParryMovementHash(Combat.Parry.ParryMovementType type)
     {
         if (_parryMovementHashes.TryGetValue(type, out int h))
             return h;
 
-        Debug.LogWarning($"[PlayerController] ParryMovement '{type}' không có hash!");
-        return -1;
+        Debug.LogWarning($"[PlayerController] ParryMovement '{type}' không có hash — fallback Backward");
+        return _parryMovementHashes[Combat.Parry.ParryMovementType.Backward];
     }
-
     #endregion
 
     #region DETECTION
@@ -976,6 +972,16 @@ public class PlayerController : CharacterActor,
         if (state.ChildState != null)
             name += " → " + GetFormattedStateName(state.ChildState);
         return name;
+    }
+
+    public float GetAnimatorClipLengthByHash(int hash)
+    {
+        var controller = Animator?.runtimeAnimatorController;
+        if (controller == null) return 0f;
+        foreach (var clip in controller.animationClips)
+            if (clip != null && Animator.StringToHash(clip.name) == hash)
+                return clip.length;
+        return 0f;
     }
 
     #endregion
