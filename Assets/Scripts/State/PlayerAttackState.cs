@@ -33,7 +33,7 @@ public class PlayerAttackState : PlayerBaseState, IImplicitTransitionable
 
     protected override void UpdateState()
     {
-        _stateTimer += Time.deltaTime;
+        _stateTimer += _ctx.PlayerDeltaTime;
 
         // 🔥 Safety net — ép finish nếu state chạy quá lâu
         if (_stateTimer >= HARD_TIMEOUT && _skillManager != null && _skillManager.IsAttacking)

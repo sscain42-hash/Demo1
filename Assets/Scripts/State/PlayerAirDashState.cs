@@ -29,7 +29,7 @@ public class PlayerAirDashState : PlayerBaseState
 
     protected override void UpdateState()
     {
-        _timer += Time.deltaTime;
+        _timer += _ctx.PlayerDeltaTime;
         _ctx.JumpVelocity = 0f;   // Đè gravity trong air dash
 
         if (_ctx.Model != null)

@@ -30,7 +30,7 @@ public class PlayerDashState : PlayerBaseState
 
     protected override void UpdateState()
     {
-        _timer += Time.deltaTime;
+        _timer += _ctx.PlayerDeltaTime;
 
         if (_ctx.Model != null)
         {

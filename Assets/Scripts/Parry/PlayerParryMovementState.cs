@@ -93,7 +93,7 @@ public class PlayerParryMovementState : PlayerBaseState, IImplicitTransitionable
 
     protected override void UpdateState()
     {
-        _elapsedTime += Time.deltaTime;
+        _elapsedTime += _ctx.PlayerDeltaTime;
         float t = Mathf.Clamp01(_elapsedTime / _duration);
         float curve = _speedCurve.Evaluate(t);
         _currentVelocity = _movementVelocity * curve;

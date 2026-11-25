@@ -20,7 +20,7 @@ public class PlayerAirborneState : PlayerBaseState
 
     protected override void UpdateState()
     {
-        _airborneTimer += Time.deltaTime;
+        _airborneTimer += _ctx.PlayerDeltaTime;
 
         ApplyAirControl();
         CheckLanding();

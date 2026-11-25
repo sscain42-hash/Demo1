@@ -88,7 +88,7 @@ public class PlayerParryState : PlayerBaseState, IImplicitTransitionable, IExclu
 
     protected override void UpdateState()
     {
-        _elapsedTime += Time.deltaTime;
+        _elapsedTime += _ctx.PlayerDeltaTime;
 
         // 🔥 Nếu window đã đóng mà chưa có result → thoát ngay
         var pc = _ctx.ParryController;

@@ -38,7 +38,10 @@ public class HitStopSystem : MonoBehaviour
         Time.timeScale = timeScale;
         yield return new WaitForSecondsRealtime(duration);
 
-        Time.timeScale = _defaultTimeScale;
+        // Restore về timeScale nền — tôn trọng PerfectDodge slow-mo nếu đang chạy
+        Time.timeScale = PerfectDodgeSystem.Instance != null
+            ? PerfectDodgeSystem.Instance.CurrentTimeScale
+            : _defaultTimeScale;
         _lastHitStopEndTime = Time.time; // Ghi nhớ thời điểm kết thúc
         _hitStopCoroutine = null;
     }
@@ -48,7 +51,9 @@ public class HitStopSystem : MonoBehaviour
         if (_hitStopCoroutine != null)
         {
             StopCoroutine(_hitStopCoroutine);
-            Time.timeScale = _defaultTimeScale;
+            Time.timeScale = PerfectDodgeSystem.Instance != null
+                ? PerfectDodgeSystem.Instance.CurrentTimeScale
+                : _defaultTimeScale;
             _lastHitStopEndTime = Time.time;
             _hitStopCoroutine = null;
         }

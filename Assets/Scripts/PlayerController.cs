@@ -202,6 +202,29 @@ public class PlayerController : CharacterActor,
 
     public bool IsInParryMovement => CurrentState is PlayerParryMovementState;
 
+    /// <summary>
+    /// DeltaTime theo "thời gian player" — được bù tốc độ trong perfect dodge slow-mo
+    /// (player chạy nhanh hơn world đang bị kéo chậm).
+    /// </summary>
+    public float PlayerDeltaTime => PerfectDodgeSystem.PlayerDeltaTime;
+
+    /// <summary>
+    /// Đang trong dash (ground hoặc air) — dash là CHILD state nên phải duyệt cả chuỗi.
+    /// </summary>
+    public bool IsDashing
+    {
+        get
+        {
+            PlayerBaseState s = CurrentState;
+            while (s != null)
+            {
+                if (s is PlayerDashState || s is PlayerAirDashState) return true;
+                s = s.ChildState;
+            }
+            return false;
+        }
+    }
+
     #endregion
 
     #region ANIMATION HASHES
@@ -389,16 +412,21 @@ public class PlayerController : CharacterActor,
 
     protected override bool CanTakeDamage()
     {
-        if (CurrentState is PlayerDashState) return false;
+        if (IsDashing) return false;
         if (CurrentState is PlayerParryMovementState) return false;
-        if (CurrentState is PlayerAirDashState) return false;
         if (CurrentState is PlayerParryState) return false;
         return true;
     }
 
     public override void TakeDMG(int damage, bool isCRIT)
     {
-        if (!CanTakeDamage()) return;
+        if (!CanTakeDamage())
+        {
+            // Né hoàn hảo: đòn đánh chạm trúng đúng lúc dash → slow-mo + tàn ảnh
+            if (IsDashing)
+                PerfectDodgeSystem.NotifyPerfectDodge(Model != null ? Model : transform);
+            return;
+        }
 
         base.TakeDMG(damage, isCRIT);
         DMGPopUpGenerator.Instance?.Create(transform.position + Vector3.up * 1.5f, damage, isCRIT, false);
@@ -687,18 +715,18 @@ public class PlayerController : CharacterActor,
         if (_playerInputs != null && _playerInputs.JumpHeld)
             _jumpBufferCounter = JumpBufferTime;
         else
-            _jumpBufferCounter = Mathf.Max(0f, _jumpBufferCounter - Time.deltaTime);
+            _jumpBufferCounter = Mathf.Max(0f, _jumpBufferCounter - PlayerDeltaTime);
 
         if (_charController.isGrounded)
             _coyoteCounter = CoyoteTime;
         else
-            _coyoteCounter = Mathf.Max(0f, _coyoteCounter - Time.deltaTime);
+            _coyoteCounter = Mathf.Max(0f, _coyoteCounter - PlayerDeltaTime);
 
         if (_dashCooldownTimer > 0f)
-            _dashCooldownTimer -= Time.deltaTime;
+            _dashCooldownTimer -= PlayerDeltaTime;
 
         if (_hitReactionIFrameTimer > 0f)
-            _hitReactionIFrameTimer -= Time.deltaTime;
+            _hitReactionIFrameTimer -= PlayerDeltaTime;
     }
 
     private void UpdateFrameCounters()
@@ -756,7 +784,7 @@ public class PlayerController : CharacterActor,
         }
         else
         {
-            _jumpVelocity += _gravity * GravityScaling * Time.deltaTime;
+            _jumpVelocity += _gravity * GravityScaling * PlayerDeltaTime;
             _jumpVelocity = Mathf.Max(_jumpVelocity, FallClamp);
         }
     }
@@ -792,9 +820,9 @@ public class PlayerController : CharacterActor,
             return;
         }
 
-        // 3. Fallback
+        // 3. Fallback — dùng PlayerDeltaTime (đã bù slow-mo) để player giữ lợi thế
         Vector3 motion = new Vector3(_velocity.x, _jumpVelocity, _velocity.z);
-        _charController.Move(motion * Time.deltaTime);
+        _charController.Move(motion * PlayerDeltaTime);
     }
 
     private bool HasExclusiveProviderActive()
@@ -826,7 +854,7 @@ public class PlayerController : CharacterActor,
         if (direction.sqrMagnitude < 0.01f) return;
 
         Quaternion targetRotation = Quaternion.LookRotation(direction);
-        float t = rotationSpeed * Time.deltaTime;
+        float t = rotationSpeed * PlayerDeltaTime;
         model.rotation = Quaternion.Slerp(model.rotation, targetRotation, t);
     }
 
@@ -851,7 +879,7 @@ public class PlayerController : CharacterActor,
     {
         if (_tempRotationLockTimer <= 0f) return;
 
-        _tempRotationLockTimer -= Time.deltaTime;
+        _tempRotationLockTimer -= PlayerDeltaTime;
 
         if (Model != null)
             Model.rotation = _lockedRotation;

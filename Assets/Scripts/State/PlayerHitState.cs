@@ -29,7 +29,7 @@ public class PlayerHitState : PlayerBaseState,IImplicitTransitionable
 
     protected override void UpdateState()
     {
-        _elapsedTime += Time.deltaTime;
+        _elapsedTime += _ctx.PlayerDeltaTime;
 
         var inputs = _ctx._playerInputs;
         if (inputs == null) return;

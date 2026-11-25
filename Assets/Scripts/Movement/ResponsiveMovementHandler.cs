@@ -26,7 +26,7 @@ public class ResponsiveMovementHandler : IMovementHandler
             // ATTACK — tăng tốc tới target
             Vector3 targetVel = moveDir.normalized * targetSpeed;
             float accel = targetSpeed / _tAttack;   // m/s²
-            Vector3 newVel = Vector3.MoveTowards(horizontal, targetVel, accel * Time.deltaTime);
+            Vector3 newVel = Vector3.MoveTowards(horizontal, targetVel, accel * PerfectDodgeSystem.PlayerDeltaTime);
             currentVelocity.x = newVel.x;
             currentVelocity.z = newVel.z;
         }
@@ -34,7 +34,7 @@ public class ResponsiveMovementHandler : IMovementHandler
         {
             // RELEASE — giảm tốc về 0
             float decel = _maxSpeed / _tRelease;    // m/s²
-            Vector3 newVel = Vector3.MoveTowards(horizontal, Vector3.zero, decel * Time.deltaTime);
+            Vector3 newVel = Vector3.MoveTowards(horizontal, Vector3.zero, decel * PerfectDodgeSystem.PlayerDeltaTime);
             currentVelocity.x = newVel.x;
             currentVelocity.z = newVel.z;
         }
@@ -48,7 +48,7 @@ public class ResponsiveMovementHandler : IMovementHandler
 
         Vector3 targetVel = moveDir.normalized * _maxSpeed;
         float airAccel = _maxSpeed / (_tAttack * 3f);
-        Vector3 newVel = Vector3.MoveTowards(horizontal, targetVel, airAccel * Time.deltaTime);
+        Vector3 newVel = Vector3.MoveTowards(horizontal, targetVel, airAccel * PerfectDodgeSystem.PlayerDeltaTime);
         currentVelocity.x = newVel.x;
         currentVelocity.z = newVel.z;
     }

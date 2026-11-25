@@ -141,7 +141,7 @@ public class PlayerSkillManager : MonoBehaviour, IVelocityProvider, IComboCharac
     private void Update()
     {
         if (_comboInputLockTimer > 0f)
-            _comboInputLockTimer -= Time.deltaTime;
+            _comboInputLockTimer -= _ctx.PlayerDeltaTime;
 
         UpdateComboTimers(stateNormal);
         UpdateComboTimers(stateE);

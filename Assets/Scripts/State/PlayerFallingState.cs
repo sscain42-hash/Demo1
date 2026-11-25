@@ -21,7 +21,7 @@ public class PlayerFallState : PlayerBaseState
 
     protected override void UpdateState()
     {
-        _timer += Time.deltaTime;
+        _timer += _ctx.PlayerDeltaTime;
 
         // Coyote jump
         if (_ctx.TryJump && _ctx.JumpBufferCounter > 0f && _ctx.CoyoteCounter > 0f)
